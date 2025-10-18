@@ -867,6 +867,13 @@ export const ProgressScreen = ({ navigation }: any) => {
                           <View style={styles.sectionHeader}>
                             <Text style={styles.sectionTitle}>ALL ACTIVITIES</Text>
                             <View style={styles.sectionTitleLine} />
+                            <Pressable
+                              style={styles.editButton}
+                              onPress={() => handleEditGoal(goal)}
+                              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            >
+                              <Edit3 size={18} color="rgba(255,215,0,0.7)" />
+                            </Pressable>
                           </View>
                           
                           {/* Get activities for this goal */}
@@ -1408,6 +1415,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
+    marginLeft: 12,
   },
   
   // Enhanced Milestone Rail
