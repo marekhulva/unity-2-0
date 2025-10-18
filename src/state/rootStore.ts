@@ -6,8 +6,9 @@ import { createSocialSlice, SocialSlice } from './slices/socialSlice';
 import { createUiSlice, UiSlice } from './slices/uiSlice';
 import { createChallengeSlice, ChallengeSlice } from './slices/challengeSlice';
 import { createDailyReviewSlice, DailyReviewSlice } from './slices/dailyReviewSlice';
+import { createCirclesSlice, CirclesSlice } from './slices/circlesSlice';
 
-type RootState = AuthSlice & DailySlice & GoalsSlice & SocialSlice & UiSlice & ChallengeSlice & DailyReviewSlice;
+type RootState = AuthSlice & DailySlice & GoalsSlice & SocialSlice & UiSlice & ChallengeSlice & DailyReviewSlice & CirclesSlice;
 export const useStore = create<RootState>()((...a) => ({
   ...createAuthSlice(...a),
   ...createUiSlice(...a),
@@ -16,4 +17,5 @@ export const useStore = create<RootState>()((...a) => ({
   ...createSocialSlice(...a),
   ...createChallengeSlice(...a),
   ...createDailyReviewSlice(...a),
+  ...createCirclesSlice(...a),
 }));

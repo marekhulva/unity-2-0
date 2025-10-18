@@ -30,6 +30,10 @@ import { Goal } from '../../state/slices/goalsSlice';
 import { EmptyState } from '../../ui/EmptyState';
 import { calculateConsistency } from '../../utils/consistencyCalculator';
 
+// Import CircleSelector and JoinCircleModal for multiple circles support
+import { CircleSelector } from '../circles/components/CircleSelector';
+import { JoinCircleModal } from '../social/JoinCircleModal';
+
 const { width } = Dimensions.get('window');
 
 const AnimatedSvgCircle = Animated.createAnimatedComponent(SvgCircle);
@@ -58,6 +62,16 @@ export const ProgressScreen = ({ navigation }: any) => {
   const circleName = useStore(s => s.circleName);
   const circleMembers = useStore(s => s.circleMembers);
   const loadCircleData = useStore(s => s.loadCircleData);
+
+  // Multiple circles support
+  const userCircles = useStore(s => s.userCircles);
+  const activeCircleId = useStore(s => s.activeCircleId);
+  const setActiveCircle = useStore(s => s.setActiveCircle);
+  const fetchUserCircles = useStore(s => s.fetchUserCircles);
+  const circlesLoading = useStore(s => s.circlesLoading);
+  const circlesError = useStore(s => s.circlesError);
+  const joinCircle = useStore(s => s.joinCircle);
+  const [showJoinCircleModal, setShowJoinCircleModal] = useState(false);
   
   
   // Calculate overall metrics
@@ -235,7 +249,18 @@ export const ProgressScreen = ({ navigation }: any) => {
     if (circleId) {
       loadCircleData();
     }
+    // Load all user's circles for the selector
+    fetchUserCircles();
   }, []);
+
+  // Handle circle selection changes
+  useEffect(() => {
+    if (activeCircleId !== undefined) {
+      // Fetch goals for the selected circle (or all circles if null)
+      fetchGoals();
+      fetchCompletionStats();
+    }
+  }, [activeCircleId]);
 
   // Fetch all actions when goals are loaded (only once)
   useEffect(() => {
@@ -683,7 +708,17 @@ export const ProgressScreen = ({ navigation }: any) => {
           style={styles.headerUnderline}
         />
       </Animated.View>
-      
+
+      {/* Circle Selector - for multiple circles support */}
+      <CircleSelector
+        circles={userCircles}
+        activeCircleId={activeCircleId}
+        onCircleSelect={setActiveCircle}
+        onJoinCircle={() => setShowJoinCircleModal(true)}
+        loading={circlesLoading}
+        error={circlesError}
+      />
+
       <View style={styles.scrollViewWrapper}>
         {/* Fallback gradient background */}
         <LinearGradient 
@@ -1037,7 +1072,17 @@ export const ProgressScreen = ({ navigation }: any) => {
         goal={editingGoal}
         onClose={() => setEditingGoal(null)}
       />
-      
+
+      {/* Join Circle Modal */}
+      <JoinCircleModal
+        visible={showJoinCircleModal}
+        onClose={() => setShowJoinCircleModal(false)}
+        onJoin={async (circleCode) => {
+          await joinCircle(circleCode);
+          setShowJoinCircleModal(false);
+        }}
+      />
+
       {/* Loading Overlay */}
       {goalsLoading && (
         <View style={styles.loadingOverlay}>

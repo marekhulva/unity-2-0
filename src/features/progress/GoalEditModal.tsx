@@ -9,10 +9,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { X, Save, Trash2, Target, Calendar, Globe, Users, Lock } from 'lucide-react-native';
+import { X, Save, Trash2, Target, Calendar, Globe, Users, Lock, Link, Unlink, Plus } from 'lucide-react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -26,6 +27,7 @@ import { HapticButton } from '../../ui/HapticButton';
 import { LuxuryTheme } from '../../design/luxuryTheme';
 import { useStore } from '../../state/rootStore';
 import { Goal } from '../../state/slices/goalsSlice';
+import { ActionItem } from '../../state/slices/dailySlice';
 import * as Haptics from 'expo-haptics';
 
 interface GoalEditModalProps {
@@ -44,7 +46,7 @@ const CATEGORIES = [
 ] as const;
 
 export const GoalEditModal: React.FC<GoalEditModalProps> = ({ visible, goal, onClose }) => {
-  const { updateGoal, deleteGoal, goalsLoading } = useStore();
+  const { updateGoal, deleteGoal, goalsLoading, actions, updateAction, fetchDailyActions } = useStore();
   const [title, setTitle] = useState('');
   const [metric, setMetric] = useState('');
   const [deadline, setDeadline] = useState(new Date());
@@ -53,6 +55,9 @@ export const GoalEditModal: React.FC<GoalEditModalProps> = ({ visible, goal, onC
   const [color, setColor] = useState('#FFD700');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [visibility, setVisibility] = useState<'public' | 'circle' | 'private'>('public');
+  const [linkedActions, setLinkedActions] = useState<ActionItem[]>([]);
+  const [availableActions, setAvailableActions] = useState<ActionItem[]>([]);
+  const [showActionSelector, setShowActionSelector] = useState(false);
 
   const modalScale = useSharedValue(0);
 
@@ -66,12 +71,24 @@ export const GoalEditModal: React.FC<GoalEditModalProps> = ({ visible, goal, onC
       setCategory(goal.category || 'fitness');
       setColor(goal.color || '#FFD700');
       setVisibility((goal as any).visibility || 'public');
-      
+
+      // Fetch and populate linked actions
+      if (actions.length === 0) {
+        fetchDailyActions();
+      }
+
+      // Find actions linked to this goal
+      const linked = actions.filter(action => action.goalId === goal.id);
+      const available = actions.filter(action => !action.goalId || action.goalId === goal.id);
+      setLinkedActions(linked);
+      setAvailableActions(available);
+
       modalScale.value = withSpring(1, { damping: 15, stiffness: 100 });
     } else {
       modalScale.value = withTiming(0, { duration: 200 });
+      setShowActionSelector(false);
     }
-  }, [visible, goal]);
+  }, [visible, goal, actions]);
 
   const modalStyle = useAnimatedStyle(() => ({
     transform: [{ scale: modalScale.value }],
@@ -95,7 +112,15 @@ export const GoalEditModal: React.FC<GoalEditModalProps> = ({ visible, goal, onC
     } as any;
 
     try {
+      // First save goal updates
       await updateGoal(goal.id, updates);
+
+      // Then save action changes
+      await saveActionChanges();
+
+      // Refresh daily actions to reflect changes
+      await fetchDailyActions();
+
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       onClose();
     } catch (error) {
@@ -137,6 +162,46 @@ export const GoalEditModal: React.FC<GoalEditModalProps> = ({ visible, goal, onC
     }
   };
 
+  const handleLinkAction = (action: ActionItem) => {
+    // Add to linked actions
+    setLinkedActions(prev => [...prev, { ...action, goalId: goal?.id }]);
+    // Remove from available if it was unlinked
+    setAvailableActions(prev => prev.filter(a => a.id !== action.id));
+    Haptics.selectionAsync();
+  };
+
+  const handleUnlinkAction = (actionId: string) => {
+    const action = linkedActions.find(a => a.id === actionId);
+    if (action) {
+      // Remove from linked actions
+      setLinkedActions(prev => prev.filter(a => a.id !== actionId));
+      // Add to available actions
+      setAvailableActions(prev => [...prev, { ...action, goalId: undefined }]);
+      Haptics.selectionAsync();
+    }
+  };
+
+  const saveActionChanges = async () => {
+    // Update all actions with their new goalId status
+    const updates: Promise<void>[] = [];
+
+    // Unlink actions that were previously linked but are now unlinked
+    for (const action of actions.filter(a => a.goalId === goal?.id)) {
+      if (!linkedActions.find(la => la.id === action.id)) {
+        updates.push(updateAction(action.id, { ...action, goalId: undefined }));
+      }
+    }
+
+    // Link actions that are now linked
+    for (const action of linkedActions) {
+      if (action.goalId !== goal?.id) {
+        updates.push(updateAction(action.id, { ...action, goalId: goal?.id }));
+      }
+    }
+
+    await Promise.all(updates);
+  };
+
   if (!visible || !goal) return null;
 
   return (
@@ -168,6 +233,7 @@ export const GoalEditModal: React.FC<GoalEditModalProps> = ({ visible, goal, onC
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.content}
           >
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollContent}>
             {/* Goal Title */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Goal Title</Text>
@@ -301,6 +367,72 @@ export const GoalEditModal: React.FC<GoalEditModalProps> = ({ visible, goal, onC
               </View>
             </View>
 
+            {/* Linked Activities */}
+            <View style={styles.inputGroup}>
+              <View style={styles.activitiesHeader}>
+                <Text style={styles.label}>Linked Activities</Text>
+                <TouchableOpacity
+                  style={styles.addActivityButton}
+                  onPress={() => setShowActionSelector(!showActionSelector)}
+                >
+                  <Plus size={16} color={LuxuryTheme.colors.primary.gold} />
+                  <Text style={styles.addActivityText}>Add Activity</Text>
+                </TouchableOpacity>
+              </View>
+
+              {linkedActions.length > 0 ? (
+                <View style={styles.linkedActionsList}>
+                  {linkedActions.map((action) => (
+                    <View key={action.id} style={styles.linkedAction}>
+                      <View style={styles.actionInfo}>
+                        <Text style={styles.actionTitle}>{action.title}</Text>
+                        {action.time && (
+                          <Text style={styles.actionTime}>{action.time}</Text>
+                        )}
+                      </View>
+                      <TouchableOpacity
+                        style={styles.unlinkButton}
+                        onPress={() => handleUnlinkAction(action.id)}
+                      >
+                        <Unlink size={16} color="#ef4444" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.noActionsText}>
+                  No activities linked to this goal yet
+                </Text>
+              )}
+
+              {/* Action Selector */}
+              {showActionSelector && (
+                <View style={styles.actionSelector}>
+                  <Text style={styles.selectorTitle}>Available Activities</Text>
+                  {availableActions.filter(a => !a.goalId).map((action) => (
+                    <TouchableOpacity
+                      key={action.id}
+                      style={styles.availableAction}
+                      onPress={() => handleLinkAction(action)}
+                    >
+                      <View style={styles.actionInfo}>
+                        <Text style={styles.actionTitle}>{action.title}</Text>
+                        {action.time && (
+                          <Text style={styles.actionTime}>{action.time}</Text>
+                        )}
+                      </View>
+                      <Link size={16} color={LuxuryTheme.colors.primary.gold} />
+                    </TouchableOpacity>
+                  ))}
+                  {availableActions.filter(a => !a.goalId).length === 0 && (
+                    <Text style={styles.noAvailableText}>
+                      All activities are already linked to goals
+                    </Text>
+                  )}
+                </View>
+              )}
+            </View>
+
             {/* Why */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Why This Matters (Optional)</Text>
@@ -317,8 +449,8 @@ export const GoalEditModal: React.FC<GoalEditModalProps> = ({ visible, goal, onC
 
             {/* Action Buttons */}
             <View style={styles.actions}>
-              <TouchableOpacity 
-                style={[styles.button, styles.deleteButton]} 
+              <TouchableOpacity
+                style={[styles.button, styles.deleteButton]}
                 onPress={handleDelete}
                 disabled={goalsLoading}
               >
@@ -342,6 +474,7 @@ export const GoalEditModal: React.FC<GoalEditModalProps> = ({ visible, goal, onC
                 </Text>
               </HapticButton>
             </View>
+            </ScrollView>
           </KeyboardAvoidingView>
 
           {/* Date Picker */}
@@ -527,5 +660,100 @@ const styles = StyleSheet.create({
   },
   privacyTextActive: {
     color: LuxuryTheme.colors.primary.gold,
+  },
+  scrollContent: {
+    flex: 1,
+  },
+  activitiesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  addActivityButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.3)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 4,
+  },
+  addActivityText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: LuxuryTheme.colors.primary.gold,
+  },
+  linkedActionsList: {
+    gap: 8,
+    marginBottom: 12,
+  },
+  linkedAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 215, 0, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.2)',
+    borderRadius: 12,
+    padding: 12,
+  },
+  actionInfo: {
+    flex: 1,
+    marginRight: 8,
+  },
+  actionTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: LuxuryTheme.colors.text.primary,
+  },
+  actionTime: {
+    fontSize: 12,
+    color: LuxuryTheme.colors.text.tertiary,
+    marginTop: 2,
+  },
+  unlinkButton: {
+    padding: 8,
+  },
+  noActionsText: {
+    fontSize: 14,
+    color: LuxuryTheme.colors.text.muted,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    padding: 20,
+  },
+  actionSelector: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  selectorTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: LuxuryTheme.colors.text.secondary,
+    marginBottom: 8,
+  },
+  availableAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 6,
+  },
+  noAvailableText: {
+    fontSize: 13,
+    color: LuxuryTheme.colors.text.muted,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    padding: 12,
   },
 });

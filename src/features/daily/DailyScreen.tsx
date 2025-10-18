@@ -25,11 +25,15 @@ import { GoalCard } from './GoalCard';
 import { PrivacySelectionModal } from './PrivacySelectionModal';
 import { SocialSharePrompt } from '../social/SocialSharePrompt';
 import { EmptyState } from '../../ui/EmptyState';
+import { JoinCircleModal } from '../social/JoinCircleModal';
 import { LuxuryTheme } from '../../design/luxuryTheme';
 import { Sparkles, Zap, Trophy, TrendingUp, Clock, Calendar, Target, CheckCircle2, Circle, CheckCircle } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { HapticManager } from '../../utils/haptics';
 import ChallengeDebugV2 from '../../utils/challengeDebugV2';
+
+// Import CircleSelector for multiple circles support
+import { CircleSelector } from '../circles/components/CircleSelector';
 
 const { width, height } = Dimensions.get('window');
 
@@ -50,7 +54,17 @@ export const DailyScreen = () => {
   const [showSharePrompt, setShowSharePrompt] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [selectedAction, setSelectedAction] = useState<any>(null);
+  const [showJoinCircleModal, setShowJoinCircleModal] = useState(false);
   const allCompleted = actions.length > 0 && completed === actions.length;
+
+  // Multiple circles support
+  const userCircles = useStore(s => s.userCircles);
+  const activeCircleId = useStore(s => s.activeCircleId);
+  const setActiveCircle = useStore(s => s.setActiveCircle);
+  const fetchUserCircles = useStore(s => s.fetchUserCircles);
+  const circlesLoading = useStore(s => s.circlesLoading);
+  const circlesError = useStore(s => s.circlesError);
+  const joinCircle = useStore(s => s.joinCircle);
   
   // console.log('Goals in DailyScreen:', goals);
   
@@ -70,7 +84,17 @@ export const DailyScreen = () => {
   useEffect(() => {
     console.log('🟦 [DAILY] DailyScreen mounted - fetching actions');
     fetchDailyActions();
+    // Load all user's circles for the selector
+    fetchUserCircles();
   }, []);
+
+  // Handle circle selection changes
+  useEffect(() => {
+    if (activeCircleId !== undefined) {
+      // Fetch actions for the selected circle (or all circles if null)
+      fetchDailyActions();
+    }
+  }, [activeCircleId]);
   
   // Log actions when component mounts or actions change
   useEffect(() => {
@@ -314,8 +338,17 @@ export const DailyScreen = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Pure Black Background */}
       <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#000000' }]} />
-      
-      
+
+      {/* Circle Selector - for multiple circles support */}
+      <CircleSelector
+        circles={userCircles}
+        activeCircleId={activeCircleId}
+        onCircleSelect={setActiveCircle}
+        onJoinCircle={() => setShowJoinCircleModal(true)}
+        loading={circlesLoading}
+        error={circlesError}
+      />
+
       <ScrollView 
         style={styles.scrollView} 
         contentContainerStyle={[
@@ -640,7 +673,17 @@ export const DailyScreen = () => {
         actionTitle={selectedAction?.title || ''}
         streak={selectedAction?.streak || 0}
       />
-      
+
+      {/* Join Circle Modal */}
+      <JoinCircleModal
+        visible={showJoinCircleModal}
+        onClose={() => setShowJoinCircleModal(false)}
+        onJoin={async (circleCode) => {
+          await joinCircle(circleCode);
+          setShowJoinCircleModal(false);
+        }}
+      />
+
       {/* Loading Overlay */}
       {actionsLoading && (
         <View style={styles.loadingOverlay}>

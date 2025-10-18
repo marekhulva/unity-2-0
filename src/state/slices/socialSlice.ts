@@ -145,34 +145,41 @@ export const createSocialSlice: StateCreator<
       // Get current user from auth slice
       const currentUser = get().user;
       const currentUserId = currentUser?.id;
-      
+
+      // Get activeCircleId from the store (accessing circlesSlice)
+      const activeCircleId = (get() as any).activeCircleId;
+      console.log('🔵 [FEED] Using activeCircleId:', activeCircleId);
+
+      // Create unique cache keys based on circle
+      const circleCacheKey = `feed:circle:${activeCircleId || 'default'}`;
+
       // Reset pagination on refresh
       if (refresh) {
-        set({ 
-          circleOffset: 0, 
+        set({
+          circleOffset: 0,
           followOffset: 0,
           circleHasMore: true,
           followHasMore: true,
           circleFeed: [],
           followFeed: []
         });
-        memoryCache.clear('feed:circle');
+        memoryCache.clear(circleCacheKey);
         memoryCache.clear('feed:follow');
       }
-      
+
       // Check if we have cached feeds for instant display (only for initial load)
-      const cachedCircle = !refresh ? memoryCache.get<{data: any[], hasMore: boolean}>('feed:circle') : null;
+      const cachedCircle = !refresh ? memoryCache.get<{data: any[], hasMore: boolean}>(circleCacheKey) : null;
       const cachedFollow = !refresh ? memoryCache.get<{data: any[], hasMore: boolean}>('feed:follow') : null;
-      
+
       console.log('📊 [FEED] Cache status - Circle:', !!cachedCircle, 'Follow:', !!cachedFollow);
-      
+
       // Fetch both feeds in parallel (use cache if available)
       const [circleResponse, followResponse] = await Promise.all([
-        cachedCircle 
+        cachedCircle
           ? Promise.resolve({ success: true, data: cachedCircle.data, hasMore: cachedCircle.hasMore })
-          : backendService.getFeed('circle', 5, 0).then(res => {
+          : backendService.getFeed('circle', 5, 0, activeCircleId).then(res => {
               if (res.success) {
-                memoryCache.set('feed:circle', { data: res.data, hasMore: res.hasMore });
+                memoryCache.set(circleCacheKey, { data: res.data, hasMore: res.hasMore });
               }
               return res;
             }),
@@ -309,22 +316,25 @@ export const createSocialSlice: StateCreator<
   
   loadMoreFeeds: async (type: 'circle' | 'follow') => {
     const state = get();
-    
+
     // Check if already loading or no more to load
     if (state.loadingMore) return;
     if (type === 'circle' && !state.circleHasMore) return;
     if (type === 'follow' && !state.followHasMore) return;
-    
+
     set({ loadingMore: true });
-    
+
     try {
       const currentUser = state.user;
       const currentUserId = currentUser?.id;
       const offset = type === 'circle' ? state.circleOffset : state.followOffset;
-      
-      console.log(`Loading more ${type} posts from offset ${offset}`);
-      
-      const response = await backendService.getFeed(type, 5, offset);
+
+      // Get activeCircleId for circle feed pagination
+      const activeCircleId = type === 'circle' ? (state as any).activeCircleId : undefined;
+
+      console.log(`Loading more ${type} posts from offset ${offset}, activeCircleId: ${activeCircleId}`);
+
+      const response = await backendService.getFeed(type, 5, offset, activeCircleId);
       
       if (response.success) {
         // Transform API data to match our Post type

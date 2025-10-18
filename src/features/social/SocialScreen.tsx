@@ -73,6 +73,9 @@ import { CelebrationCardMinimal } from './CelebrationCardMinimal';
 import { KeyboardToolbar, useKeyboardToolbar } from '../../components/KeyboardToolbar';
 // Removed ShareComposer - using inline composer instead
 
+// Import CircleSelector for multiple circles support
+import { CircleSelector } from '../circles/components/CircleSelector';
+
 const { width, height } = Dimensions.get('window');
 
 export const SocialScreen = () => {
@@ -98,6 +101,15 @@ export const SocialScreen = () => {
   const challengesLoading = useStore(s => s.challengesLoading);
   const loadChallenge = useStore(s => s.loadChallenge);
   const loadLeaderboard = useStore(s => s.loadLeaderboard);
+
+  // Multiple circles support
+  const userCircles = useStore(s => s.userCircles);
+  const activeCircleId = useStore(s => s.activeCircleId);
+  const setActiveCircle = useStore(s => s.setActiveCircle);
+  const fetchUserCircles = useStore(s => s.fetchUserCircles);
+  const circlesLoading = useStore(s => s.circlesLoading);
+  const circlesError = useStore(s => s.circlesError);
+  const joinCircle = useStore(s => s.joinCircle);
   const fetchDailyActions = useStore(s => s.fetchDailyActions);
   const fetchFeeds = useStore(s => s.fetchFeeds);
   const loadFollowing = useStore(s => s.loadFollowing);
@@ -161,9 +173,18 @@ export const SocialScreen = () => {
     loadCircleData();
     fetchFeeds();
     loadFollowing();
+    // Load all user's circles for the selector
+    fetchUserCircles();
   }, []);
-  
-  
+
+  // Handle circle selection changes
+  useEffect(() => {
+    if (activeCircleId !== undefined) {
+      // Fetch feed for the selected circle (or all circles if null)
+      fetchFeeds(false); // false = don't reset pagination
+    }
+  }, [activeCircleId]);
+
   // Set default sub-tab when switching to circle
   useEffect(() => {
     if (feedView === 'circle') {
@@ -632,7 +653,19 @@ export const SocialScreen = () => {
             />
           </View>
         </Animated.View>
-        
+
+        {/* Circle Selector - only show in circle view */}
+        {feedView === 'circle' && (
+          <CircleSelector
+            circles={userCircles}
+            activeCircleId={activeCircleId}
+            onCircleSelect={setActiveCircle}
+            onJoinCircle={() => setShowJoinCircleModal(true)}
+            loading={circlesLoading}
+            error={circlesError}
+          />
+        )}
+
         <View style={styles.scrollViewWrapper}>
           {/* Fallback gradient background - always shows */}
           <LinearGradient 

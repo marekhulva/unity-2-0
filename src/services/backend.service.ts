@@ -303,9 +303,9 @@ class BackendService {
     }
   }
 
-  async getFeed(type: 'circle' | 'follow' = 'circle', limit: number = 5, offset: number = 0) {
+  async getFeed(type: 'circle' | 'follow' = 'circle', limit: number = 5, offset: number = 0, circleId?: string | null) {
     if (isSupabaseBackend()) {
-      const result = await supabaseService.getFeed(type, limit, offset);
+      const result = await supabaseService.getFeed(type, limit, offset, circleId);
       return { success: true, data: result.posts, hasMore: result.hasMore };
     } else {
       return apiService.getFeed(type);
@@ -425,10 +425,10 @@ class BackendService {
     }
   }
 
-  // Circle methods
-  async createCircle(name: string, description?: string) {
+  // Circle methods - Updated for multiple circles support
+  async createCircle(data: { name: string; description?: string }) {
     if (isSupabaseBackend()) {
-      const circle = await supabaseService.createCircle(name, description);
+      const circle = await supabaseService.createCircle(data.name, data.description);
       return { success: true, data: circle };
     } else {
       // Custom backend doesn't have circles yet
@@ -445,12 +445,45 @@ class BackendService {
     }
   }
 
+  async joinCircleByCode(inviteCode: string) {
+    // Alias for joinCircleWithCode
+    return this.joinCircleWithCode(inviteCode);
+  }
+
   async getMyCircle() {
     if (isSupabaseBackend()) {
       const circle = await supabaseService.getMyCircle();
       return { success: true, data: circle };
     } else {
       throw new Error('Circles not implemented in custom backend');
+    }
+  }
+
+  // NEW: Get all circles the user belongs to (for multiple circles)
+  async getUserCircles() {
+    if (isSupabaseBackend()) {
+      try {
+        const circles = await supabaseService.getUserCircles();
+        return { success: true, data: circles };
+      } catch (error: any) {
+        return { success: false, error: error.message, data: [] };
+      }
+    } else {
+      throw new Error('Multiple circles not implemented in custom backend');
+    }
+  }
+
+  // NEW: Leave a circle
+  async leaveCircle(circleId: string) {
+    if (isSupabaseBackend()) {
+      try {
+        await supabaseService.leaveCircle(circleId);
+        return { success: true };
+      } catch (error: any) {
+        return { success: false, error: error.message };
+      }
+    } else {
+      throw new Error('Leave circle not implemented in custom backend');
     }
   }
 

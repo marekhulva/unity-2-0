@@ -895,42 +895,75 @@ class SupabaseService {
   }
 
   // Posts methods
-  async getFeed(type: 'circle' | 'follow' = 'circle', limit: number = 5, offset: number = 0) {
+  async getFeed(type: 'circle' | 'follow' = 'circle', limit: number = 5, offset: number = 0, circleId?: string | null) {
     const { data: { user } } = await supabase.auth.getUser();
-    
-    console.log('🟦 [FEED] getFeed called:', { type, userId: user?.id, limit, offset });
-    
+
+    console.log('🟦 [FEED] getFeed called:', { type, userId: user?.id, limit, offset, circleId });
+
     // Must be authenticated to see feeds
     if (!user) {
       console.log('🔴 [FEED] No authenticated user for feed');
       return { posts: [], hasMore: false };
     }
-    
-    if (type === 'circle') {
-      // Get posts from circle members only
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('circle_id')
-        .eq('id', user.id)
-        .single();
-      
-      if (!profile?.circle_id) {
-        console.log('🟡 [FEED] User', user.id, 'has no circle_id - returning empty circle feed');
-        return { posts: [], hasMore: false }; // No circle, no posts
-      }
-      
-      console.log('🟦 [FEED] User circle_id:', profile.circle_id);
 
-      // Get all circle member IDs
-      const { data: members } = await supabase
-        .from('circle_members')
-        .select('user_id')
-        .eq('circle_id', profile.circle_id);
-      
-      console.log('🟦 [FEED] Circle members found:', members?.length || 0);
-      
-      // CRITICAL FIX: Filter out null user_ids that break the query
-      const memberIds = members?.map(m => m.user_id).filter(id => id !== null) || [];
+    if (type === 'circle') {
+      let targetCircleId = circleId;
+
+      // If no specific circle provided and not "All Circles" mode, use profile circle
+      if (targetCircleId === undefined) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('circle_id')
+          .eq('id', user.id)
+          .single();
+
+        if (!profile?.circle_id) {
+          console.log('🟡 [FEED] User', user.id, 'has no circle_id - returning empty circle feed');
+          return { posts: [], hasMore: false };
+        }
+        targetCircleId = profile.circle_id;
+      }
+
+      // If circleId is null, it means "All Circles" - get posts from all user's circles
+      let memberIds: string[] = [];
+
+      if (targetCircleId === null) {
+        console.log('🟦 [FEED] Fetching posts from ALL user circles');
+
+        // Get all circles the user belongs to
+        const { data: userMemberships } = await supabase
+          .from('circle_members')
+          .select('circle_id')
+          .eq('user_id', user.id);
+
+        if (!userMemberships || userMemberships.length === 0) {
+          console.log('🟡 [FEED] User is not in any circles');
+          return { posts: [], hasMore: false };
+        }
+
+        const userCircleIds = userMemberships.map(m => m.circle_id);
+
+        // Get all members from all user's circles
+        const { data: allMembers } = await supabase
+          .from('circle_members')
+          .select('user_id')
+          .in('circle_id', userCircleIds);
+
+        memberIds = allMembers?.map(m => m.user_id).filter(id => id !== null) || [];
+        console.log('🟦 [FEED] Total members across all circles:', memberIds.length);
+      } else {
+        console.log('🟦 [FEED] Fetching posts from specific circle:', targetCircleId);
+
+        // Get members from specific circle
+        const { data: members } = await supabase
+          .from('circle_members')
+          .select('user_id')
+          .eq('circle_id', targetCircleId);
+
+        memberIds = members?.map(m => m.user_id).filter(id => id !== null) || [];
+        console.log('🟦 [FEED] Circle members found:', memberIds.length);
+      }
+
       console.log('🟦 [FEED] Valid member IDs:', memberIds);
       
       // CRITICAL FIX #2: If no members in circle, return empty (don't fetch ALL posts)
@@ -1836,6 +1869,116 @@ class SupabaseService {
     
     console.log('Fetched circle members with profiles:', membersWithProfiles);
     return membersWithProfiles;
+  }
+
+  // NEW: Get all circles the user belongs to (for multiple circles support)
+  async getUserCircles() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    console.log('🔵 [CIRCLES] Fetching all circles for user:', user.id);
+
+    // Get all circle memberships for the user
+    const { data: memberships, error: membershipError } = await supabase
+      .from('circle_members')
+      .select(`
+        circle_id,
+        joined_at,
+        circles:circle_id (
+          id,
+          name,
+          created_by,
+          created_at
+        )
+      `)
+      .eq('user_id', user.id)
+      .order('joined_at', { ascending: false });
+
+    if (membershipError) {
+      console.error('🔴 [CIRCLES] Error fetching user circles:', membershipError);
+      throw membershipError;
+    }
+
+    // Transform the data to match our Circle interface
+    const circles = (memberships || []).map(membership => {
+      const circle = membership.circles;
+
+      // Get member count for each circle (we'll need to do this separately)
+      return {
+        id: circle.id,
+        name: circle.name,
+        member_count: 0, // Will be updated below
+        created_by: circle.created_by,
+        created_at: circle.created_at,
+        joined_at: membership.joined_at
+      };
+    });
+
+    // Get member counts for all circles
+    if (circles.length > 0) {
+      const circleIds = circles.map(c => c.id);
+      const { data: counts, error: countError } = await supabase
+        .from('circle_members')
+        .select('circle_id')
+        .in('circle_id', circleIds);
+
+      if (!countError && counts) {
+        // Count members per circle
+        const memberCounts = counts.reduce((acc, member) => {
+          acc[member.circle_id] = (acc[member.circle_id] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+
+        // Update member counts
+        circles.forEach(circle => {
+          circle.member_count = memberCounts[circle.id] || 0;
+        });
+      }
+    }
+
+    console.log('✅ [CIRCLES] Found', circles.length, 'circles for user');
+    return circles;
+  }
+
+  // NEW: Leave a circle
+  async leaveCircle(circleId: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    console.log('🔵 [CIRCLES] User', user.id, 'leaving circle:', circleId);
+
+    // Remove from circle_members table
+    const { error: memberError } = await supabase
+      .from('circle_members')
+      .delete()
+      .eq('circle_id', circleId)
+      .eq('user_id', user.id);
+
+    if (memberError) {
+      console.error('🔴 [CIRCLES] Error leaving circle:', memberError);
+      throw memberError;
+    }
+
+    // If this was the user's current circle, clear it from their profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('circle_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.circle_id === circleId) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ circle_id: null })
+        .eq('id', user.id);
+
+      if (profileError) {
+        console.error('🔴 [CIRCLES] Error updating profile:', profileError);
+        throw profileError;
+      }
+    }
+
+    console.log('✅ [CIRCLES] Successfully left circle');
   }
 
   // Following methods
