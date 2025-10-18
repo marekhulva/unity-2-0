@@ -34,7 +34,7 @@ const { width } = Dimensions.get('window');
 
 const AnimatedSvgCircle = Animated.createAnimatedComponent(SvgCircle);
 
-export const ProgressMVPEnhanced = ({ navigation }: any) => {
+export const ProgressScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const goals = useStore(s => s.goals);
   const goalsLoading = useStore(s => s.goalsLoading);

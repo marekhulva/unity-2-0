@@ -163,8 +163,8 @@ interface ProfileClaudeProps {
   isInModal?: boolean; // Whether profile is displayed in a modal (modal has its own close button)
 }
 
-export const ProfileClaudeOptionB: React.FC<ProfileClaudeProps> = ({ userId, source = 'Circle', navigation: navProp, isInModal = false }) => {
-  console.log('>>> USING ProfileClaudeOptionB COMPONENT <<<', userId ? `Viewing user: ${userId}` : 'Viewing own profile');
+export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = 'Circle', navigation: navProp, isInModal = false }) => {
+  console.log('>>> USING ProfileScreen COMPONENT <<<', userId ? `Viewing user: ${userId}` : 'Viewing own profile');
   const insets = useSafeAreaInsets();
   const navigation = navProp || useNavigation();
   const route = useRoute();

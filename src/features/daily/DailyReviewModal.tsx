@@ -57,7 +57,7 @@ interface ReviewAnswers {
   gratitude: string;
 }
 
-export const DailyReviewModalV2: React.FC = () => {
+export const DailyReviewModal: React.FC = () => {
   const insets = useSafeAreaInsets();
   const isOpen = useStore(s => s.isDailyReviewOpen);
   const close = useStore(s => s.closeDailyReview);

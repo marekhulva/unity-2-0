@@ -75,9 +75,9 @@ import { KeyboardToolbar, useKeyboardToolbar } from '../../components/KeyboardTo
 
 const { width, height } = Dimensions.get('window');
 
-export const SocialScreenV6 = () => {
+export const SocialScreen = () => {
   if (__DEV__) {
-    console.log('[COMPONENT RENDER] SocialScreenV6 (ACTIVE VERSION)');
+    console.log('[COMPONENT RENDER] SocialScreen');
   }
   const insets = useSafeAreaInsets();
   
