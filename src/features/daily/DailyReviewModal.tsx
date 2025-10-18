@@ -1,291 +1,820 @@
-import React from 'react';
-import { Modal, View, Text, StyleSheet, Pressable, TextInput, ScrollView } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Modal,
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  TextInput,
+  ScrollView,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  interpolate,
+  FadeIn,
+  FadeOut,
+  SlideInDown,
+  SlideOutDown,
+  runOnJS,
+} from 'react-native-reanimated';
+import {
+  Trophy,
+  Star,
+  Heart,
+  Target,
+  Sparkles,
+  ChevronRight,
+  X,
+  CheckCircle,
+  Circle,
+} from 'lucide-react-native';
 import { useStore } from '../../state/rootStore';
-import { GlassSurface } from '../../ui/GlassSurface';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type MissedReason = { completed: boolean; distractions?: string; steps?: string };
+const { width, height } = Dimensions.get('window');
 
-export const DailyReviewModal: React.FC = () => {
-  const isOpen = useStore(s=>s.isDailyReviewOpen);
-  const close = useStore(s=>s.closeDailyReview);
-  const actions = useStore(s=>s.actions);
-  const toggleAction = useStore(s=>s.toggleAction);
-  const addAction = useStore(s=>s.addAction);
+interface MissedAction {
+  id: string;
+  title: string;
+  goalTitle?: string;
+  completed?: boolean;
+  missReason?: string;
+}
 
-  // Missed = not done today
-  const missed = React.useMemo(()=>actions.filter(a=>!a.done),[actions]);
+interface ReviewAnswers {
+  biggestWin: string;
+  keyInsight: string;
+  gratitude: string;
+}
 
-  // Steps:
-  // 0 = missed-action loop (per-item)
-  // 1 = biggest win
-  // 2 = insight
-  // 3 = gratitude
-  // 4 = add tomorrow actions
-  // 5 = intention -> complete
-  const [step, setStep] = React.useState<number>(0);
-  const [idx, setIdx] = React.useState<number>(0);
-  const [reasons, setReasons] = React.useState<Record<string, MissedReason>>({});
-  const [answers, setAnswers] = React.useState<Record<string,string>>({
-    biggestWin:'', insight:'', grateful:'', intention:''
+export const DailyReviewModalV2: React.FC = () => {
+  const insets = useSafeAreaInsets();
+  const isOpen = useStore(s => s.isDailyReviewOpen);
+  const close = useStore(s => s.closeDailyReview);
+  const actions = useStore(s => s.actions);
+  const toggleAction = useStore(s => s.toggleAction);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('🔴 [DAILY REVIEW MODAL] isOpen changed:', isOpen);
+  }, [isOpen]);
+  
+  // Daily review backend integration
+  const initializeReview = useStore(s => s.initializeTodayReview);
+  const saveReviewProgress = useStore(s => s.saveReviewProgress);
+  const currentReview = useStore(s => s.currentReview);
+  
+  const [currentStep, setCurrentStep] = useState(0);
+  const [missedActionIndex, setMissedActionIndex] = useState(0);
+  const [missedActions, setMissedActions] = useState<MissedAction[]>([]);
+  const [reviewAnswers, setReviewAnswers] = useState<ReviewAnswers>({
+    biggestWin: '',
+    keyInsight: '',
+    gratitude: '',
   });
-  const [tomorrowText, setTomorrowText] = React.useState<string>('');
-
-  React.useEffect(()=>{ if(isOpen){ setStep(0); setIdx(0); setReasons({}); setAnswers({ biggestWin:'', insight:'', grateful:'', intention:'' }); setTomorrowText(''); }},[isOpen]);
-
-  const currentMissed = missed[idx];
-
-  const handleMarkDone = (done:boolean) => {
-    if(!currentMissed) return;
-    setReasons(r => ({ ...r, [currentMissed.id]: { ...(r[currentMissed.id]||{}), completed: done }}));
-  };
-
-  const handleNextFromMissed = () => {
-    if(!currentMissed) {
-      setStep(1);
-      return;
-    }
-    const r = reasons[currentMissed.id];
-    if(!r || r.completed===undefined) return; // require an answer
-
-    // if completed now, toggle it as done (late)
-    if(r.completed && !currentMissed.done) {
-      toggleAction(currentMissed.id);
-    }
-
-    if(idx >= missed.length-1) {
-      setStep(1);
-      setIdx(0);
+  const [totalPoints, setTotalPoints] = useState(0);
+  
+  const slideAnimation = useSharedValue(0);
+  const progressAnimation = useSharedValue(0);
+  
+  // Calculate progress
+  const completedCount = actions.filter(a => a.done).length;
+  const totalCount = actions.length;
+  const completionPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+  
+  // Initialize missed actions and review when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const missed = actions.filter(a => !a.done).map(a => ({
+        id: a.id,
+        title: a.title,
+        goalTitle: a.goalTitle,
+        completed: false,
+        missReason: '',
+      }));
+      setMissedActions(missed);
+      setCurrentStep(missed.length > 0 ? 0 : 1);
+      setMissedActionIndex(0);
+      setTotalPoints(0);
+      setReviewAnswers({
+        biggestWin: '',
+        keyInsight: '',
+        gratitude: '',
+      });
+      slideAnimation.value = withSpring(1);
+      progressAnimation.value = withTiming(0);
+      
+      // Initialize today's review in the backend
+      initializeReview();
     } else {
-      setIdx(i=>i+1);
+      slideAnimation.value = withSpring(0);
+    }
+  }, [isOpen]);
+  
+  // Update progress bar
+  useEffect(() => {
+    const totalSteps = missedActions.length > 0 ? 4 : 3;
+    const progress = currentStep / totalSteps;
+    progressAnimation.value = withTiming(progress);
+  }, [currentStep, missedActions.length]);
+  
+  const handleMissedActionResponse = (completed: boolean) => {
+    const updatedActions = [...missedActions];
+    updatedActions[missedActionIndex] = {
+      ...updatedActions[missedActionIndex],
+      completed,
+    };
+    setMissedActions(updatedActions);
+    
+    if (completed) {
+      setTotalPoints(prev => prev + 10);
+      toggleAction(updatedActions[missedActionIndex].id);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   };
-
-  const handleBackFromMissed = () => {
-    if(idx<=0) return;
-    setIdx(i=>i-1);
+  
+  const handleNextMissedAction = () => {
+    if (missedActionIndex < missedActions.length - 1) {
+      setMissedActionIndex(missedActionIndex + 1);
+    } else {
+      setCurrentStep(1);
+      setTotalPoints(prev => prev + 20);
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
-
-  const onDone = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(()=>{});
-    close();
+  
+  const handleNextStep = () => {
+    if (currentStep < 5) {
+      setCurrentStep(currentStep + 1);
+      setTotalPoints(prev => prev + 15);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } else {
+      handleComplete();
+    }
   };
-
-  const addTomorrow = () => {
-    const text = (tomorrowText||'').trim();
-    if(!text) return;
-    addAction({
-      id: Date.now().toString(),
-      title: text,
-      goalTitle: 'Free Task',
-      type: 'one-time',
-      streak: 0,
-      done: false
-    });
-    setTomorrowText('');
+  
+  const handleComplete = async () => {
+    setTotalPoints(prev => prev + 50);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    
+    // Save to backend
+    const finalPoints = totalPoints + 50;
+    const success = await saveReviewProgress(
+      {
+        biggestWin: reviewAnswers.biggestWin,
+        keyInsight: reviewAnswers.keyInsight,
+        gratitude: reviewAnswers.gratitude,
+      },
+      missedActions.map(action => ({
+        actionId: action.id,
+        actionTitle: action.title,
+        goalTitle: action.goalTitle,
+        markedComplete: action.completed || false,
+        missReason: action.missReason,
+      })),
+      {
+        totalActions: totalCount,
+        completedActions: completedCount,
+        completionPercentage,
+        pointsEarned: finalPoints,
+      }
+    );
+    
+    if (success) {
+      console.log('✅ [REVIEW] Review saved successfully!');
+    } else {
+      console.error('❌ [REVIEW] Failed to save review');
+    }
+    
+    setTimeout(() => {
+      close();
+    }, 1500);
   };
+  
+  const modalAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: slideAnimation.value,
+    transform: [
+      {
+        scale: interpolate(
+          slideAnimation.value,
+          [0, 1],
+          [0.95, 1]
+        ),
+      },
+    ],
+  }));
+  
+  const progressBarStyle = useAnimatedStyle(() => ({
+    width: `${progressAnimation.value * 100}%`,
+  }));
+  
+  const getStepTitle = () => {
+    if (currentStep === 0 && missedActions.length > 0) {
+      return `Review Missed Actions (${missedActionIndex + 1}/${missedActions.length})`;
+    }
+    const titles = [
+      'Review Missed',
+      'Biggest Win Today 🏆',
+      'Key Insight 💡',
+      'Gratitude 💖',
+    ];
+    return titles[currentStep];
+  };
+  
+  const getStepColor = () => {
+    const colors = ['#FF6B6B', '#FFD700', '#4ECDC4', '#FF6B9D', '#95E1D3', '#A8E6CF'];
+    return colors[currentStep % colors.length];
+  };
+  
+  // Test with simple content first
+  if (isOpen) {
+    console.log('🔴 [DAILY REVIEW MODAL] Modal should be visible now');
+  }
 
   return (
-    <Modal visible={isOpen} animationType="fade" transparent>
-      <View style={styles.overlay}>
-        <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFillObject}/>
-        <ScrollView contentContainerStyle={styles.wrap}>
-          <GlassSurface style={styles.card}>
-            {/* STEP 0: MISSED ACTION REVIEW */}
-            {step===0 && (
-              <>
-                <View style={styles.header}>
-                  <Text style={styles.title}>Action Review</Text>
-                  <Text style={styles.badge}>{missed.length ? `${idx+1}/${missed.length}` : '0/0'}</Text>
+    <Modal
+      visible={isOpen}
+      transparent
+      animationType="slide"
+      statusBarTranslucent
+      onRequestClose={close}
+      onShow={() => console.log('🔴 [DAILY REVIEW MODAL] Modal onShow fired')}
+    >
+      <View style={styles.modalOverlay}>
+        <Animated.View style={[styles.modalContainer, modalAnimatedStyle]}>
+          <SafeAreaView style={styles.safeArea}>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={styles.keyboardView}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+            >
+              {/* Background gradient */}
+              <LinearGradient
+                colors={['#0A0A0A', '#1A1A1A', '#0A0A0A']}
+                style={StyleSheet.absoluteFillObject}
+              />
+              
+              {/* Header */}
+              <View style={styles.header}>
+                <View style={styles.headerLeft}>
+                  <Text style={styles.headerTitle}>Daily Review</Text>
+                  <Text style={styles.headerSubtitle}>{getStepTitle()}</Text>
                 </View>
-
-                {missed.length===0 ? (
-                  <View style={{ alignItems:'center', marginVertical:16 }}>
-                    <Text style={styles.big}>🎉 Perfect Day!</Text>
-                    <Text style={styles.muted}>You completed all your actions today.</Text>
-                    <Pressable style={styles.primary} onPress={()=>setStep(1)}>
-                      <Text style={styles.primaryText}>Continue to Day Review</Text>
-                    </Pressable>
-                  </View>
-                ) : (
-                  <>
-                    <View style={styles.block}>
-                      <Text style={styles.label}>{currentMissed?.title}</Text>
-                      {!!currentMissed?.goalTitle && (
-                        <Text style={styles.pill}>{currentMissed.goalTitle} • {currentMissed.time || 'All day'}</Text>
-                      )}
-                    </View>
-
-                    <Text style={[styles.label,{marginBottom:8}]}>Did you complete this today?</Text>
-                    <View style={styles.row}>
-                      <Pressable
-                        onPress={()=>handleMarkDone(true)}
-                        style={[styles.choice, reasons[currentMissed.id]?.completed===true && styles.choiceActive]}
-                      >
-                        <Text style={styles.choiceText}>✅ Done</Text>
-                      </Pressable>
-                      <Pressable
-                        onPress={()=>handleMarkDone(false)}
-                        style={[styles.choice, reasons[currentMissed.id]?.completed===false && styles.choiceActiveRed]}
-                      >
-                        <Text style={styles.choiceText}>❌ Not Done</Text>
-                      </Pressable>
-                    </View>
-
-                    {reasons[currentMissed.id]?.completed===false && (
-                      <>
-                        <Text style={[styles.label,{marginTop:16}]}>What got in the way?</Text>
-                        <TextInput
-                          placeholder="Distractions, blockers, context..."
-                          placeholderTextColor="rgba(255,255,255,0.55)"
-                          value={reasons[currentMissed.id]?.distractions || ''}
-                          onChangeText={(v)=>setReasons(r=>({...r, [currentMissed.id]:{...(r[currentMissed.id]||{completed:false}), distractions:v}}))}
-                          style={styles.input}
-                          multiline
-                        />
-                        <Text style={[styles.label,{marginTop:12}]}>What will you try next time?</Text>
-                        <TextInput
-                          placeholder="A concrete step or adjustment..."
-                          placeholderTextColor="rgba(255,255,255,0.55)"
-                          value={reasons[currentMissed.id]?.steps || ''}
-                          onChangeText={(v)=>setReasons(r=>({...r, [currentMissed.id]:{...(r[currentMissed.id]||{completed:false}), steps:v}}))}
-                          style={styles.input}
-                          multiline
-                        />
-                      </>
-                    )}
-
-                    <View style={styles.navRow}>
-                      <Pressable disabled={idx===0} onPress={handleBackFromMissed} style={[styles.secondary, idx===0 && styles.disabled]}>
-                        <Text style={styles.secondaryText}>Previous</Text>
-                      </Pressable>
-                      <Pressable onPress={handleNextFromMissed} style={styles.primary}>
-                        <Text style={styles.primaryText}>{idx>=missed.length-1 ? 'Continue' : 'Next Action'}</Text>
-                      </Pressable>
-                    </View>
-                  </>
-                )}
-              </>
-            )}
-
-            {/* STEP 1–5 */}
-            {step>=1 && step<=5 && (
-              <>
-                <View style={styles.header}>
-                  <Text style={styles.title}>Day Review</Text>
-                  <Text style={styles.badge}>{step}/5</Text>
+                <Pressable
+                  style={styles.closeButton}
+                  onPress={close}
+                  hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                >
+                  <X size={24} color="rgba(255,255,255,0.6)" />
+                </Pressable>
+              </View>
+              
+              {/* Progress Bar */}
+              <View style={styles.progressContainer}>
+                <View style={styles.progressBarBg}>
+                  <Animated.View 
+                    style={[
+                      styles.progressBarFill,
+                      progressBarStyle,
+                      { backgroundColor: getStepColor() }
+                    ]}
+                  />
                 </View>
-
-                {step===1 && (
-                  <ReviewInput
-                    title="What was your biggest win today?"
-                    value={answers.biggestWin}
-                    onChange={(v)=>setAnswers(a=>({...a, biggestWin:v}))}
-                  />
+                <View style={styles.progressStats}>
+                  <Text style={styles.progressText}>
+                    {completedCount}/{totalCount} Actions Complete
+                  </Text>
+                  <Text style={styles.pointsText}>
+                    {totalPoints} pts earned
+                  </Text>
+                </View>
+              </View>
+              
+              {/* Content Area */}
+              <ScrollView 
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {/* Step 0: Missed Actions */}
+                {currentStep === 0 && missedActions.length > 0 && (
+                  <Animated.View entering={FadeIn} style={styles.cardContainer}>
+                    <View style={styles.glassCard}>
+                      <BlurView intensity={20} style={StyleSheet.absoluteFillObject} />
+                      <LinearGradient
+                        colors={['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.02)']}
+                        style={StyleSheet.absoluteFillObject}
+                      />
+                      
+                      <View style={styles.cardContent}>
+                        <View style={styles.actionHeader}>
+                          <Circle size={20} color={getStepColor()} />
+                          <Text style={styles.actionTitle}>
+                            {missedActions[missedActionIndex].title}
+                          </Text>
+                        </View>
+                        
+                        {missedActions[missedActionIndex].goalTitle && (
+                          <Text style={styles.actionGoal}>
+                            Goal: {missedActions[missedActionIndex].goalTitle}
+                          </Text>
+                        )}
+                        
+                        <Text style={styles.questionText}>Did you actually complete this?</Text>
+                        
+                        <View style={styles.buttonRow}>
+                          <Pressable
+                            style={[
+                              styles.optionButton,
+                              missedActions[missedActionIndex].completed && styles.optionButtonActive
+                            ]}
+                            onPress={() => handleMissedActionResponse(true)}
+                          >
+                            <CheckCircle size={20} color={missedActions[missedActionIndex].completed ? '#4ECDC4' : 'rgba(255,255,255,0.4)'} />
+                            <Text style={styles.optionButtonText}>Yes, I did it!</Text>
+                          </Pressable>
+                          
+                          <Pressable
+                            style={[
+                              styles.optionButton,
+                              missedActions[missedActionIndex].completed === false && styles.optionButtonActive
+                            ]}
+                            onPress={() => handleMissedActionResponse(false)}
+                          >
+                            <Circle size={20} color={missedActions[missedActionIndex].completed === false ? '#FF6B6B' : 'rgba(255,255,255,0.4)'} />
+                            <Text style={styles.optionButtonText}>Missed it</Text>
+                          </Pressable>
+                        </View>
+                        
+                        {missedActions[missedActionIndex].completed === false && (
+                          <TextInput
+                            style={styles.textInput}
+                            placeholder="What got in the way? (optional)"
+                            placeholderTextColor="rgba(255,255,255,0.3)"
+                            value={missedActions[missedActionIndex].missReason}
+                            onChangeText={(text) => {
+                              const updated = [...missedActions];
+                              updated[missedActionIndex].missReason = text;
+                              setMissedActions(updated);
+                            }}
+                            multiline
+                            numberOfLines={3}
+                          />
+                        )}
+                      </View>
+                    </View>
+                  </Animated.View>
                 )}
-                {step===2 && (
-                  <ReviewInput
-                    title="What insight or lesson did you gain today?"
-                    value={answers.insight}
-                    onChange={(v)=>setAnswers(a=>({...a, insight:v}))}
-                  />
+                
+                {/* Step 1: Biggest Win */}
+                {currentStep === 1 && (
+                  <Animated.View entering={FadeIn} style={styles.cardContainer}>
+                    <View style={styles.glassCard}>
+                      <BlurView intensity={20} style={StyleSheet.absoluteFillObject} />
+                      <LinearGradient
+                        colors={['rgba(255,215,0,0.08)', 'rgba(255,215,0,0.02)']}
+                        style={StyleSheet.absoluteFillObject}
+                      />
+                      
+                      <View style={styles.cardContent}>
+                        <Trophy size={32} color="#FFD700" style={styles.stepIcon} />
+                        <Text style={styles.promptText}>What was your biggest win today?</Text>
+                        <TextInput
+                          style={styles.largeTextInput}
+                          placeholder="Celebrate your victory..."
+                          placeholderTextColor="rgba(255,255,255,0.3)"
+                          value={reviewAnswers.biggestWin}
+                          onChangeText={(text) => setReviewAnswers(prev => ({ ...prev, biggestWin: text }))}
+                          multiline
+                          numberOfLines={4}
+                          autoFocus
+                        />
+                      </View>
+                    </View>
+                  </Animated.View>
                 )}
-                {step===3 && (
-                  <ReviewInput
-                    title="What are you most grateful for?"
-                    value={answers.grateful}
-                    onChange={(v)=>setAnswers(a=>({...a, grateful:v}))}
-                  />
+                
+                {/* Step 2: Key Insight */}
+                {currentStep === 2 && (
+                  <Animated.View entering={FadeIn} style={styles.cardContainer}>
+                    <View style={styles.glassCard}>
+                      <BlurView intensity={20} style={StyleSheet.absoluteFillObject} />
+                      <LinearGradient
+                        colors={['rgba(78,205,196,0.08)', 'rgba(78,205,196,0.02)']}
+                        style={StyleSheet.absoluteFillObject}
+                      />
+                      
+                      <View style={styles.cardContent}>
+                        <Sparkles size={32} color="#4ECDC4" style={styles.stepIcon} />
+                        <Text style={styles.promptText}>What key insight did you gain?</Text>
+                        <TextInput
+                          style={styles.largeTextInput}
+                          placeholder="What did you learn..."
+                          placeholderTextColor="rgba(255,255,255,0.3)"
+                          value={reviewAnswers.keyInsight}
+                          onChangeText={(text) => setReviewAnswers(prev => ({ ...prev, keyInsight: text }))}
+                          multiline
+                          numberOfLines={4}
+                          autoFocus
+                        />
+                      </View>
+                    </View>
+                  </Animated.View>
                 )}
-                {step===4 && (
-                  <View style={{ marginBottom:8 }}>
-                    <Text style={styles.sectionTitle}>Add actions for tomorrow</Text>
-                    <TextInput
-                      placeholder="e.g., Pack gym bag"
-                      placeholderTextColor="rgba(255,255,255,0.55)"
-                      value={tomorrowText}
-                      onChangeText={setTomorrowText}
-                      style={styles.input}
-                    />
-                    <Pressable onPress={addTomorrow} style={[styles.secondary,{marginTop:8}]}>
-                      <Text style={styles.secondaryText}>Add to Tomorrow</Text>
-                    </Pressable>
-                    <Text style={[styles.muted,{marginTop:8}]}>You can add multiple—each tap adds one.</Text>
-                  </View>
+                
+                {/* Step 3: Gratitude */}
+                {currentStep === 3 && (
+                  <Animated.View entering={FadeIn} style={styles.cardContainer}>
+                    <View style={styles.glassCard}>
+                      <BlurView intensity={20} style={StyleSheet.absoluteFillObject} />
+                      <LinearGradient
+                        colors={['rgba(255,107,157,0.08)', 'rgba(255,107,157,0.02)']}
+                        style={StyleSheet.absoluteFillObject}
+                      />
+                      
+                      <View style={styles.cardContent}>
+                        <Heart size={32} color="#FF6B9D" style={styles.stepIcon} />
+                        <Text style={styles.promptText}>What are you grateful for?</Text>
+                        <TextInput
+                          style={styles.largeTextInput}
+                          placeholder="Express your gratitude..."
+                          placeholderTextColor="rgba(255,255,255,0.3)"
+                          value={reviewAnswers.gratitude}
+                          onChangeText={(text) => setReviewAnswers(prev => ({ ...prev, gratitude: text }))}
+                          multiline
+                          numberOfLines={4}
+                          autoFocus
+                        />
+                        
+                        {/* Summary Card - moved here from step 5 */}
+                        <View style={styles.summaryCard}>
+                          <Text style={styles.summaryTitle}>Today's Summary</Text>
+                          <View style={styles.summaryStats}>
+                            <View style={styles.statItem}>
+                              <Text style={styles.statValue}>{completionPercentage.toFixed(0)}%</Text>
+                              <Text style={styles.statLabel}>Complete</Text>
+                            </View>
+                            <View style={styles.statDivider} />
+                            <View style={styles.statItem}>
+                              <Text style={styles.statValue}>{totalPoints}</Text>
+                              <Text style={styles.statLabel}>Points</Text>
+                            </View>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                  </Animated.View>
                 )}
-                {step===5 && (
-                  <ReviewInput
-                    title="What is your intention for tomorrow?"
-                    value={answers.intention}
-                    onChange={(v)=>setAnswers(a=>({...a, intention:v}))}
-                  />
+                
+                {/* Removed Step 4: Tomorrow's Focus */}
+                {false && currentStep === 4 && (
+                  <Animated.View entering={FadeIn} style={styles.cardContainer}>
+                    <View style={styles.glassCard}>
+                      <BlurView intensity={20} style={StyleSheet.absoluteFillObject} />
+                      <LinearGradient
+                        colors={['rgba(149,225,211,0.08)', 'rgba(149,225,211,0.02)']}
+                        style={StyleSheet.absoluteFillObject}
+                      />
+                      
+                      <View style={styles.cardContent}>
+                        <Target size={32} color="#95E1D3" style={styles.stepIcon} />
+                        <Text style={styles.promptText}>What will you focus on tomorrow?</Text>
+                        <TextInput
+                          style={styles.largeTextInput}
+                          placeholder="Tomorrow's priorities..."
+                          placeholderTextColor="rgba(255,255,255,0.3)"
+                          value={reviewAnswers.tomorrowFocus}
+                          onChangeText={(text) => setReviewAnswers(prev => ({ ...prev, tomorrowFocus: text }))}
+                          multiline
+                          numberOfLines={4}
+                          autoFocus
+                        />
+                      </View>
+                    </View>
+                  </Animated.View>
                 )}
-
-                <View style={styles.navRow}>
-                  <Pressable onPress={()=>setStep(s=>Math.max(1, s-1))} style={[styles.secondary, step===1 && styles.disabled]}>
-                    <Text style={styles.secondaryText}>Back</Text>
+                
+                {/* Removed Step 5: Intention */}
+                {false && currentStep === 5 && (
+                  <Animated.View entering={FadeIn} style={styles.cardContainer}>
+                    <View style={styles.glassCard}>
+                      <BlurView intensity={20} style={StyleSheet.absoluteFillObject} />
+                      <LinearGradient
+                        colors={['rgba(168,230,207,0.08)', 'rgba(168,230,207,0.02)']}
+                        style={StyleSheet.absoluteFillObject}
+                      />
+                      
+                      <View style={styles.cardContent}>
+                        <Star size={32} color="#A8E6CF" style={styles.stepIcon} />
+                        <Text style={styles.promptText}>Set your intention for tomorrow</Text>
+                        <TextInput
+                          style={styles.largeTextInput}
+                          placeholder="I will..."
+                          placeholderTextColor="rgba(255,255,255,0.3)"
+                          value={reviewAnswers.intention}
+                          onChangeText={(text) => setReviewAnswers(prev => ({ ...prev, intention: text }))}
+                          multiline
+                          numberOfLines={4}
+                          autoFocus
+                        />
+                        
+                        {/* Summary Card */}
+                        <View style={styles.summaryCard}>
+                          <Text style={styles.summaryTitle}>Today's Summary</Text>
+                          <View style={styles.summaryStats}>
+                            <View style={styles.statItem}>
+                              <Text style={styles.statValue}>{completionPercentage.toFixed(0)}%</Text>
+                              <Text style={styles.statLabel}>Complete</Text>
+                            </View>
+                            <View style={styles.statDivider} />
+                            <View style={styles.statItem}>
+                              <Text style={styles.statValue}>{totalPoints}</Text>
+                              <Text style={styles.statLabel}>Points</Text>
+                            </View>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                  </Animated.View>
+                )}
+              </ScrollView>
+              
+              {/* Bottom Action Button */}
+              <View style={[styles.bottomContainer, { paddingBottom: insets.bottom + 20 }]}>
+                {currentStep === 0 && missedActions.length > 0 ? (
+                  <Pressable
+                    style={[styles.primaryButton, { backgroundColor: getStepColor() }]}
+                    onPress={handleNextMissedAction}
+                    disabled={missedActions[missedActionIndex].completed === undefined}
+                  >
+                    <Text style={styles.primaryButtonText}>
+                      {missedActionIndex < missedActions.length - 1 ? 'Next Action' : 'Continue'}
+                    </Text>
+                    <ChevronRight size={20} color="#FFFFFF" />
                   </Pressable>
-                  {step<5 ? (
-                    <Pressable onPress={()=>setStep(s=>s+1)} style={styles.primary}>
-                      <Text style={styles.primaryText}>Next</Text>
-                    </Pressable>
-                  ) : (
-                    <Pressable onPress={onDone} style={styles.primary}>
-                      <Text style={styles.primaryText}>Finish</Text>
-                    </Pressable>
-                  )}
-                </View>
-              </>
-            )}
-          </GlassSurface>
-
-          {/* Close Tap Target */}
-          <Pressable onPress={close} style={styles.scrimCloser} />
-        </ScrollView>
+                ) : (
+                  <Pressable
+                    style={[styles.primaryButton, { backgroundColor: getStepColor() }]}
+                    onPress={currentStep === 5 ? handleComplete : handleNextStep}
+                  >
+                    <Text style={styles.primaryButtonText}>
+                      {currentStep === 5 ? 'Complete Review' : 'Continue'}
+                    </Text>
+                    <ChevronRight size={20} color="#FFFFFF" />
+                  </Pressable>
+                )}
+              </View>
+            </KeyboardAvoidingView>
+          </SafeAreaView>
+        </Animated.View>
       </View>
     </Modal>
   );
 };
 
-const ReviewInput: React.FC<{title:string; value:string; onChange:(v:string)=>void;}> = ({title,value,onChange}) => (
-  <View style={{ marginBottom:8 }}>
-    <Text style={styles.sectionTitle}>{title}</Text>
-    <TextInput
-      placeholder="Type here…"
-      placeholderTextColor="rgba(255,255,255,0.55)"
-      value={value}
-      onChangeText={onChange}
-      style={styles.input}
-      multiline
-    />
-  </View>
-);
-
 const styles = StyleSheet.create({
-  overlay:{ flex:1, backgroundColor:'rgba(0,0,0,0.9)' },
-  wrap:{ flexGrow:1, padding:20, justifyContent:'center' },
-  card:{ padding:16 },
-  header:{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginBottom:12 },
-  title:{ color:'#FFF', fontSize:20, fontWeight:'800' },
-  badge:{ color:'#111', backgroundColor:'#FFF', paddingHorizontal:10, paddingVertical:4, borderRadius:999, overflow:'hidden', fontWeight:'800' },
-  big:{ color:'#FFF', fontSize:22, fontWeight:'800', marginBottom:6 },
-  muted:{ color:'rgba(255,255,255,0.7)' },
-  block:{ padding:12, borderWidth:1, borderColor:'rgba(255,255,255,0.08)', borderRadius:16, marginBottom:12, backgroundColor:'rgba(255,255,255,0.04)' },
-  label:{ color:'#FFF', fontWeight:'700' },
-  pill:{ color:'rgba(255,255,255,0.7)', marginTop:6 },
-  row:{ flexDirection:'row', gap:8, marginTop:8 },
-  choice:{ flex:1, alignItems:'center', paddingVertical:12, borderRadius:14, borderWidth:1, borderColor:'rgba(255,255,255,0.12)', backgroundColor:'rgba(255,255,255,0.05)' },
-  choiceActive:{ borderColor:'rgba(255,255,255,0.6)', backgroundColor:'rgba(255,255,255,0.12)' },
-  choiceActiveRed:{ borderColor:'rgba(255,99,99,0.6)', backgroundColor:'rgba(255,99,99,0.12)' },
-  choiceText:{ color:'#FFF', fontWeight:'700' },
-  input:{ marginTop:8, borderWidth:1, borderColor:'rgba(255,255,255,0.12)', borderRadius:14, padding:12, color:'#FFF', backgroundColor:'rgba(255,255,255,0.05)' },
-  navRow:{ flexDirection:'row', gap:10, marginTop:16 },
-  primary:{ flex:1, alignItems:'center', paddingVertical:12, borderRadius:14, backgroundColor:'#FFF' },
-  primaryText:{ color:'#000', fontWeight:'800' },
-  secondary:{ flex:1, alignItems:'center', paddingVertical:12, borderRadius:14, borderWidth:1, borderColor:'rgba(255,255,255,0.12)', backgroundColor:'rgba(255,255,255,0.04)' },
-  secondaryText:{ color:'#FFF', fontWeight:'800' },
-  disabled:{ opacity:0.5 },
-  sectionTitle:{ color:'#FFF', fontWeight:'800', marginBottom:8 },
-  scrimCloser:{ height:50 }
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContainer: {
+    width: Math.min(width - 40, 380),  // Max width 380px for iPhone
+    maxHeight: height * 0.75,  // Max 75% of screen height
+    backgroundColor: '#0A0A0A',
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  safeArea: {
+    flex: 1,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 2,
+  },
+  closeButton: {
+    padding: 8,
+  },
+  progressContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  progressBarBg: {
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  progressStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  progressText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.5)',
+  },
+  pointsText: {
+    fontSize: 12,
+    color: '#FFD700',
+    fontWeight: '600',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  cardContainer: {
+    marginTop: 12,
+  },
+  glassCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  cardContent: {
+    padding: 16,
+  },
+  actionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  actionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginLeft: 12,
+    flex: 1,
+  },
+  actionGoal: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.5)',
+    marginBottom: 20,
+    marginLeft: 32,
+  },
+  questionText: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  optionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    gap: 8,
+  },
+  optionButtonActive: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  optionButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.8)',
+  },
+  textInput: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    color: '#FFFFFF',
+    fontSize: 13,
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  stepIcon: {
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  promptText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  largeTextInput: {
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    color: '#FFFFFF',
+    fontSize: 14,
+    minHeight: 60,
+    maxHeight: 100,
+    textAlignVertical: 'top',
+  },
+  summaryCard: {
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,215,0,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.2)',
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFD700',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  summaryStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.5)',
+    marginTop: 4,
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  bottomContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.05)',
+  },
+  primaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
 });

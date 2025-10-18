@@ -10,20 +10,10 @@ import { CheckCircle2, House, BarChart3, User2, Users } from 'lucide-react-nativ
 import { useStore } from './state/rootStore';
 import { inspector } from './utils/componentInspector';
 import { LoginScreen } from './features/auth/LoginScreen';
-import { DailyScreen } from './features/daily/DailyScreen';  // Original version
-// import { DailyScreenV2 as DailyScreen } from './features/daily/DailyScreenV2';  // V2 with pinned header like SocialV6
-// import { SocialScreen } from './features/social/SocialScreen';  // Original version
-// import { SocialScreenV2 as SocialScreen } from './features/social/SocialScreenV2';  // New version (kept for easy switching)
-// import { SocialScreenV3 as SocialScreen } from './features/social/SocialScreenV3';  // Luxury minimal version (default)
-// import { SocialScreenV5 as SocialScreen } from './features/social/SocialScreenV5';  // V3 with Glass Morphism (Option A)
-import { SocialScreenV6 as SocialScreen } from './features/social/SocialScreenV6';  // V5 with metallic gold gradient
-import { ProgressMVPEnhanced } from './features/progress/ProgressMVPEnhanced';  // Original progress page
-// import { ProgressMinimal } from './features/progress/ProgressMinimal';  // Jony Ive-inspired minimal progress
-// import { ProfileEnhanced } from './features/profile/ProfileEnhanced';  // Original enhanced version
-// import { ProfileV2 as ProfileEnhanced } from './features/profile/ProfileV2';  // Hero card style from Daily page
-// import { ProfileV3 as ProfileEnhanced } from './features/profile/ProfileV3';  // Luxury minimal version matching Social
-// import { ProfileV4_1 as ProfileEnhanced } from './features/profile/ProfileV4_1';  // V2 duplicate for experimentation
-import { ProfileClaudeOptionB as ProfileEnhanced } from './features/profile/ProfileClaudeOptionB';  // Option B with Activity Stories
+import { DailyScreen } from './features/daily/DailyScreen';
+import { SocialScreen } from './features/social/SocialScreen';
+import { ProgressScreen } from './features/progress/ProgressScreen';
+import { ProfileScreen } from './features/profile/ProfileScreen';
 import { CircleScreen } from './features/circle/CircleScreen';
 import { OnboardingFlow } from './features/onboarding/OnboardingFlow';
 import { ProfileSetupScreen } from './features/onboarding/ProfileSetupScreen';
@@ -57,7 +47,7 @@ function ProfileScreenWrapper({ route, navigation }: any) {
     }
   }, [route?.params?.userId]);
   
-  return <ProfileEnhanced key={currentUserId || 'own'} userId={currentUserId} source={source} navigation={navigation} />;
+  return <ProfileScreen key={currentUserId || 'own'} userId={currentUserId} source={source} navigation={navigation} />;
 }
 
 function MainTabs() {
@@ -163,7 +153,7 @@ function MainTabs() {
             </View>
           )
         }} />
-      <Tab.Screen name="Progress" component={ProgressMVPEnhanced}
+      <Tab.Screen name="Progress" component={ProgressScreen}
         options={{ 
           tabBarIcon: ({color,size,focused}) => (
             <View style={{
@@ -196,9 +186,9 @@ function MainStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MainTabs" component={MainTabs} />
-      <Stack.Screen 
-        name="UserProfile" 
-        component={ProfileEnhanced}
+      <Stack.Screen
+        name="UserProfile"
+        component={ProfileScreen}
         options={{
           presentation: 'card',
           animation: 'slide_from_right',

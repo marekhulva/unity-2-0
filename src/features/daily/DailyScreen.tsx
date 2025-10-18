@@ -19,9 +19,7 @@ import { BlurView } from 'expo-blur';
 import { useStore } from '../../state/rootStore';
 import { RadialProgress } from '../../ui/RadialProgress';
 import { HapticButton } from '../../ui/HapticButton';
-// import { ConfettiView } from '../../ui/ConfettiView';  // Removed for subtlety
-// import { DailyReviewModal } from './DailyReviewModalEnhanced';  // Old broken modal
-import { DailyReviewModalV2 as DailyReviewModal } from './DailyReviewModalV2';  // New mobile-friendly modal
+import { DailyReviewModal } from './DailyReviewModal';
 import { ActionItem } from './ActionItem';
 import { GoalCard } from './GoalCard';
 import { PrivacySelectionModal } from './PrivacySelectionModal';

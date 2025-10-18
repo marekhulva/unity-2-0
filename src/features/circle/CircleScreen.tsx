@@ -20,7 +20,7 @@ import * as Haptics from 'expo-haptics';
 import { useStore } from '../../state/rootStore';
 import { supabase, supabaseService } from '../../services/supabase.service';
 import { calculateConsistency } from '../../utils/consistencyCalculator';
-import { ProfileClaudeOptionB as ProfileClaude } from '../profile/ProfileClaudeOptionB';
+import { ProfileScreen } from '../profile/ProfileScreen';
 
 export const CircleScreen = () => {
   const insets = useSafeAreaInsets();
@@ -301,7 +301,7 @@ export const CircleScreen = () => {
             >
               <X size={24} color="#FFFFFF" />
             </Pressable>
-            <ProfileClaude userId={selectedUserId} isInModal={true} source="Circle" />
+            <ProfileScreen userId={selectedUserId} isInModal={true} source="Circle" />
           </View>
         </Modal>
       )}

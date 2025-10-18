@@ -16,13 +16,8 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { LuxuryTheme } from '../../design/luxuryTheme';
-// Switch between modal versions by changing the import:
-// Original: Two-option toggle (Private/Circle only) - CURRENT
-import { PrivacySelectionModalOriginal as PrivacySelectionModal } from './PrivacySelectionModalOriginal';
-// V1: Three-way toggle switch (Private/Circle/Followers)
-// import { PrivacySelectionModal } from './PrivacySelectionModal';
-// V2: Segmented control (Private/Circle/Followers)
-// import { PrivacySelectionModalV2 as PrivacySelectionModal } from './PrivacySelectionModalV2';
+// Using the main three-way privacy modal
+import { PrivacySelectionModal } from './PrivacySelectionModal';
 
 interface ActionItemProps {
   id: string;
@@ -125,7 +120,12 @@ export const ActionItem: React.FC<ActionItemProps> = ({
     }
   };
 
-  const handlePrivacySelect = (visibility: 'private' | 'public' | 'circle' | 'followers', contentType: 'photo' | 'audio' | 'text' | 'check') => {
+  const handlePrivacySelect = (
+    visibility: 'private' | 'public' | 'circle' | 'followers',
+    contentType: 'photo' | 'audio' | 'text' | 'check',
+    content?: string,
+    mediaUri?: string
+  ) => {
     // Mark action as complete
     toggle(id);
     if (streak >= 7) {
@@ -135,15 +135,15 @@ export const ActionItem: React.FC<ActionItemProps> = ({
     }
     
     // Map content type to action type
-    const actionType = contentType === 'photo' ? 'photo' : 
-                      contentType === 'audio' ? 'audio' : 
+    const actionType = contentType === 'photo' ? 'photo' :
+                      contentType === 'audio' ? 'audio' :
                       contentType === 'text' ? 'milestone' : // Text becomes milestone type for variety
                       'check';
-    
-    // Generate mock media URL for photos (in real app, would capture actual photo)
-    const mediaUrl = contentType === 'photo' 
-      ? `https://picsum.photos/400/400?random=${Date.now()}` 
-      : undefined;
+
+    // Use actual media URI if provided, otherwise generate mock for photos
+    const mediaUrl = mediaUri || (contentType === 'photo'
+      ? `https://picsum.photos/400/400?random=${Date.now()}`
+      : undefined);
     
     // Store the completed action with privacy setting and content type
     // Map 'public' to 'circle' for backward compatibility
@@ -160,6 +160,7 @@ export const ActionItem: React.FC<ActionItemProps> = ({
       streak: streak + 1,
       type: actionType,
       mediaUrl,
+      content, // Include any comment/caption provided
       category: 'fitness', // Could be dynamic based on goal
     });
     
