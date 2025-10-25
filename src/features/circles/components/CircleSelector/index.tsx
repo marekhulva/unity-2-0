@@ -3,8 +3,8 @@ import { View, Text, StyleSheet } from 'react-native';
 import { CIRCLE_SELECTOR_CONFIG } from './config';
 import { CircleSelectorProps } from './CircleSelectorProps';
 import { TabBarSelector } from './TabBarSelector';
+import { DropdownSelector } from './DropdownSelector';
 // Future implementations (uncomment when created):
-// import { DropdownSelector } from './DropdownSelector';
 // import { IconOnlySelector } from './IconOnlySelector';
 
 /**
@@ -38,11 +38,8 @@ export const CircleSelector: React.FC<CircleSelectorProps> = (props) => {
     case 'TAB_BAR':
       return <TabBarSelector {...props} />;
 
-    // Placeholder for future implementations
     case 'DROPDOWN':
-      console.warn('Dropdown selector not yet implemented, falling back to TabBar');
-      return <TabBarSelector {...props} />;
-      // return <DropdownSelector {...props} />;
+      return <DropdownSelector {...props} />;
 
     case 'ICONS':
       console.warn('Icons selector not yet implemented, falling back to TabBar');

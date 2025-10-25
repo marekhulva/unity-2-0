@@ -706,9 +706,23 @@ export const SocialScreen = () => {
             }
           >
 
+          {/* Circle Selector - Above Share your victory */}
+          {feedView === 'circle' && (
+            <View style={{ marginTop: 8, marginBottom: 0, zIndex: 1000 }}>
+              <CircleSelector
+                circles={userCircles}
+                activeCircleId={activeCircleId}
+                onCircleSelect={setActiveCircle}
+                onJoinCircle={() => setShowJoinCircleModal(true)}
+                loading={circlesLoading}
+                error={circlesError}
+              />
+            </View>
+          )}
+
           {/* Share Your Victory Component - Pinned at Top */}
           <View style={{
-            marginTop: 12,
+            marginTop: feedView === 'circle' ? 4 : 12,
             marginHorizontal: 16,
             marginBottom: 20,
             borderRadius: 16,
@@ -1006,20 +1020,6 @@ export const SocialScreen = () => {
               </View>
             )}
           </View>
-
-          {/* Circle Selector - moved below Share your victory */}
-          {feedView === 'circle' && (
-            <View style={{ marginTop: 12, marginBottom: 16, zIndex: 1000 }}>
-              <CircleSelector
-                circles={userCircles}
-                activeCircleId={activeCircleId}
-                onCircleSelect={setActiveCircle}
-                onJoinCircle={() => setShowJoinCircleModal(true)}
-                loading={circlesLoading}
-                error={circlesError}
-              />
-            </View>
-          )}
 
           {/* Circle Sub-tabs - HIDDEN FOR TESTING */}
           {/* {feedView === 'circle' && circleId && (
@@ -2290,7 +2290,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   scrollContent: {
-    paddingTop: 24,
+    paddingTop: 4,
     paddingBottom: 120,
     paddingHorizontal: 0, // No padding here - postsContainer handles it
   },

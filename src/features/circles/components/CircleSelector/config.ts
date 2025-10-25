@@ -3,7 +3,7 @@
 
 export const CIRCLE_SELECTOR_CONFIG = {
   // Main implementation switch - change this to switch UI patterns
-  implementation: 'TAB_BAR' as 'TAB_BAR' | 'DROPDOWN' | 'ICONS',
+  implementation: 'DROPDOWN' as 'TAB_BAR' | 'DROPDOWN' | 'ICONS',
 
   // Tab Bar specific settings (Icon-only with tooltips - Solution B)
   tabBar: {
