@@ -227,36 +227,51 @@ export const DailyScreen = () => {
     }
   };
 
-  const handlePrivacySelect = async (visibility: 'private' | 'circle' | 'followers', contentType: 'photo' | 'audio' | 'text' | 'check', content?: string, mediaUri?: string) => {
+  const handlePrivacySelect = async (
+    visibility: 'private' | 'circle' | 'followers',
+    contentType: 'photo' | 'audio' | 'text' | 'check',
+    content?: string,
+    mediaUri?: string,
+    newVisibility?: {
+      isPrivate: boolean;
+      isExplore: boolean;
+      isNetwork: boolean;
+      circleIds: string[];
+    }
+  ) => {
     // Start new debug flow
     ChallengeDebugV2.startNewFlow();
-    
+
     // CHECKPOINT 1: Initial action data
     ChallengeDebugV2.checkpoint('CP1-DAILY-START', 'Selected action in Daily screen', selectedAction);
-    
-    console.log('🎯 [DAILY] handlePrivacySelect called:', { 
-      visibility, 
-      contentType, 
+
+    console.log('🎯 [DAILY] handlePrivacySelect called:', {
+      visibility,
+      contentType,
       content,
       action: selectedAction?.title,
-      isFromChallenge: selectedAction?.isFromChallenge 
+      isFromChallenge: selectedAction?.isFromChallenge,
+      newVisibility
     });
-    
+
     if (!selectedAction) return;
-    
+
     // Mark action as complete
     toggleAction(selectedAction.id);
     HapticManager.context.actionCompleted();
-    
+
     // Map content type to action type
     // Media (photo/audio) is attached via photoUri/audioUri fields, not via type
     const actionType = contentType === 'text' ? 'milestone' : 'check';
-    
+
     // Use actual media URI if provided, otherwise use mock for testing
-    const finalMediaUrl = mediaUri || (contentType === 'photo' 
-      ? `https://picsum.photos/400/400?random=${Date.now()}` 
+    const finalMediaUrl = mediaUri || (contentType === 'photo'
+      ? `https://picsum.photos/400/400?random=${Date.now()}`
       : undefined);
-    
+
+    // Determine if private from new or old model
+    const isPrivate = newVisibility ? newVisibility.isPrivate : visibility === 'private';
+
     // Store the completed action locally
     addCompletedAction({
       id: `${selectedAction.id}-${Date.now()}`,
@@ -264,20 +279,20 @@ export const DailyScreen = () => {
       title: selectedAction.title,
       goalTitle: selectedAction.goalTitle,
       completedAt: new Date(),
-      isPrivate: visibility === 'private',
+      isPrivate,
       streak: selectedAction.streak || 0,
       type: actionType,
       mediaUrl: finalMediaUrl,
       category: 'fitness', // Could be dynamic based on goal
     });
-    
+
     // Post to feed if not private (saves to database)
-    if (visibility !== 'private') {
+    if (!isPrivate) {
       try {
         // CHECKPOINT 2: Building post data
         const postData = {
           type: actionType === 'check' ? 'checkin' : 'milestone',
-          visibility: visibility, // Use the actual visibility selected
+          visibility: visibility, // Keep old visibility for backward compatibility
           content: content || `Completed: ${selectedAction.title}`, // Use user's comment if provided
           actionTitle: selectedAction.title,
           goal: selectedAction.goalTitle,
@@ -291,25 +306,33 @@ export const DailyScreen = () => {
           challengeName: selectedAction.challengeName,
           challengeId: selectedAction.challengeId,
           challengeActivityId: selectedAction.challengeActivityId,
+          // NEW: Multi-circle visibility model
+          ...(newVisibility && {
+            isPrivate: newVisibility.isPrivate,
+            isExplore: newVisibility.isExplore,
+            isNetwork: newVisibility.isNetwork,
+            circleIds: newVisibility.circleIds,
+          }),
         };
-        
+
         // CHECKPOINT 2: Post data before sending
         ChallengeDebugV2.checkpoint('CP2-POST-DATA', 'Post data created in Daily', postData);
-        
+
         console.log('🎯 [DEBUG] Creating post with challenge data:', {
           isChallenge: postData.isChallenge,
           challengeName: postData.challengeName,
           isFromChallenge: selectedAction.isFromChallenge,
           actionTitle: selectedAction.title,
+          newVisibility,
         });
-        
+
         await addPost(postData);
         console.log('✅ Post saved to database for action:', selectedAction.title);
       } catch (error) {
         console.error('❌ Failed to save post to database:', error);
       }
     }
-    
+
     setShowPrivacyModal(false);
     setSelectedAction(null);
   };

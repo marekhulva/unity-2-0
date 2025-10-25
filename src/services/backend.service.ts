@@ -426,9 +426,9 @@ class BackendService {
   }
 
   // Circle methods - Updated for multiple circles support
-  async createCircle(data: { name: string; description?: string }) {
+  async createCircle(data: { name: string; emoji?: string; description?: string }) {
     if (isSupabaseBackend()) {
-      const circle = await supabaseService.createCircle(data.name, data.description);
+      const circle = await supabaseService.createCircle(data.name, data.emoji, data.description);
       return { success: true, data: circle };
     } else {
       // Custom backend doesn't have circles yet

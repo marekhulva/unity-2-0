@@ -597,21 +597,21 @@ export const SocialScreen = () => {
                 </View>
               )}
             </Pressable>
-            
-            <Pressable 
+
+            <Pressable
               onPress={() => {
-                setFeedView('follow');
+                setFeedView('explore');
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
               style={styles.tabButton}
             >
               <Text style={[
                 styles.tabText,
-                feedView === 'follow' && styles.tabTextActive
+                feedView === 'explore' && styles.tabTextActive
               ]}>
-                FOLLOWING
+                EXPLORE
               </Text>
-              {feedView === 'follow' && (
+              {feedView === 'explore' && (
                 <View style={styles.tabIndicator}>
                   <LinearGradient
                     colors={[
@@ -629,10 +629,10 @@ export const SocialScreen = () => {
                     end={{ x: 1, y: 0.5 }}
                   />
                 </View>
-            )}
+              )}
             </Pressable>
           </View>
-          
+
           {/* Circle Status Bar - Removed from here, moved to scrollable area */}
           {/* Gold gradient underline */}
           <View style={styles.headerUnderline}>
@@ -653,18 +653,6 @@ export const SocialScreen = () => {
             />
           </View>
         </Animated.View>
-
-        {/* Circle Selector - only show in circle view */}
-        {feedView === 'circle' && (
-          <CircleSelector
-            circles={userCircles}
-            activeCircleId={activeCircleId}
-            onCircleSelect={setActiveCircle}
-            onJoinCircle={() => setShowJoinCircleModal(true)}
-            loading={circlesLoading}
-            error={circlesError}
-          />
-        )}
 
         <View style={styles.scrollViewWrapper}>
           {/* Fallback gradient background - always shows */}
@@ -1018,6 +1006,20 @@ export const SocialScreen = () => {
               </View>
             )}
           </View>
+
+          {/* Circle Selector - moved below Share your victory */}
+          {feedView === 'circle' && (
+            <View style={{ marginTop: 12, marginBottom: 16, zIndex: 1000 }}>
+              <CircleSelector
+                circles={userCircles}
+                activeCircleId={activeCircleId}
+                onCircleSelect={setActiveCircle}
+                onJoinCircle={() => setShowJoinCircleModal(true)}
+                loading={circlesLoading}
+                error={circlesError}
+              />
+            </View>
+          )}
 
           {/* Circle Sub-tabs - HIDDEN FOR TESTING */}
           {/* {feedView === 'circle' && circleId && (
@@ -1389,9 +1391,51 @@ export const SocialScreen = () => {
               </View>
             )
           )}
+
+          {/* Explore Tab Content */}
+          {feedView === 'explore' && (
+            <View style={styles.exploreContainer}>
+              <View style={styles.exploreHeader}>
+                <View style={styles.exploreIcon}>
+                  <Sparkles size={32} color="#FFD700" />
+                </View>
+                <Text style={styles.exploreTitle}>Discover & Explore</Text>
+                <Text style={styles.exploreSubtitle}>
+                  Public posts and trending content coming soon!
+                </Text>
+              </View>
+
+              <View style={styles.exploreSection}>
+                <Text style={styles.exploreSectionTitle}>🔥 Trending Challenges</Text>
+                <View style={styles.explorePlaceholder}>
+                  <Text style={styles.explorePlaceholderText}>
+                    Popular challenges will appear here
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.exploreSection}>
+                <Text style={styles.exploreSectionTitle}>⭐ Success Stories</Text>
+                <View style={styles.explorePlaceholder}>
+                  <Text style={styles.explorePlaceholderText}>
+                    Inspirational achievements from the community
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.exploreSection}>
+                <Text style={styles.exploreSectionTitle}>🌟 Discover Circles</Text>
+                <View style={styles.explorePlaceholder}>
+                  <Text style={styles.explorePlaceholderText}>
+                    Find new circles to join
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
         </Animated.ScrollView>
         </View>
-        
+
       </SafeAreaView>
 
       {/* Keyboard Toolbar for iOS - attached to TextInput */}
@@ -2126,7 +2170,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 12,
   },
   logoText: {
     fontSize: 18,
@@ -3455,5 +3499,53 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255,255,255,0.5)',
     textAlign: 'center',
+  },
+
+  // Explore Tab Styles
+  exploreContainer: {
+    flex: 1,
+    padding: 20,
+  },
+  exploreHeader: {
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  exploreIcon: {
+    marginBottom: 12,
+  },
+  exploreTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 1.5,
+    marginBottom: 8,
+  },
+  exploreSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.5)',
+    textAlign: 'center',
+  },
+  exploreSection: {
+    marginVertical: 20,
+  },
+  exploreSectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFD700',
+    letterSpacing: 1,
+    marginBottom: 12,
+  },
+  explorePlaceholder: {
+    backgroundColor: 'rgba(255,215,0,0.05)',
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.1)',
+  },
+  explorePlaceholderText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.4)',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });

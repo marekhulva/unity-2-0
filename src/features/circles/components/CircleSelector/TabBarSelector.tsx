@@ -8,11 +8,14 @@ import {
   Animated,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { BlurView } from 'expo-blur';
 import { CircleSelectorProps } from './CircleSelectorProps';
 import { CIRCLE_SELECTOR_CONFIG } from './config';
 import { LuxuryTheme } from '../../../../design/luxuryTheme';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export const TabBarSelector: React.FC<CircleSelectorProps> = ({
   circles,
@@ -28,9 +31,67 @@ export const TabBarSelector: React.FC<CircleSelectorProps> = ({
   const [contentWidth, setContentWidth] = useState(0);
   const [containerWidth, setContainerWidth] = useState(0);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnims = useRef<{ [key: string]: Animated.Value }>({}).current;
 
   const config = CIRCLE_SELECTOR_CONFIG.tabBar;
   const commonConfig = CIRCLE_SELECTOR_CONFIG.common;
+  const translateYAnims = useRef<{ [key: string]: Animated.Value }>({}).current;
+
+  // Smart abbreviation function
+  const getSmartAbbreviation = (name: string): string => {
+    // Special cases
+    if (name.toLowerCase() === 'all circles') return 'All';
+
+    // Remove common words
+    const filtered = name.replace(/\b(the|of|and|for|in|on|at|to|a|an)\b/gi, '');
+
+    // Check for common patterns
+    if (filtered.toLowerCase().includes('basketball')) return 'BBall';
+    if (filtered.toLowerCase().includes('wellness')) return 'Wellness';
+    if (filtered.toLowerCase().includes('fitness')) return 'Fitness';
+    if (filtered.toLowerCase().includes('startup')) return 'Startup';
+    if (filtered.toLowerCase().includes('book')) return 'Books';
+    if (filtered.toLowerCase().includes('gaming')) return 'Gaming';
+
+    // If it's already short enough (8 chars or less), use it
+    const words = filtered.trim().split(/\s+/);
+    if (filtered.length <= 8) return filtered;
+
+    // If it's 2 words, try to abbreviate
+    if (words.length === 2) {
+      const firstWord = words[0];
+      const secondWord = words[1];
+
+      // If first word is short, keep it and abbreviate second
+      if (firstWord.length <= 4) {
+        return `${firstWord}${secondWord.charAt(0).toUpperCase()}`;
+      }
+
+      // Otherwise use initials of both
+      return `${firstWord.substring(0, 3)}${secondWord.substring(0, 3)}`;
+    }
+
+    // If it's 3+ words, use initials or first word
+    if (words.length >= 3) {
+      const initials = words.map(w => w.charAt(0).toUpperCase()).join('');
+      if (initials.length <= 5) return initials;
+
+      // Otherwise just use first word truncated
+      return words[0].substring(0, 7);
+    }
+
+    // Default: truncate to 7 chars
+    return filtered.substring(0, 7);
+  };
+
+  // Initialize animations
+  const getTranslateYAnim = (id: string | null) => {
+    const key = id || 'all';
+    if (!translateYAnims[key]) {
+      translateYAnims[key] = new Animated.Value(0);
+    }
+    return translateYAnims[key];
+  };
 
   // Check if content is scrollable
   useEffect(() => {
@@ -71,30 +132,72 @@ export const TabBarSelector: React.FC<CircleSelectorProps> = ({
     name: string,
     isActive: boolean,
     onPress: () => void,
-    testID?: string
-  ) => (
-    <TouchableOpacity
-      style={[
-        styles.tab,
-        isActive && styles.activeTab,
-        { minWidth: config.tabMinWidth, maxWidth: config.tabMaxWidth },
-      ]}
-      onPress={onPress}
-      testID={testID}
-    >
-      {emoji && <Text style={styles.emoji}>{emoji}</Text>}
-      <Text
+    testID?: string,
+    circleId: string | null = null
+  ) => {
+    const translateY = getTranslateYAnim(circleId);
+    const abbreviation = getSmartAbbreviation(name);
+    const [showTooltip, setShowTooltip] = useState(false);
+
+    // Animate lift on hover/active
+    useEffect(() => {
+      Animated.spring(translateY, {
+        toValue: isActive ? -2 : 0,
+        friction: 8,
+        tension: 100,
+        useNativeDriver: true,
+      }).start();
+    }, [isActive]);
+
+    return (
+      <Animated.View
         style={[
-          styles.tabText,
-          isActive && styles.activeTabText,
+          styles.tabWrapper,
+          {
+            transform: [{ translateY }],
+          },
         ]}
-        numberOfLines={1}
-        ellipsizeMode="tail"
       >
-        {name}
-      </Text>
-    </TouchableOpacity>
-  );
+        {isActive ? (
+          <LinearGradient
+            colors={['rgba(231, 180, 58, 0.2)', 'rgba(231, 180, 58, 0.1)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.tabGradient}
+          >
+            <TouchableOpacity
+              style={[styles.tab, styles.activeTab]}
+              onPress={onPress}
+              onPressIn={() => setShowTooltip(true)}
+              onPressOut={() => setShowTooltip(false)}
+              testID={testID}
+            >
+              <Text style={styles.activeEmoji}>{emoji || '🌐'}</Text>
+              <Text style={styles.activeTabText}>{abbreviation}</Text>
+            </TouchableOpacity>
+          </LinearGradient>
+        ) : (
+          <TouchableOpacity
+            style={styles.tab}
+            onPress={onPress}
+            onPressIn={() => setShowTooltip(true)}
+            onPressOut={() => setShowTooltip(false)}
+            testID={testID}
+          >
+            <Text style={styles.emoji}>{emoji || '🔵'}</Text>
+            <Text style={styles.tabText}>{abbreviation}</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Full name tooltip on press */}
+        {showTooltip && name !== abbreviation && (
+          <View style={styles.tooltip}>
+            <Text style={styles.tooltipText}>{name}</Text>
+          </View>
+        )}
+      </Animated.View>
+    );
+  };
 
   return (
     <View style={[styles.container, style]}>
@@ -102,7 +205,7 @@ export const TabBarSelector: React.FC<CircleSelectorProps> = ({
         ref={scrollRef}
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={styles.scrollView}
+        style={[styles.scrollView, { overflow: 'visible' }]}
         contentContainerStyle={styles.scrollContent}
         onScroll={handleScroll}
         onContentSizeChange={handleContentSizeChange}
@@ -115,7 +218,8 @@ export const TabBarSelector: React.FC<CircleSelectorProps> = ({
           'All Circles',
           activeCircleId === null,
           () => handleCirclePress(null),
-          'all-circles-tab'
+          'all-circles-tab',
+          null
         )}
 
         {/* Individual Circle Tabs */}
@@ -125,14 +229,15 @@ export const TabBarSelector: React.FC<CircleSelectorProps> = ({
             circle.name,
             activeCircleId === circle.id,
             () => handleCirclePress(circle.id),
-            `circle-tab-${circle.id}`
+            `circle-tab-${circle.id}`,
+            circle.id
           )
         )}
 
         {/* Join New Circle Tab */}
         {commonConfig.allowJoinFromSelector && (
           <TouchableOpacity
-            style={[styles.tab, styles.addTab]}
+            style={styles.addTab}
             onPress={onJoinCircle}
             testID="join-circle-tab"
           >
@@ -161,55 +266,130 @@ export const TabBarSelector: React.FC<CircleSelectorProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: 'rgba(10, 10, 10, 0.3)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(231, 180, 58, 0.1)',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: 'rgba(231, 180, 58, 0.1)',
     position: 'relative',
+    overflow: 'visible',
+    ...Platform.select({
+      ios: {
+        // iOS blur effect handled by BlurView
+      },
+      android: {
+        // Android fallback styling
+        backgroundColor: 'rgba(10, 10, 10, 0.6)',
+      },
+      web: {
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+      },
+    }),
   },
   scrollView: {
     flexGrow: 0,
+    overflow: 'visible',
   },
   scrollContent: {
     paddingHorizontal: 10,
     paddingVertical: 10,
     gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    overflow: 'visible',
+  },
+  tabWrapper: {
+    marginRight: 8,
+    position: 'relative',
+  },
+  tabGradient: {
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: LuxuryTheme.colors.primary.gold,
   },
   tab: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    gap: 7,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginRight: 8,
+    borderColor: 'rgba(192, 192, 192, 0.1)',
+    borderRadius: 25,
+    paddingVertical: 9,
+    paddingHorizontal: 15,
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(5px)',
+        WebkitBackdropFilter: 'blur(5px)',
+      },
+    }),
   },
   activeTab: {
-    backgroundColor: 'rgba(255, 215, 0, 0.2)',
-    borderColor: LuxuryTheme.colors.primary.gold,
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
+    shadowColor: LuxuryTheme.colors.primary.gold,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 8,
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: '#A7B0B7',
   },
   activeTabText: {
+    fontSize: 13,
+    fontWeight: '600',
     color: LuxuryTheme.colors.primary.gold,
   },
   emoji: {
     fontSize: 16,
+    opacity: 0.85,
+  },
+  activeEmoji: {
+    fontSize: 16,
+    opacity: 1,
+  },
+  tooltip: {
+    position: 'absolute',
+    bottom: -32,
+    left: '50%',
+    transform: [{ translateX: -50 }],
+    backgroundColor: '#1A1F24',
+    borderWidth: 1,
+    borderColor: 'rgba(231, 180, 58, 0.3)',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    minWidth: 80,
+    maxWidth: 150,
+    zIndex: 9999,
+    elevation: 9999,
+  },
+  tooltipText: {
+    fontSize: 11,
+    color: LuxuryTheme.colors.primary.gold,
+    textAlign: 'center',
+    fontWeight: '400',
   },
   addTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: 'transparent',
     borderStyle: 'dashed',
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    paddingHorizontal: 10,
+    borderColor: 'rgba(231, 180, 58, 0.3)',
+    borderWidth: 1,
+    borderRadius: 25,
+    paddingVertical: 9,
+    paddingHorizontal: 15,
     minWidth: 44,
   },
   addIcon: {
     fontSize: 16,
+    color: 'rgba(231, 180, 58, 0.6)',
   },
   scrollIndicator: {
     position: 'absolute',

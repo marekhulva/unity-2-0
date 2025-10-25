@@ -5,10 +5,19 @@ import { memoryCache } from '../../utils/memoryCache';
 import ChallengeDebugV2 from '../../utils/challengeDebugV2';
 
 export type PostType = 'checkin'|'status'|'photo'|'audio'|'goal'|'celebration';
-// Instagram-style visibility: private (only me), circle (close friends), followers (people you follow - Following feed)
-export type Visibility = 'private'|'circle'|'followers';  // Note: 'followers' means "visible to people who follow you" but we only have Following functionality
-// Legacy visibility for backward compatibility
-export type LegacyVisibility = 'circle'|'follow';
+
+// New visibility model supporting multi-circle posts and Explore
+export interface PostVisibility {
+  isPrivate: boolean;     // Only visible to poster
+  isExplore: boolean;     // Discoverable in Explore feed
+  isNetwork: boolean;     // Visible to all circles + followers
+  circleIds: string[];    // Specific circles (if not network/private)
+}
+
+// Legacy visibility types for backward compatibility
+export type LegacyVisibility = 'private'|'circle'|'followers';
+// Extended to support new options
+export type Visibility = LegacyVisibility | 'explore' | 'network' | 'selected_circles';
 
 export type Comment = {
   id: string;
@@ -26,7 +35,12 @@ export type Post = {
   userId?: string;              // User ID for profile viewing
   avatar?: string;              // emoji or URL
   type: PostType;
-  visibility: Visibility;
+  visibility: Visibility;       // Legacy field for backward compatibility
+  // New visibility fields
+  visibilityDetails?: PostVisibility;  // New model
+  circleIds?: string[];         // Which circles can see this (for multi-circle posts)
+  isExplore?: boolean;          // Is this discoverable in Explore?
+  isNetwork?: boolean;          // Is this visible to entire network?
   content: string;              // status/insight or caption
   time: string;                 // "2h"
   timestamp?: string;           // ISO date string for sorting
@@ -549,7 +563,11 @@ export const createSocialSlice: StateCreator<
 
     try {
       // Get circle ID if posting to circle feed
-      const circleId = postData.visibility === 'circle' ? get().circleId : null;
+      // Use activeCircleId from circlesSlice to know which circle to post to
+      const activeCircleId = get().activeCircleId;
+      const circleId = postData.visibility === 'circle' ? activeCircleId : null;
+
+      console.log('🎯 [POST] Creating post with visibility:', postData.visibility, 'to circle:', circleId);
       
       // CHECKPOINT 4: Data being sent to backend
       const backendData = {
@@ -568,7 +586,14 @@ export const createSocialSlice: StateCreator<
         challengeId: postData.challengeId,
         challengeProgress: postData.challengeProgress,
         leaderboardPosition: postData.leaderboardPosition,
-        totalParticipants: postData.totalParticipants
+        totalParticipants: postData.totalParticipants,
+        // NEW: Multi-circle visibility model
+        ...(postData.isPrivate !== undefined && {
+          isPrivate: postData.isPrivate,
+          isExplore: postData.isExplore,
+          isNetwork: postData.isNetwork,
+          circleIds: postData.circleIds,
+        })
       };
       
       ChallengeDebugV2.checkpoint('CP4-BACKEND-CALL', 'Data sent to backendService.createPost', backendData);

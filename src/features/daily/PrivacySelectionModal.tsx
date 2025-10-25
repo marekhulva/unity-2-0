@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Modal, StyleSheet, Pressable, Dimensions, Platform, Animated, TextInput, Image, Alert, Keyboard } from 'react-native';
-import { Camera, Mic, MessageSquare, Check, Globe, Lock, X } from 'lucide-react-native';
+import { View, Text, Modal, StyleSheet, Pressable, Dimensions, Platform, Animated, TextInput, Image, Alert, Keyboard, ScrollView } from 'react-native';
+import { Camera, Mic, MessageSquare, Check, Globe, Lock, X, MapPin, Users } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
 import { KeyboardToolbar, useKeyboardToolbar } from '../../components/KeyboardToolbar';
+import { useStore } from '../../state/rootStore';
 
 console.log('PrivacySelectionModal.tsx (THREE-WAY) FILE LOADED');
 
@@ -13,7 +14,18 @@ const { width } = Dimensions.get('window');
 interface PrivacySelectionModalProps {
   visible: boolean;
   onClose: () => void;
-  onSelect: (visibility: 'private' | 'circle' | 'followers', contentType: 'photo' | 'audio' | 'text' | 'check', content?: string, mediaUri?: string) => void;
+  onSelect: (
+    visibility: 'private' | 'circle' | 'followers',
+    contentType: 'photo' | 'audio' | 'text' | 'check',
+    content?: string,
+    mediaUri?: string,
+    newVisibility?: {
+      isPrivate: boolean;
+      isExplore: boolean;
+      isNetwork: boolean;
+      circleIds: string[];
+    }
+  ) => void;
   actionTitle: string;
   streak?: number;
 }
@@ -25,6 +37,24 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
   actionTitle,
   streak = 0,
 }) => {
+  // ⚡ TESTING NEW UI - Set to true to test new integrated circle selection
+  const TEST_NEW_UI = true;
+
+  // Get user circles from store
+  const userCircles = useStore(s => s.userCircles);
+  const fetchUserCircles = useStore(s => s.fetchUserCircles);
+
+  // Load circles when modal opens
+  useEffect(() => {
+    if (visible && TEST_NEW_UI) {
+      console.log('🔵 Loading user circles for privacy modal...');
+      console.log('🔵 Current userCircles:', userCircles);
+      fetchUserCircles().then(() => {
+        console.log('🔵 Circles loaded, count:', userCircles?.length);
+      });
+    }
+  }, [visible, TEST_NEW_UI, fetchUserCircles]);
+
   const [selectedMedia, setSelectedMedia] = useState<'photo' | 'audio' | null>(null);
   const [showCommentInput, setShowCommentInput] = useState(false);
   const [selectedPrivacy, setSelectedPrivacy] = useState<'private' | 'circle' | 'followers'>('circle');
@@ -35,6 +65,12 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const recordingRef = useRef<Audio.Recording | null>(null);
+
+  // NEW: State for integrated circle selection
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [isNetwork, setIsNetwork] = useState(false);
+  const [isExplore, setIsExplore] = useState(false);
+  const [selectedCircleIds, setSelectedCircleIds] = useState<Set<string>>(new Set());
 
   // Keyboard toolbar hook for Android/Web
   const { keyboardHeight, isKeyboardVisible, toolbarStyle } = useKeyboardToolbar();
@@ -245,7 +281,15 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
                     selectedMedia === 'audio' ? audioUri :
                     undefined;
 
-    onSelect(selectedPrivacy, contentType, content, mediaUri || undefined);
+    // If using new UI, pass the new visibility model
+    const newVisibility = TEST_NEW_UI ? {
+      isPrivate,
+      isExplore,
+      isNetwork,
+      circleIds: Array.from(selectedCircleIds)
+    } : undefined;
+
+    onSelect(selectedPrivacy, contentType, content, mediaUri || undefined, newVisibility);
 
     // Reset for next time
     setTimeout(() => {
@@ -255,6 +299,11 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
       setCommentText('');
       setPhotoUri(null);
       setAudioUri(null);
+      // Reset new UI state
+      setIsPrivate(false);
+      setIsNetwork(false);
+      setIsExplore(false);
+      setSelectedCircleIds(new Set());
     }, 200);
   };
 
@@ -427,57 +476,187 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
               </View>
             )}
 
-            {/* Privacy Three-Way Toggle */}
+            {/* Privacy Selector - Integrated Circle Selection */}
             <View style={styles.privacySection}>
-              <Pressable 
-                onPress={() => {
-                  // Cycle through: private -> circle -> followers -> private
-                  const nextPrivacy = 
-                    selectedPrivacy === 'private' ? 'circle' :
-                    selectedPrivacy === 'circle' ? 'followers' : 'private';
-                  handlePrivacySelect(nextPrivacy);
-                }}
-                style={styles.privacyToggle}
-              >
-                <View style={styles.privacyOption}>
-                  {selectedPrivacy === 'private' ? (
+              {TEST_NEW_UI ? (
+                // NEW: Integrated circle selection UI
+                <ScrollView style={styles.privacyScrollView} showsVerticalScrollIndicator={false}>
+                  {/* Quick Options */}
+                  <Text style={styles.privacySectionLabel}>WHO CAN SEE THIS?</Text>
+
+                  <Pressable
+                    style={[styles.quickOption, isPrivate && styles.quickOptionSelected]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setIsPrivate(true);
+                      setIsNetwork(false);
+                      setIsExplore(false);
+                      setSelectedCircleIds(new Set());
+                    }}
+                  >
+                    <Lock size={18} color={isPrivate ? '#FFD700' : '#FFF'} />
+                    <Text style={[styles.quickOptionText, isPrivate && styles.quickOptionTextActive]}>
+                      Only Me
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={[styles.quickOption, isNetwork && styles.quickOptionSelected]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setIsNetwork(true);
+                      setIsPrivate(false);
+                      setSelectedCircleIds(new Set());
+                    }}
+                  >
+                    <Users size={18} color={isNetwork ? '#FFD700' : '#FFF'} />
+                    <Text style={[styles.quickOptionText, isNetwork && styles.quickOptionTextActive]}>
+                      My Network (All Circles)
+                    </Text>
+                  </Pressable>
+
+                  {/* Explore Toggle */}
+                  <Pressable
+                    style={[styles.exploreOption, isExplore && styles.exploreOptionActive]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setIsExplore(!isExplore);
+                      if (!isExplore) {
+                        setIsPrivate(false);
+                      }
+                    }}
+                  >
+                    <View style={[styles.checkbox, isExplore && styles.checkboxChecked]}>
+                      {isExplore && <Check size={14} color="#000" strokeWidth={3} />}
+                    </View>
+                    <MapPin size={18} color={isExplore ? '#FFD700' : '#FFF'} />
+                    <Text style={[styles.quickOptionText, isExplore && styles.quickOptionTextActive]}>
+                      Share to Explore (Discoverable)
+                    </Text>
+                  </Pressable>
+
+                  {/* Debug info */}
+                  <Text style={{ fontSize: 10, color: '#666', marginTop: 8 }}>
+                    DEBUG: {userCircles ? `${userCircles.length} circles found` : 'No circles loaded'}
+                  </Text>
+
+                  {/* Circle Selection */}
+                  {userCircles && userCircles.length > 0 ? (
                     <>
-                      <Lock size={14} color="#C0C0C0" />
-                      <Text style={[styles.privacyText, { color: '#C0C0C0' }]}>Keep Private</Text>
+                      <Text style={[styles.privacySectionLabel, { marginTop: 16 }]}>
+                        OR SELECT CIRCLES
+                      </Text>
+                      {userCircles.map(circle => {
+                        console.log('🔵 Rendering circle:', circle.name, circle.id);
+                        return (
+                        <Pressable
+                          key={circle.id}
+                          style={[
+                            styles.circleOption,
+                            selectedCircleIds.has(circle.id) && styles.circleOptionSelected
+                          ]}
+                          onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            const newSet = new Set(selectedCircleIds);
+                            if (newSet.has(circle.id)) {
+                              newSet.delete(circle.id);
+                            } else {
+                              newSet.add(circle.id);
+                            }
+                            setSelectedCircleIds(newSet);
+                            // Clear other options when selecting circles
+                            if (newSet.size > 0) {
+                              setIsPrivate(false);
+                              setIsNetwork(false);
+                            }
+                          }}
+                        >
+                          <View style={[styles.checkbox, selectedCircleIds.has(circle.id) && styles.checkboxChecked]}>
+                            {selectedCircleIds.has(circle.id) && <Check size={14} color="#000" strokeWidth={3} />}
+                          </View>
+                          <Text style={styles.circleEmoji}>{circle.emoji || '⭕'}</Text>
+                          <Text style={[
+                            styles.circleName,
+                            selectedCircleIds.has(circle.id) && styles.circleNameSelected
+                          ]}>
+                            {circle.name}
+                          </Text>
+                        </Pressable>
+                      )})}
                     </>
-                  ) : selectedPrivacy === 'circle' ? (
-                    <>
-                      <Text style={styles.privacyText}>⭐ Share to Circle</Text>
-                    </>
+                  ) : userCircles ? (
+                    <View style={{ marginTop: 16, padding: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 8 }}>
+                      <Text style={{ color: 'rgba(255,255,255,0.5)', textAlign: 'center', fontSize: 13 }}>
+                        No circles found. Join or create circles to share with them.
+                      </Text>
+                    </View>
                   ) : (
-                    <>
-                      <Globe size={16} color="#06FFA5" />
-                      <Text style={[styles.privacyText, { color: '#06FFA5' }]}>All Followers</Text>
-                    </>
+                    <Text style={[styles.privacySectionLabel, { marginTop: 16, color: 'rgba(255,255,255,0.3)' }]}>
+                      Loading circles...
+                    </Text>
                   )}
-                </View>
-                <View style={[
-                  styles.toggleSwitch,
-                  selectedPrivacy === 'private' && styles.toggleSwitchPrivate,
-                  selectedPrivacy === 'followers' && styles.toggleSwitchFollowers
-                ]}>
-                  <Animated.View style={[
-                    styles.toggleDot,
-                    {
-                      left: dotPosition,
-                      backgroundColor: 
-                        selectedPrivacy === 'private' ? '#C0C0C0' :
-                        selectedPrivacy === 'circle' ? '#FFD700' : '#06FFA5'
+                </ScrollView>
+              ) : (
+                // OLD: Original three-way toggle
+                <Pressable
+                  onPress={() => {
+                    // Cycle through: private -> circle -> followers -> private
+                    const nextPrivacy =
+                      selectedPrivacy === 'private' ? 'circle' :
+                      selectedPrivacy === 'circle' ? 'followers' : 'private';
+                    handlePrivacySelect(nextPrivacy);
+                  }}
+                  style={styles.privacyToggle}
+                >
+                  <View style={styles.privacyOption}>
+                    {selectedPrivacy === 'private' ? (
+                      <>
+                        <Lock size={14} color="#C0C0C0" />
+                        <Text style={[styles.privacyText, { color: '#C0C0C0' }]}>Keep Private</Text>
+                      </>
+                    ) : selectedPrivacy === 'circle' ? (
+                      <>
+                        <Text style={styles.privacyText}>⭐ Share to Circle</Text>
+                      </>
+                    ) : (
+                      <>
+                        <Globe size={16} color="#06FFA5" />
+                        <Text style={[styles.privacyText, { color: '#06FFA5' }]}>All Followers</Text>
+                      </>
+                    )}
+                  </View>
+                  <View style={[
+                    styles.toggleSwitch,
+                    selectedPrivacy === 'private' && styles.toggleSwitchPrivate,
+                    selectedPrivacy === 'followers' && styles.toggleSwitchFollowers
+                  ]}>
+                    <Animated.View style={[
+                      styles.toggleDot,
+                      {
+                        left: dotPosition,
+                        backgroundColor:
+                          selectedPrivacy === 'private' ? '#C0C0C0' :
+                          selectedPrivacy === 'circle' ? '#FFD700' : '#06FFA5'
                     }
                   ]} />
                 </View>
               </Pressable>
+              )}
+
               <Text style={styles.privacyHint}>
-                {selectedPrivacy === 'private' 
-                  ? 'Only you can see this'
-                  : selectedPrivacy === 'circle'
-                  ? 'Visible to your close friends'
-                  : 'Visible to all your followers'}
+                {TEST_NEW_UI ? (
+                  isPrivate ? 'Only you can see this' :
+                  isNetwork && isExplore ? 'Visible to your network and discoverable by everyone' :
+                  isNetwork ? 'Visible to all your circles and followers' :
+                  isExplore && selectedCircleIds.size > 0 ? `Visible to ${selectedCircleIds.size} circle${selectedCircleIds.size > 1 ? 's' : ''} and discoverable` :
+                  isExplore ? 'Discoverable by everyone' :
+                  selectedCircleIds.size > 0 ? `Visible to ${selectedCircleIds.size} selected circle${selectedCircleIds.size > 1 ? 's' : ''}` :
+                  'Select who can see this'
+                ) : (
+                  selectedPrivacy === 'private' ? 'Only you can see this' :
+                  selectedPrivacy === 'circle' ? 'Visible to your close friends' :
+                  'Visible to all your followers'
+                )}
               </Text>
             </View>
 
@@ -529,6 +708,7 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
           />
         </View>
       )}
+
     </Modal>
   );
 };
@@ -682,6 +862,96 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.4)',
     marginTop: 8,
     marginLeft: 12,
+  },
+
+  // New integrated circle selection styles
+  privacyScrollView: {
+    maxHeight: 400,
+  },
+  privacySectionLabel: {
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    color: 'rgba(255,215,0,0.6)',
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  quickOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 6,
+    gap: 10,
+  },
+  quickOptionSelected: {
+    backgroundColor: 'rgba(255,215,0,0.15)',
+    borderColor: '#FFD700',
+  },
+  quickOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.7)',
+  },
+  quickOptionTextActive: {
+    color: '#FFD700',
+  },
+  exploreOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 6,
+    gap: 10,
+  },
+  exploreOptionActive: {
+    backgroundColor: 'rgba(255,215,0,0.15)',
+    borderColor: '#FFD700',
+  },
+  checkbox: {
+    width: 18,
+    height: 18,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#FFD700',
+    borderColor: '#FFD700',
+  },
+  circleOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 8,
+    marginBottom: 4,
+    gap: 8,
+  },
+  circleOptionSelected: {
+    backgroundColor: 'rgba(255,215,0,0.1)',
+    borderColor: 'rgba(255,215,0,0.3)',
+  },
+  circleEmoji: {
+    fontSize: 20,
+  },
+  circleName: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+    flex: 1,
+  },
+  circleNameSelected: {
+    color: '#FFD700',
   },
   actions: {
     flexDirection: 'row',

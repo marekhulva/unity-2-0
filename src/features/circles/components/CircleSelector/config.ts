@@ -5,15 +5,16 @@ export const CIRCLE_SELECTOR_CONFIG = {
   // Main implementation switch - change this to switch UI patterns
   implementation: 'TAB_BAR' as 'TAB_BAR' | 'DROPDOWN' | 'ICONS',
 
-  // Tab Bar specific settings (Solution 3)
+  // Tab Bar specific settings (Icon-only with tooltips - Solution B)
   tabBar: {
     showMemberCount: false, // Show member count in tabs
     maxVisibleTabs: 'auto' as 'auto' | number, // 'auto' or specific number
     showScrollIndicator: true, // Show arrow when scrollable
-    abbreviateAfter: null as null | number, // null = never abbreviate
     scrollAnimated: true, // Smooth scroll animations
-    tabMinWidth: 80, // Minimum width for each tab
-    tabMaxWidth: 200, // Maximum width for each tab
+    iconSize: 44, // Size of circular icon tabs
+    scaleOnActive: 1.1, // Scale factor for active tab
+    showTooltipOnActive: true, // Show name tooltip on active tab
+    tooltipMaxWidth: 100, // Maximum width for tooltip
   },
 
   // Dropdown specific settings (for future use)

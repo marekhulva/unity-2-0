@@ -4,11 +4,16 @@ import { backendService } from '../../services/backend.service';
 export interface Circle {
   id: string;
   name: string;
+  emoji?: string;  // Circle icon/emoji
+  description?: string;  // Circle description
+  category?: string;  // Category (fitness, work, social, etc)
+  is_private?: boolean;  // Privacy setting
   member_count: number;
   created_by: string;
   created_at: string;
   joined_at?: string;
   invite_code?: string;
+  join_code?: string;  // Alternative field name used in DB
 }
 
 export interface CirclesSlice {
@@ -24,7 +29,7 @@ export interface CirclesSlice {
   setActiveCircle: (circleId: string | null) => void;
   joinCircle: (inviteCode: string) => Promise<{ success: boolean; error?: string }>;
   leaveCircle: (circleId: string) => Promise<boolean>;
-  createCircle: (name: string) => Promise<{ success: boolean; data?: Circle; error?: string }>;
+  createCircle: (name: string, emoji?: string, description?: string) => Promise<{ success: boolean; data?: Circle; error?: string }>;
   setJoinModalVisible: (visible: boolean) => void;
   clearCirclesError: () => void;
 }
@@ -161,12 +166,16 @@ export const createCirclesSlice: StateCreator<CirclesSlice> = (set, get) => ({
   },
 
   // Create a new circle
-  createCircle: async (name) => {
-    console.log('🔵 [CIRCLES] Creating new circle:', name);
+  createCircle: async (name, emoji, description) => {
+    console.log('🔵 [CIRCLES] Creating new circle:', name, 'with emoji:', emoji);
     set({ circlesLoading: true, circlesError: null });
 
     try {
-      const response = await backendService.createCircle({ name });
+      const response = await backendService.createCircle({
+        name,
+        emoji,
+        description
+      });
 
       if (response.success && response.data) {
         console.log('✅ [CIRCLES] Circle created:', response.data.id);

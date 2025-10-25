@@ -1,67 +1,86 @@
-# 📚 Documentation Index
-*Last Updated: August 29, 2025*
+# 📚 Unity 2.0 Documentation Index
 
-## 🚀 Current Documentation
+## Core Documentation
 
-### Core System Documentation
-- **[README.md](README.md)** - Project overview and setup instructions
-- **[CHALLENGE_SYSTEM_COMPLETE.md](CHALLENGE_SYSTEM_COMPLETE.md)** ⭐ NEW - Complete technical documentation of Challenge system with activity times fix
-- **[CHALLENGE_DEBUG_GUIDE.md](CHALLENGE_DEBUG_GUIDE.md)** ⭐ NEW - Quick debugging guide for emergency fixes
-- **[CHALLENGE_ARCHITECTURE_COMPLETE.md](CHALLENGE_ARCHITECTURE_COMPLETE.md)** - Detailed Challenge architecture documentation
-- **[DEBUGGING_QUICK_REFERENCE.md](DEBUGGING_QUICK_REFERENCE.md)** - Quick debugging reference with solutions
+### Architecture & Planning
+- `MULTIPLE_CIRCLES_PLAN.md` - Multiple circles feature implementation
+- `CIRCLES_ARCHITECTURE.md` - Technical architecture for circles
+- `CIRCLE_PRIVACY_SOLUTION.md` - Multi-circle posting and privacy system
+- `VISIBILITY_SYSTEM_ANALYSIS.md` - Complete visibility system analysis
 
-### Component & Feature Guides  
-- **[ACTIVE_COMPONENTS.md](ACTIVE_COMPONENTS.md)** - Registry of which components are actually in use
-- **[CHALLENGE_POST_FIX_SUMMARY.md](CHALLENGE_POST_FIX_SUMMARY.md)** - How challenge posts were fixed
-- **[PRIVACY_MODAL_SWITCHING_GUIDE.md](PRIVACY_MODAL_SWITCHING_GUIDE.md)** - Guide for privacy modal versions
+### Feature Specifications
+- `EXPLORE_DISCOVERY_FEATURE.md` - Public content & discovery (Instagram-like Explore)
+- `URGENT_CIRCLE_FIX.sql` - Database fixes for circle privacy
+- `apply_emoji_migration.sql` - Add emoji support to circles
 
-### Deployment
-- **[TESTFLIGHT_DEPLOYMENT.md](TESTFLIGHT_DEPLOYMENT.md)** - iOS TestFlight deployment guide
+### Implementation Status
+- `SESSION_DOCUMENTATION.md` - Development session history
+- `LATEST_SESSION_AND_INTERVIEW_PREP.md` - Recent changes and updates
+- `CLAUDE.md` - Claude assistant instructions
+
+### Database & Backend
+- `supabase/migrations/` - All database migrations
+- `database/setup/supabase-setup.sql` - Initial database schema
+- `docs/CIRCLES_AND_FOLLOWING.md` - Circles vs Following system explanation
+
+## Current Feature Status
+
+### ✅ Completed
+- Multiple circles support (backend)
+- Circle selector UI (glass effect tabs)
+- Circle creation modal with emoji picker
+- Smart circle name abbreviations
+- Circle-specific feed filtering
+
+### 🚧 In Progress
+- Profile post visibility fixes
+- Multi-circle posting UI
+- "My Network" visibility option
+
+### 📋 Planned
+- Explore/Discovery feed
+- Public posts
+- Trending algorithm
+- Circle discovery
+- Circle management (edit/delete)
+- Circle roles & permissions
+
+## Key Decisions Made
+
+### Visibility Hierarchy
+1. **Private** - Only you
+2. **Current Circle** - Specific circle only
+3. **All My Circles** - All your circles
+4. **My Network** - Circles + followers (replaces confusing "Followers")
+5. **Everyone** - Public/Explore feed
+
+### Technical Choices
+- Supabase for backend
+- React Native/Expo for mobile
+- Zustand for state management
+- Modular component architecture
+
+### UI/UX Decisions
+- Glass effect design with metallic accents
+- Tab bar for circle selection (not dropdown)
+- Smart abbreviations for long circle names
+- Emoji icons for circles
+
+## Quick Links
+
+### Urgent Fixes Needed
+1. Profile posts show ALL posts (privacy bug) - See `VISIBILITY_SYSTEM_ANALYSIS.md`
+2. Apply database migrations - See `URGENT_CIRCLE_FIX.sql`
+
+### Next Features to Build
+1. Explore screen - See `EXPLORE_DISCOVERY_FEATURE.md`
+2. Multi-circle posting - See `CIRCLE_PRIVACY_SOLUTION.md`
+
+### Reference
+- Supabase Dashboard: https://supabase.com/dashboard/project/ojusijzhshvviqjeyhyn
+- Current branch: circle-view-tabs
 
 ---
 
-## 📁 Archived Documentation
-Older documentation moved to `docs_archive/` folder:
-- COMPLETE_DOCUMENTATION.md (outdated, doesn't cover challenges)
-- BACKEND_PROGRESS.md (historical progress notes)
-- OPTIMIZATION_SUMMARY.md (old optimization notes)
-- PHASE_4_IMAGE_OPTIMIZATION.md (completed optimization phase)
-- FLOATING_COMPOSER_DESIGN.md (design notes)
-
----
-
-## 🔍 Quick Links for Debugging
-
-### Most Common Issues:
-1. **Challenge times not saving** → [CHALLENGE_DEBUG_GUIDE.md#times-arent-saving](CHALLENGE_DEBUG_GUIDE.md)
-2. **Activities not showing** → [CHALLENGE_DEBUG_GUIDE.md#activities-not-showing-on-daily](CHALLENGE_DEBUG_GUIDE.md)
-3. **Modal not appearing** → [CHALLENGE_SYSTEM_COMPLETE.md#issue-2-modal-not-appearing](CHALLENGE_SYSTEM_COMPLETE.md)
-
-### Key Files to Check:
-- Challenge join flow: `src/features/challenges/JoinChallengeModal.tsx`
-- Time setup: `src/features/challenges/TimeSetupModal.tsx`
-- Daily display: `src/features/daily/DailyScreen.tsx`
-- Backend service: `src/services/supabase.challenges.service.ts`
-
----
-
-## 📝 Documentation Standards
-
-When updating documentation:
-1. Update the "Last Updated" date
-2. Mark new sections with ⭐
-3. Move outdated docs to `docs_archive/`
-4. Keep technical details in COMPLETE docs
-5. Keep quick fixes in DEBUG/GUIDE docs
-
----
-
-## 🆘 Need Help?
-
-1. **Start here:** [CHALLENGE_DEBUG_GUIDE.md](CHALLENGE_DEBUG_GUIDE.md)
-2. **Deep dive:** [CHALLENGE_SYSTEM_COMPLETE.md](CHALLENGE_SYSTEM_COMPLETE.md)
-3. **Component lookup:** [ACTIVE_COMPONENTS.md](ACTIVE_COMPONENTS.md)
-
----
-
-*Use this index to quickly find the documentation you need*
+_Last updated: 2025-10-18_
+_Use this index to navigate the project documentation quickly_

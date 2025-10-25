@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { X, Users } from 'lucide-react-native';
 import { useStore } from '../../state/rootStore';
 import * as Haptics from 'expo-haptics';
+import { CreateCircleModal } from './CreateCircleModal';
 
 interface JoinCircleModalProps {
   visible: boolean;
@@ -14,7 +15,8 @@ interface JoinCircleModalProps {
 export const JoinCircleModal: React.FC<JoinCircleModalProps> = ({ visible, onClose }) => {
   const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(false);
-  const { joinCircle } = useStore();
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const { joinCircle, fetchUserCircles } = useStore();
 
   const handleJoinCircle = async () => {
     if (inviteCode.length < 4) {
@@ -48,13 +50,20 @@ export const JoinCircleModal: React.FC<JoinCircleModalProps> = ({ visible, onClo
     }
   };
 
-  const handleCreateCircle = async () => {
-    // Navigate to create circle screen or show another modal
-    Alert.alert('Coming Soon', 'Create circle feature coming soon!');
+  const handleCreateCircle = () => {
+    // Open the create circle modal
+    setShowCreateModal(true);
+  };
+
+  const handleCreateSuccess = () => {
+    // Refresh circles after successful creation
+    fetchUserCircles();
+    onClose(); // Close the join modal
   };
 
   return (
-    <Modal
+    <>
+      <Modal
       visible={visible}
       animationType="slide"
       transparent
@@ -124,6 +133,14 @@ export const JoinCircleModal: React.FC<JoinCircleModalProps> = ({ visible, onClo
         </View>
       </View>
     </Modal>
+
+    {/* Create Circle Modal */}
+    <CreateCircleModal
+      visible={showCreateModal}
+      onClose={() => setShowCreateModal(false)}
+      onSuccess={handleCreateSuccess}
+    />
+    </>
   );
 };
 

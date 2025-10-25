@@ -926,6 +926,7 @@ class SupabaseService {
 
       // If circleId is null, it means "All Circles" - get posts from all user's circles
       let memberIds: string[] = [];
+      let userCircleIds: string[] = []; // Define at top level for use in query
 
       if (targetCircleId === null) {
         console.log('🟦 [FEED] Fetching posts from ALL user circles');
@@ -941,7 +942,7 @@ class SupabaseService {
           return { posts: [], hasMore: false };
         }
 
-        const userCircleIds = userMemberships.map(m => m.circle_id);
+        userCircleIds = userMemberships.map(m => m.circle_id);
 
         // Get all members from all user's circles
         const { data: allMembers } = await supabase
@@ -953,6 +954,9 @@ class SupabaseService {
         console.log('🟦 [FEED] Total members across all circles:', memberIds.length);
       } else {
         console.log('🟦 [FEED] Fetching posts from specific circle:', targetCircleId);
+
+        // For specific circle, userCircleIds contains just this circle
+        userCircleIds = [targetCircleId];
 
         // Get members from specific circle
         const { data: members } = await supabase
@@ -976,7 +980,8 @@ class SupabaseService {
       // Add the current user to memberIds to see their own posts
       const idsToQuery = [...new Set([...memberIds, user.id])];
       
-      const { data: posts, error } = await supabase
+      // Build the query based on whether we're filtering for a specific circle
+      let query = supabase
         .from('posts')
         .select(`
           id,
@@ -1001,10 +1006,26 @@ class SupabaseService {
           celebration_type,
           metadata,
           post_reactions!left(user_id),
-          post_comments!left(id, content, user_id, created_at)
+          post_comments!left(id, content, user_id, created_at),
+          post_circles!left(circle_id)
         `, { count: 'exact' })
-        .in('user_id', idsToQuery)  // Only posts from circle members + self
-        .in('visibility', ['public', 'circle'])  // Circle feed should only show public and circle posts, NOT followers
+        .in('user_id', idsToQuery);  // Only posts from circle members + self
+
+      // CRITICAL FIX: Filter using post_circles junction table for multi-circle support
+      if (targetCircleId !== null) {
+        // For specific circle: Get posts that are in post_circles for this circle
+        // OR posts with old circle_id field (backward compatibility)
+        // OR public posts
+        console.log('🔒 [FEED] Filtering posts for specific circle:', targetCircleId);
+
+        // We can't filter on joined table directly in Supabase, so we'll fetch and filter in JS
+        // Alternative: fetch all and filter client-side
+      } else {
+        // For "All Circles": show posts from any of user's circles OR public posts
+        console.log('🔓 [FEED] Showing posts from all user circles:', userCircleIds.length);
+      }
+
+      const { data: posts, error } = await query
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
@@ -1012,7 +1033,7 @@ class SupabaseService {
         console.error('❌ [FEED] Error fetching circle posts:', error);
         throw error;
       }
-      
+
       // DEBUG: Log what we actually got from database
       if (posts && posts.length > 0) {
         console.log('🔍 [DEBUG] First post from DB - all fields:', Object.keys(posts[0]));
@@ -1021,30 +1042,83 @@ class SupabaseService {
           challenge_name: posts[0].challenge_name,
           challenge_id: posts[0].challenge_id
         });
+        console.log('🔍 [DEBUG] First post circles:', posts[0].post_circles);
       }
-      
-      console.log('📬 [FEED] Circle posts fetched:', posts?.length || 0, 'posts');
-      if (posts && posts.length > 0) {
-        console.log('📋 [FEED] Post details:', posts.map(p => ({
+
+      console.log('📬 [FEED] Raw posts fetched from DB:', posts?.length || 0, 'posts');
+
+      // CRITICAL: Filter posts based on post_circles junction table
+      let filteredPosts = posts || [];
+
+      if (targetCircleId !== null) {
+        // Filter for specific circle
+        filteredPosts = (posts || []).filter(post => {
+          // Check if post is in the target circle via post_circles
+          const inCircleViaJunction = post.post_circles?.some((pc: any) => pc.circle_id === targetCircleId);
+
+          // Check backward compatibility with old circle_id field
+          const inCircleViaOldField = post.circle_id === targetCircleId;
+
+          // Public posts are visible everywhere
+          const isPublic = post.visibility === 'public';
+
+          const shouldShow = inCircleViaJunction || inCircleViaOldField || isPublic;
+
+          if (shouldShow) {
+            console.log('✅ [FILTER] Post', post.id, 'included:', {
+              viaJunction: inCircleViaJunction,
+              viaOldField: inCircleViaOldField,
+              isPublic,
+              post_circles: post.post_circles
+            });
+          }
+
+          return shouldShow;
+        });
+
+        console.log('🔒 [FEED] After circle filter:', filteredPosts.length, 'posts (was', posts?.length || 0, ')');
+      } else {
+        // Filter for all user's circles
+        filteredPosts = (posts || []).filter(post => {
+          // Check if post is in any of user's circles via post_circles
+          const inUserCirclesViaJunction = post.post_circles?.some((pc: any) =>
+            userCircleIds.includes(pc.circle_id)
+          );
+
+          // Check backward compatibility with old circle_id field
+          const inUserCirclesViaOldField = userCircleIds.includes(post.circle_id);
+
+          // Public posts are visible everywhere
+          const isPublic = post.visibility === 'public';
+
+          return inUserCirclesViaJunction || inUserCirclesViaOldField || isPublic;
+        });
+
+        console.log('🔓 [FEED] After all-circles filter:', filteredPosts.length, 'posts (was', posts?.length || 0, ')');
+      }
+
+      if (filteredPosts.length > 0) {
+        console.log('📋 [FEED] Filtered post details:', filteredPosts.map(p => ({
           id: p.id,
           type: p.type,
           visibility: p.visibility,
           content: p.content?.substring(0, 30),
           action_title: p.action_title,
           user_id: p.user_id,
-          created_at: p.created_at
+          created_at: p.created_at,
+          post_circles_count: p.post_circles?.length || 0
         })));
       }
       
-      // Get profiles for all post authors
-      const userIds = [...new Set(posts?.map(p => p.user_id) || [])];
+      // Get profiles for all post authors (use filteredPosts, not original posts)
+      const userIds = [...new Set(filteredPosts.map(p => p.user_id))];
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, name, avatar_url')
         .in('id', userIds);
-      
+
       // Attach profile info to posts and process reactions/comments
-      const postsWithProfiles = posts?.map(post => {
+      const postsWithProfiles = filteredPosts.map(post => {
         // Count reactions and check if current user reacted
         const reactionCount = post.post_reactions?.length || 0;
         const userReacted = post.post_reactions?.some((r: any) => r.user_id === user.id) || false;
@@ -1070,14 +1144,15 @@ class SupabaseService {
           // Clean up the raw data
           post_reactions: undefined,
           post_comments: undefined,
+          post_circles: undefined,  // Clean up the junction table data
           // Keep old reactions format for backward compatibility
           reactions: userReacted ? { '🔥': reactionCount } : {}
         };
-      }) || [];
-      
+      });
+
       // Check if there are more posts to load
       const hasMore = postsWithProfiles.length === limit;
-      
+
       console.log(`📊 Circle feed loaded: ${postsWithProfiles.length} posts (page: ${offset/limit + 1}, hasMore: ${hasMore})`);
       return { posts: postsWithProfiles, hasMore };
     } else {
@@ -1281,6 +1356,11 @@ class SupabaseService {
     is_celebration?: boolean;
     celebration_type?: string;
     metadata?: any;
+    // NEW: Multi-circle visibility model
+    isPrivate?: boolean;
+    isExplore?: boolean;
+    isNetwork?: boolean;
+    circleIds?: string[];
   }) {
     // CHECKPOINT 5: Data received in supabaseService
     ChallengeDebugV2.checkpoint('CP5-SUPABASE-RECEIVED', 'Data received in supabaseService.createPost', post);
@@ -1309,12 +1389,13 @@ class SupabaseService {
     console.log('👤 [SUPABASE] User ID:', userId);
 
     // Map camelCase to snake_case for database
-    const { 
+    const {
       mediaUrl, actionTitle, goalTitle, goalColor, circleId,
-      isChallenge, challengeName, challengeId, challengeProgress, 
+      isChallenge, challengeName, challengeId, challengeProgress,
       leaderboardPosition, totalParticipants,
       is_celebration, celebration_type, metadata,
-      ...postData 
+      isPrivate, isExplore, isNetwork, circleIds,
+      ...postData
     } = post;
     
     // Phase 4: Upload image to Storage if it's base64 OR file:// URI
@@ -1347,7 +1428,7 @@ class SupabaseService {
       action_title: actionTitle,  // Map actionTitle to action_title
       goal_title: goalTitle,  // Map goalTitle to goal_title
       goal_color: goalColor,  // Map goalColor to goal_color
-      circle_id: circleId,  // Map circleId to circle_id
+      circle_id: circleId,  // Map circleId to circle_id (for backward compatibility)
       // Map challenge fields to snake_case
       is_challenge: isChallenge || false,
       challenge_name: challengeName,
@@ -1358,7 +1439,13 @@ class SupabaseService {
       // Map celebration fields
       is_celebration: is_celebration || false,
       celebration_type: celebration_type,
-      metadata: metadata ? JSON.stringify(metadata) : null
+      metadata: metadata ? JSON.stringify(metadata) : null,
+      // NEW: Multi-circle visibility model
+      ...(isPrivate !== undefined && {
+        is_private: isPrivate,
+        is_explore: isExplore || false,
+        is_network: isNetwork || false,
+      })
     };
     
     // CHECKPOINT 6: Data being inserted to database
@@ -1387,11 +1474,31 @@ class SupabaseService {
       console.error('❌ [SUPABASE] Error creating post:', error);
       throw error;
     }
-    
+
     // CHECKPOINT 7: Data returned from database
     ChallengeDebugV2.checkpoint('CP7-DB-RESPONSE', 'Data returned from database after insert', data);
-    
+
     console.log('✅ [SUPABASE] Post created successfully, ID:', data?.id);
+
+    // NEW: Insert circle relationships if circleIds are provided
+    if (circleIds && circleIds.length > 0 && data?.id) {
+      console.log('🔵 [SUPABASE] Inserting post_circles relationships for', circleIds.length, 'circles');
+      const postCircleRelationships = circleIds.map(cid => ({
+        post_id: data.id,
+        circle_id: cid
+      }));
+
+      const { error: circleError } = await supabase
+        .from('post_circles')
+        .insert(postCircleRelationships);
+
+      if (circleError) {
+        console.error('⚠️ [SUPABASE] Error creating post_circles relationships:', circleError);
+        // Don't throw - the post is created, just log the error
+      } else {
+        console.log('✅ [SUPABASE] Post_circles relationships created for', circleIds.length, 'circles');
+      }
+    }
     
     // Return the created post with proper field mapping back to camelCase
     return {
@@ -1649,7 +1756,7 @@ class SupabaseService {
   }
 
   // Circle methods
-  async createCircle(name: string, description?: string) {
+  async createCircle(name: string, emoji?: string, description?: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
@@ -1657,6 +1764,7 @@ class SupabaseService {
       .from('circles')
       .insert({
         name,
+        emoji: emoji || '🔵',  // Default to blue circle if no emoji provided
         description,
         created_by: user.id
       })
@@ -1878,7 +1986,7 @@ class SupabaseService {
 
     console.log('🔵 [CIRCLES] Fetching all circles for user:', user.id);
 
-    // Get all circle memberships for the user
+    // Get all circle memberships for the user with emoji and additional fields
     const { data: memberships, error: membershipError } = await supabase
       .from('circle_members')
       .select(`
@@ -1887,8 +1995,13 @@ class SupabaseService {
         circles:circle_id (
           id,
           name,
+          emoji,
+          description,
+          category,
+          is_private,
           created_by,
-          created_at
+          created_at,
+          join_code
         )
       `)
       .eq('user_id', user.id)
@@ -1907,10 +2020,15 @@ class SupabaseService {
       return {
         id: circle.id,
         name: circle.name,
+        emoji: circle.emoji || '🔵',  // Default to blue circle if no emoji
+        description: circle.description,
+        category: circle.category,
+        is_private: circle.is_private || false,
         member_count: 0, // Will be updated below
         created_by: circle.created_by,
         created_at: circle.created_at,
-        joined_at: membership.joined_at
+        joined_at: membership.joined_at,
+        join_code: circle.join_code
       };
     });
 
