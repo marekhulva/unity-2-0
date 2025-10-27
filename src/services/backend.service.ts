@@ -439,7 +439,7 @@ class BackendService {
   async joinCircleWithCode(inviteCode: string) {
     if (isSupabaseBackend()) {
       const result = await supabaseService.joinCircleWithCode(inviteCode);
-      return result; // Already returns {success, error, circle_id}
+      return result; // Returns {success, error, data: circle}
     } else {
       throw new Error('Circles not implemented in custom backend');
     }

@@ -43,7 +43,7 @@ export const DropdownSelector: React.FC<CircleSelectorProps> = ({
   const displayName = activeCircle?.name || 'ALL CIRCLES';
 
   return (
-    <View style={[styles.container, style]}>
+    <View style={[styles.container, style, { position: 'relative', zIndex: 9999 }]}>
       {/* Trigger Button */}
       <TouchableOpacity
         style={styles.trigger}
@@ -283,14 +283,22 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
   menu: {
+    position: 'absolute',
+    top: '100%',
+    left: '50%',
+    transform: [{ translateX: '-50%' }],
     marginTop: 8,
     borderRadius: 12,
     backgroundColor: 'rgba(10, 10, 10, 0.95)',
-    position: 'relative',
     overflow: 'hidden',
     maxHeight: 300,
-    alignSelf: 'center',
     minWidth: 200,
+    zIndex: 99999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 99999,
   },
   menuBorderTop: {
     position: 'absolute',

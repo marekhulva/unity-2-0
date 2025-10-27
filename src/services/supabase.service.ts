@@ -1786,26 +1786,26 @@ class SupabaseService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       console.error('🔴 [CIRCLE] Not authenticated');
-      return { success: false, error: 'Not authenticated', circle_id: null };
+      return { success: false, error: 'Not authenticated', data: null };
     }
 
     console.log('🟦 [CIRCLE] User authenticated:', user.id);
 
-    // Find circle by join code
+    // Find circle by join code - fetch ALL circle data
     const { data: circles, error: circleError } = await supabase
       .from('circles')
-      .select('id, name')
+      .select('id, name, join_code, emoji, description, created_by, created_at')
       .ilike('join_code', inviteCode)
       .limit(1);
 
     if (circleError) {
       console.error('🔴 [CIRCLE] Error searching for circle:', circleError);
-      return { success: false, error: circleError.message, circle_id: null };
+      return { success: false, error: circleError.message, data: null };
     }
 
     if (!circles || circles.length === 0) {
       console.log('🔴 [CIRCLE] No circle found with code:', inviteCode);
-      return { success: false, error: 'Invalid circle code', circle_id: null };
+      return { success: false, error: 'Invalid circle code', data: null };
     }
 
     const circle = circles[0];
@@ -1821,7 +1821,7 @@ class SupabaseService {
 
     if (existingMember) {
       console.log('🟡 [CIRCLE] User already a member of this circle');
-      return { success: false, error: 'Already a member of this circle', circle_id: circle.id };
+      return { success: false, error: 'Already a member of this circle', data: circle };
     }
 
     // Add to circle_members
@@ -1834,7 +1834,7 @@ class SupabaseService {
 
     if (memberError) {
       console.error('🔴 [CIRCLE] Error adding to circle_members:', memberError);
-      return { success: false, error: memberError.message, circle_id: null };
+      return { success: false, error: memberError.message, data: null };
     }
 
     console.log('🟢 [CIRCLE] Added to circle_members');
@@ -1847,11 +1847,11 @@ class SupabaseService {
 
     if (profileError) {
       console.error('🔴 [CIRCLE] Error updating profile:', profileError);
-      return { success: false, error: profileError.message, circle_id: null };
+      return { success: false, error: profileError.message, data: null };
     }
 
     console.log('🟢 [CIRCLE] Successfully joined circle!');
-    return { success: true, error: null, circle_id: circle.id };
+    return { success: true, error: null, data: circle };
   }
 
   async joinCircle(circleId: string) {

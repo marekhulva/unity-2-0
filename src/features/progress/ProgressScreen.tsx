@@ -30,9 +30,7 @@ import { Goal } from '../../state/slices/goalsSlice';
 import { EmptyState } from '../../ui/EmptyState';
 import { calculateConsistency } from '../../utils/consistencyCalculator';
 
-// Import CircleSelector and JoinCircleModal for multiple circles support
-import { CircleSelector } from '../circles/components/CircleSelector';
-import { JoinCircleModal } from '../social/JoinCircleModal';
+// CircleSelector removed - only needed in Social feed
 
 const { width } = Dimensions.get('window');
 
@@ -70,8 +68,6 @@ export const ProgressScreen = ({ navigation }: any) => {
   const fetchUserCircles = useStore(s => s.fetchUserCircles);
   const circlesLoading = useStore(s => s.circlesLoading);
   const circlesError = useStore(s => s.circlesError);
-  const joinCircle = useStore(s => s.joinCircle);
-  const [showJoinCircleModal, setShowJoinCircleModal] = useState(false);
   
   
   // Calculate overall metrics
@@ -709,16 +705,6 @@ export const ProgressScreen = ({ navigation }: any) => {
         />
       </Animated.View>
 
-      {/* Circle Selector - for multiple circles support */}
-      <CircleSelector
-        circles={userCircles}
-        activeCircleId={activeCircleId}
-        onCircleSelect={setActiveCircle}
-        onJoinCircle={() => setShowJoinCircleModal(true)}
-        loading={circlesLoading}
-        error={circlesError}
-      />
-
       <View style={styles.scrollViewWrapper}>
         {/* Fallback gradient background */}
         <LinearGradient 
@@ -1073,15 +1059,6 @@ export const ProgressScreen = ({ navigation }: any) => {
         onClose={() => setEditingGoal(null)}
       />
 
-      {/* Join Circle Modal */}
-      <JoinCircleModal
-        visible={showJoinCircleModal}
-        onClose={() => setShowJoinCircleModal(false)}
-        onJoin={async (circleCode) => {
-          await joinCircle(circleCode);
-          setShowJoinCircleModal(false);
-        }}
-      />
 
       {/* Loading Overlay */}
       {goalsLoading && (

@@ -75,6 +75,7 @@ import { KeyboardToolbar, useKeyboardToolbar } from '../../components/KeyboardTo
 
 // Import CircleSelector for multiple circles support
 import { CircleSelector } from '../circles/components/CircleSelector';
+import { PrivacySelectionModal } from '../daily/PrivacySelectionModal';
 
 const { width, height } = Dimensions.get('window');
 
@@ -151,6 +152,7 @@ export const SocialScreen = () => {
   
   // Inline composer state
   const [composerExpanded, setComposerExpanded] = useState(false);
+  const [composerFocused, setComposerFocused] = useState(false);
   const scrollViewRef = useRef<any>(null);
   const [postText, setPostText] = useState('');
   const [postPhoto, setPostPhoto] = useState<string | null>(null);
@@ -160,9 +162,66 @@ export const SocialScreen = () => {
   const [postVisibility, setPostVisibility] = useState<Visibility>(
     feedView === 'circle' ? 'circle' : 'followers'
   );
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [selectedPrivacySettings, setSelectedPrivacySettings] = useState<{
+    visibility: 'private' | 'circle' | 'followers';
+    isPrivate: boolean;
+    isExplore: boolean;
+    isNetwork: boolean;
+    circleIds: string[];
+  }>({
+    visibility: 'circle',
+    isPrivate: false,
+    isExplore: false,
+    isNetwork: false,
+    circleIds: activeCircleId ? [activeCircleId] : [],
+  });
 
   // Keyboard toolbar hook for Android/Web
   const { keyboardHeight, isKeyboardVisible, toolbarStyle } = useKeyboardToolbar();
+
+  // Helper to get posting target text
+  const getPostingTargetText = () => {
+    if (selectedPrivacySettings.isPrivate) {
+      return 'PRIVATE (ONLY YOU)';
+    }
+    if (selectedPrivacySettings.isExplore) {
+      return 'EXPLORE (EVERYONE)';
+    }
+    if (selectedPrivacySettings.isNetwork) {
+      return 'ALL FOLLOWERS';
+    }
+    if (selectedPrivacySettings.circleIds.length === 0) {
+      return 'ALL CIRCLES';
+    }
+    if (selectedPrivacySettings.circleIds.length === 1) {
+      const circle = userCircles.find(c => c.id === selectedPrivacySettings.circleIds[0]);
+      return circle?.name?.toUpperCase() || 'SELECTED CIRCLE';
+    }
+    return `${selectedPrivacySettings.circleIds.length} CIRCLES`;
+  };
+
+  // Handle privacy selection from modal
+  const handlePrivacySelect = (
+    visibility: 'private' | 'circle' | 'followers',
+    contentType: 'photo' | 'audio' | 'text' | 'check',
+    content?: string,
+    mediaUri?: string,
+    newVisibility?: {
+      isPrivate: boolean;
+      isExplore: boolean;
+      isNetwork: boolean;
+      circleIds: string[];
+    }
+  ) => {
+    if (newVisibility) {
+      setSelectedPrivacySettings({
+        visibility,
+        ...newVisibility,
+      });
+    }
+    setShowPrivacyModal(false);
+  };
   
   // Animation values
   const scrollY = useSharedValue(0);
@@ -292,18 +351,26 @@ export const SocialScreen = () => {
       console.log('🟦 [POST] Calling addPost with:', {
         content: postText?.substring(0, 50),
         type: postType,
-        visibility: postVisibility,
+        visibility: selectedPrivacySettings.visibility,
         hasPhoto: !!postPhoto,
         hasAudio: !!postAudio,
-        photoUri: postPhoto?.substring(0, 50)
+        photoUri: postPhoto?.substring(0, 50),
+        isPrivate: selectedPrivacySettings.isPrivate,
+        isExplore: selectedPrivacySettings.isExplore,
+        isNetwork: selectedPrivacySettings.isNetwork,
+        circleIds: selectedPrivacySettings.circleIds,
       });
-      
+
       await addPost({
         content: postText,
         type: postType,
-        visibility: postVisibility,  // Use selected visibility
+        visibility: selectedPrivacySettings.visibility,
         photoUri: postPhoto,
         audioUri: postAudio,
+        isPrivate: selectedPrivacySettings.isPrivate,
+        isExplore: selectedPrivacySettings.isExplore,
+        isNetwork: selectedPrivacySettings.isNetwork,
+        circleIds: selectedPrivacySettings.circleIds,
       });
       
       console.log('🟢 [POST] Post submitted successfully');
@@ -706,171 +773,100 @@ export const SocialScreen = () => {
             }
           >
 
-          {/* Circle Selector - Above Share your victory */}
-          {feedView === 'circle' && (
-            <View style={{ marginTop: 8, marginBottom: 0, zIndex: 1000 }}>
-              <CircleSelector
-                circles={userCircles}
-                activeCircleId={activeCircleId}
-                onCircleSelect={setActiveCircle}
-                onJoinCircle={() => setShowJoinCircleModal(true)}
-                loading={circlesLoading}
-                error={circlesError}
-              />
-            </View>
-          )}
+          {/* REVERT POINT: Original CircleSelector was here (lines 776-788) */}
+          {/* Moved CircleSelector inside composer - see below */}
 
-          {/* Share Your Victory Component - Pinned at Top */}
+          {/* Share Your Victory Component - Full Width, No Borders */}
           <View style={{
             marginTop: feedView === 'circle' ? 4 : 12,
-            marginHorizontal: 16,
+            marginHorizontal: 0,
             marginBottom: 20,
-            borderRadius: 16,
+            paddingHorizontal: 16,
             backgroundColor: 'transparent',
-            overflow: 'hidden',
             position: 'relative',
+            zIndex: 9999,
           }}>
-            {/* Thin gold gradient border lines */}
-            {/* Top border */}
-            <View style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 0.75,
-              zIndex: 1,
-            }}>
-              <LinearGradient
-                colors={[
-                  'rgba(212, 175, 55, 0.6)',  // Antique gold with transparency
-                  'rgba(201, 160, 80, 0.6)',  // Rich gold
-                  'rgba(184, 134, 11, 0.6)',  // Dark goldenrod
-                  'rgba(160, 121, 10, 0.6)',  // Deep gold
-                  'rgba(184, 134, 11, 0.6)',  // Dark goldenrod
-                  'rgba(201, 160, 80, 0.6)',  // Rich gold
-                  'rgba(212, 175, 55, 0.6)'   // Antique gold edge
-                ]}
-                style={{ flex: 1 }}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              />
-            </View>
-
-            {/* Bottom border */}
-            <View style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: 0.75,
-              zIndex: 1,
-            }}>
-              <LinearGradient
-                colors={[
-                  'rgba(212, 175, 55, 0.6)',
-                  'rgba(201, 160, 80, 0.6)',
-                  'rgba(184, 134, 11, 0.6)',
-                  'rgba(160, 121, 10, 0.6)',
-                  'rgba(184, 134, 11, 0.6)',
-                  'rgba(201, 160, 80, 0.6)',
-                  'rgba(212, 175, 55, 0.6)'
-                ]}
-                style={{ flex: 1 }}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              />
-            </View>
-
-            {/* Left border */}
-            <View style={{
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: 0.75,
-              zIndex: 1,
-            }}>
-              <LinearGradient
-                colors={[
-                  'rgba(212, 175, 55, 0.6)',
-                  'rgba(201, 160, 80, 0.6)',
-                  'rgba(184, 134, 11, 0.6)',
-                  'rgba(160, 121, 10, 0.6)',
-                  'rgba(184, 134, 11, 0.6)',
-                  'rgba(201, 160, 80, 0.6)',
-                  'rgba(212, 175, 55, 0.6)'
-                ]}
-                style={{ flex: 1 }}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-              />
-            </View>
-
-            {/* Right border */}
-            <View style={{
-              position: 'absolute',
-              right: 0,
-              top: 0,
-              bottom: 0,
-              width: 0.75,
-              zIndex: 1,
-            }}>
-              <LinearGradient
-                colors={[
-                  'rgba(212, 175, 55, 0.6)',
-                  'rgba(201, 160, 80, 0.6)',
-                  'rgba(184, 134, 11, 0.6)',
-                  'rgba(160, 121, 10, 0.6)',
-                  'rgba(184, 134, 11, 0.6)',
-                  'rgba(201, 160, 80, 0.6)',
-                  'rgba(212, 175, 55, 0.6)'
-                ]}
-                style={{ flex: 1 }}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-              />
-            </View>
-
-            {/* Content container - completely transparent */}
-
               {!composerExpanded ? (
-                // Collapsed state
-                <Pressable
-                  style={[styles.composerCollapsed, {
-                    marginBottom: 0,
-                    paddingVertical: 16,
-                    backgroundColor: 'transparent',
-                  }]}
-                  onPress={() => {
-                    setComposerExpanded(true);
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  }}
-                >
-                  <Image
-                    source={{ uri: user?.avatar || 'https://via.placeholder.com/32' }}
-                    style={styles.composerAvatar}
-                  />
-                  <Text style={[styles.composerPlaceholder, { color: 'rgba(255,215,0,0.7)' }]}>
-                    Share your victory...
-                  </Text>
-                  <View style={styles.composerIcons}>
-                    <Camera size={18} color="rgba(255,215,0,0.8)" />
-                    <ImageIcon size={18} color="rgba(255,215,0,0.8)" />
-                    <Mic size={18} color="rgba(255,215,0,0.8)" />
-                  </View>
-                </Pressable>
+                // Collapsed state - WITH integrated circle selector
+                <View style={{ position: 'relative', zIndex: 9999 }}>
+                  <Pressable
+                    style={[styles.composerCollapsed, {
+                      marginBottom: 0,
+                      paddingVertical: 12,
+                      paddingRight: feedView === 'circle' ? 4 : 12,
+                      backgroundColor: 'transparent',
+                      zIndex: 9999,
+                    }]}
+                    onPress={() => {
+                      setComposerExpanded(true);
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                      <Image
+                        source={{ uri: user?.avatar || 'https://via.placeholder.com/32' }}
+                        style={styles.composerAvatar}
+                      />
+                      <Text style={[styles.composerPlaceholder, { color: 'rgba(255,215,0,0.7)', flex: 1 }]}>
+                        Share your victory...
+                      </Text>
+                    </View>
+
+                    {/* Circle Selector on the right - only in circle view */}
+                    {feedView === 'circle' && (
+                      <View style={{ marginLeft: 8, zIndex: 9999 }} pointerEvents="box-none">
+                        <CircleSelector
+                          circles={userCircles}
+                          activeCircleId={activeCircleId}
+                          onCircleSelect={setActiveCircle}
+                          onJoinCircle={() => setShowJoinCircleModal(true)}
+                          loading={circlesLoading}
+                          error={circlesError}
+                          style={{ paddingHorizontal: 0, paddingVertical: 0 }}
+                        />
+                      </View>
+                    )}
+
+                    {feedView !== 'circle' && (
+                      <View style={styles.composerIcons}>
+                        <Camera size={18} color="rgba(255,215,0,0.8)" />
+                        <ImageIcon size={18} color="rgba(255,215,0,0.8)" />
+                        <Mic size={18} color="rgba(255,215,0,0.8)" />
+                      </View>
+                    )}
+                  </Pressable>
+                </View>
               ) : (
-                // Expanded state
+                // Expanded state - WITH integrated circle selector
                 <View style={[styles.composerExpanded, {
                   paddingBottom: 16,
                   backgroundColor: 'transparent',
+                  zIndex: 9999,
                 }]}>
-                <View style={styles.composerHeader}>
-                  <Image
-                    source={{ uri: user?.avatar || 'https://via.placeholder.com/40' }}
-                    style={styles.composerAvatarLarge}
-                  />
-                  <Text style={styles.composerName}>{user?.name || 'You'}</Text>
+                <View style={[styles.composerHeader, { zIndex: 9999 }]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                    <Image
+                      source={{ uri: user?.avatar || 'https://via.placeholder.com/40' }}
+                      style={styles.composerAvatarLarge}
+                    />
+                    <Text style={[styles.composerName, { flex: 1 }]}>{user?.name || 'You'}</Text>
+                  </View>
+
+                  {/* Circle Selector in expanded header - only in circle view */}
+                  {feedView === 'circle' && (
+                    <View style={{ marginRight: 8, zIndex: 9999 }}>
+                      <CircleSelector
+                        circles={userCircles}
+                        activeCircleId={activeCircleId}
+                        onCircleSelect={setActiveCircle}
+                        onJoinCircle={() => setShowJoinCircleModal(true)}
+                        loading={circlesLoading}
+                        error={circlesError}
+                        style={{ paddingHorizontal: 0, paddingVertical: 0 }}
+                      />
+                    </View>
+                  )}
+
                   <Pressable
                     style={styles.composerClose}
                     onPress={() => setComposerExpanded(false)}
@@ -879,15 +875,72 @@ export const SocialScreen = () => {
                   </Pressable>
                 </View>
 
-                <TextInput
-                  style={styles.composerInput}
-                  placeholder="Share your victory..."
-                  placeholderTextColor="rgba(255,255,255,0.3)"
-                  value={postText}
-                  onChangeText={setPostText}
-                  multiline
-                  autoFocus
-                />
+                <View style={{ position: 'relative' }}>
+                  {/* Faint grid texture - only visible on focus */}
+                  {composerFocused && (
+                    <View style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      opacity: 0.03,
+                      pointerEvents: 'none',
+                    }}>
+                      <LinearGradient
+                        colors={['rgba(255, 215, 0, 0.1)', 'transparent', 'rgba(255, 215, 0, 0.1)', 'transparent']}
+                        style={{ flex: 1 }}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                      />
+                    </View>
+                  )}
+                  <TextInput
+                    style={[styles.composerInput, composerFocused && {
+                      backgroundColor: 'rgba(255, 215, 0, 0.02)',
+                    }]}
+                    placeholder="Share your victory..."
+                    placeholderTextColor="rgba(255,255,255,0.3)"
+                    value={postText}
+                    onChangeText={setPostText}
+                    onFocus={() => setComposerFocused(true)}
+                    onBlur={() => setComposerFocused(false)}
+                    multiline
+                    autoFocus
+                  />
+                </View>
+
+                {/* Target Circle Preview */}
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingVertical: 8,
+                  paddingHorizontal: 12,
+                  marginTop: 8,
+                  marginBottom: 4,
+                  backgroundColor: 'rgba(255, 215, 0, 0.05)',
+                  borderRadius: 8,
+                }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.5)', letterSpacing: 1 }}>
+                      POSTING TO
+                    </Text>
+                    <Text style={{ fontSize: 12, color: 'rgba(255, 215, 0, 0.9)', fontWeight: '600', letterSpacing: 0.5 }}>
+                      {getPostingTargetText()}
+                    </Text>
+                  </View>
+                    <Pressable
+                      onPress={() => {
+                        setShowPrivacyModal(true);
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                    >
+                      <Text style={{ fontSize: 11, color: 'rgba(255, 215, 0, 0.7)', fontWeight: '600', letterSpacing: 1 }}>
+                        CHANGE
+                      </Text>
+                    </Pressable>
+                  </View>
 
                 {/* Three-Way Visibility Toggle */}
                 <View style={styles.visibilitySection}>
@@ -1486,7 +1539,14 @@ export const SocialScreen = () => {
         visible={showDiscoverModal}
         onClose={() => setShowDiscoverModal(false)}
       />
-      
+
+      <PrivacySelectionModal
+        visible={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+        onSelect={handlePrivacySelect}
+        actionTitle="Post"
+      />
+
       {/* Profile View - Full Screen Overlay */}
       {selectedUserId && console.log('🔵 [SocialScreenV6] Modal should show for userId:', selectedUserId, 'currentUser:', user?.id, 'isOwnProfile:', selectedUserId === user?.id)}
       {selectedUserId && (
