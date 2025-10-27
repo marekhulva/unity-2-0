@@ -1481,9 +1481,33 @@ class SupabaseService {
     console.log('✅ [SUPABASE] Post created successfully, ID:', data?.id);
 
     // NEW: Insert circle relationships if circleIds are provided
-    if (circleIds && circleIds.length > 0 && data?.id) {
-      console.log('🔵 [SUPABASE] Inserting post_circles relationships for', circleIds.length, 'circles');
-      const postCircleRelationships = circleIds.map(cid => ({
+    // OR if visibility is 'circle' but no circleId/circleIds provided, add to ALL user circles
+    let finalCircleIds = circleIds;
+
+    // Check if we need to fetch all user circles
+    // This happens when: visibility is circle, no circleId provided, and either no circleIds or empty circleIds
+    const needsAllCircles = post.visibility === 'circle' &&
+                            !circleId &&
+                            (!finalCircleIds || finalCircleIds.length === 0);
+
+    if (needsAllCircles) {
+      console.log('🔵 [SUPABASE] No circleIds provided for circle post, fetching all user circles');
+      const { data: userMemberships } = await supabase
+        .from('circle_members')
+        .select('circle_id')
+        .eq('user_id', userId);
+
+      if (userMemberships && userMemberships.length > 0) {
+        finalCircleIds = userMemberships.map(m => m.circle_id);
+        console.log('🔵 [SUPABASE] Adding post to all user circles:', finalCircleIds.length);
+      } else {
+        console.log('⚠️ [SUPABASE] User is not a member of any circles');
+      }
+    }
+
+    if (finalCircleIds && finalCircleIds.length > 0 && data?.id) {
+      console.log('🔵 [SUPABASE] Inserting post_circles relationships for', finalCircleIds.length, 'circles');
+      const postCircleRelationships = finalCircleIds.map(cid => ({
         post_id: data.id,
         circle_id: cid
       }));
@@ -1496,7 +1520,7 @@ class SupabaseService {
         console.error('⚠️ [SUPABASE] Error creating post_circles relationships:', circleError);
         // Don't throw - the post is created, just log the error
       } else {
-        console.log('✅ [SUPABASE] Post_circles relationships created for', circleIds.length, 'circles');
+        console.log('✅ [SUPABASE] Post_circles relationships created for', finalCircleIds.length, 'circles');
       }
     }
     

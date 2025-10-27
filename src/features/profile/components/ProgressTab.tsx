@@ -53,6 +53,10 @@ export const ProgressTab = () => {
   const activeCircleId = useStore(s => s.activeCircleId);
   const fetchUserCircles = useStore(s => s.fetchUserCircles);
 
+  // Challenge-related state
+  const activeChallenges = useStore(s => s.activeChallenges);
+  const fetchMyActiveChallenges = useStore(s => s.fetchMyActiveChallenges);
+
   // Calculate overall metrics
   const completedToday = actions.filter(a => a.done).length;
   const totalToday = actions.length;
@@ -181,6 +185,7 @@ export const ProgressTab = () => {
     }
     fetchCompletionStats();
     fetchUserCircles();
+    fetchMyActiveChallenges();
   }, []);
 
   useEffect(() => {
@@ -774,6 +779,96 @@ export const ProgressTab = () => {
         )}
       </View>
 
+      {/* Active Challenges Section */}
+      {activeChallenges && activeChallenges.length > 0 && (
+        <View style={[styles.goalsSection, { marginTop: 32 }]}>
+          <Text style={styles.sectionTitle}>ACTIVE CHALLENGES</Text>
+
+          {activeChallenges.map((challenge: any, index: number) => {
+            const participation = challenge.my_participation;
+            const completionPercentage = participation?.completion_percentage || 0;
+            const currentDay = participation?.current_day || 1;
+            const totalDays = challenge.duration_days || 30;
+            const daysLeft = Math.max(0, totalDays - currentDay);
+
+            return (
+              <Animated.View
+                key={challenge.id}
+                entering={FadeInDown.delay(120 + index * 60).springify()}
+                style={styles.goalCard}
+              >
+                <Pressable style={styles.newGoalCard}>
+                  <LinearGradient
+                    colors={['rgba(0,0,0,0.95)', 'rgba(18,23,28,0.9)']}
+                    style={StyleSheet.absoluteFillObject}
+                  />
+
+                  <Text style={styles.consistencyLabel}>COMPLETION</Text>
+
+                  <View style={styles.progressRingContainer}>
+                    <Svg width={70} height={70}>
+                      <SvgCircle
+                        cx="35"
+                        cy="35"
+                        r="30"
+                        stroke="rgba(192,192,192,0.1)"
+                        strokeWidth="6"
+                        fill="none"
+                      />
+                      <SvgCircle
+                        cx="35"
+                        cy="35"
+                        r="30"
+                        stroke="#FFD700"
+                        strokeWidth="6"
+                        fill="none"
+                        strokeDasharray={`${(completionPercentage / 100) * 188.4} 188.4`}
+                        strokeLinecap="round"
+                        transform="rotate(-90 35 35)"
+                      />
+                    </Svg>
+                    <View style={styles.progressTextContainer}>
+                      <Text style={styles.progressPercentage}>{Math.round(completionPercentage)}%</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.goalContentLeft}>
+                    <View style={styles.goalHeaderNew}>
+                      <Text style={styles.challengeEmoji}>{challenge.emoji || '🏆'}</Text>
+                      <Text style={styles.goalTitleNew}>{challenge.name}</Text>
+                    </View>
+
+                    <View style={styles.timeStatusContainer}>
+                      <Text style={styles.timeStatusPrimary}>
+                        Day {currentDay} of {totalDays}
+                      </Text>
+                      <Text style={styles.timeStatusSecondary}>{daysLeft} days remaining</Text>
+                    </View>
+
+                    <View style={styles.linearProgressContainer}>
+                      <View style={styles.linearProgressBackground}>
+                        <View
+                          style={[
+                            styles.linearProgressFill,
+                            { width: `${completionPercentage}%` }
+                          ]}
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.bottomSection}>
+                      <Text style={styles.tapDetailsText}>
+                        {participation?.completed_days || 0} / {totalDays} days completed
+                      </Text>
+                    </View>
+                  </View>
+                </Pressable>
+              </Animated.View>
+            );
+          })}
+        </View>
+      )}
+
       {goals.length > 0 && (
         <Animated.View
           entering={FadeInDown.delay(200).springify()}
@@ -930,6 +1025,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     flex: 1,
+  },
+  challengeEmoji: {
+    fontSize: 20,
+    marginRight: 8,
   },
   timeStatusContainer: {
     marginBottom: 16,

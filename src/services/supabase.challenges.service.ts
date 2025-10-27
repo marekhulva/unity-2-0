@@ -704,6 +704,71 @@ class SupabaseChallengeService {
 
     return data || [];
   }
+
+  async recordChallengeActivity(
+    participantId: string,
+    activityId: string,
+    linkedActionId?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    console.log('🏆 [CHALLENGES] Recording challenge activity completion:', {
+      participantId,
+      activityId,
+      linkedActionId,
+    });
+
+    const { data: participant, error: participantError } = await supabase
+      .from('challenge_participants')
+      .select('user_id, challenge_id')
+      .eq('id', participantId)
+      .single();
+
+    if (participantError || !participant) {
+      console.error('🔴 [CHALLENGES] Error fetching participant:', participantError);
+      return { success: false, error: 'Participant not found' };
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+
+    const { data: existing } = await supabase
+      .from('challenge_completions')
+      .select('id')
+      .eq('participant_id', participantId)
+      .eq('challenge_activity_id', activityId)
+      .eq('completion_date', today)
+      .maybeSingle();
+
+    if (existing) {
+      console.log('⚠️ [CHALLENGES] Activity already completed today');
+      return { success: false, error: 'Already completed today' };
+    }
+
+    const completionData: any = {
+      user_id: participant.user_id,
+      challenge_id: participant.challenge_id,
+      participant_id: participantId,
+      challenge_activity_id: activityId,
+      completion_date: today,
+      verification_type: 'honor',
+    };
+
+    if (linkedActionId) {
+      completionData.action_id = linkedActionId;
+    }
+
+    const { error: insertError } = await supabase
+      .from('challenge_completions')
+      .insert(completionData);
+
+    if (insertError) {
+      console.error('🔴 [CHALLENGES] Error recording completion:', insertError);
+      return { success: false, error: insertError.message };
+    }
+
+    await this.updateParticipantProgress(participant.challenge_id, participant.user_id);
+
+    console.log('🟢 [CHALLENGES] Activity completed successfully');
+    return { success: true };
+  }
 }
 
 export const supabaseChallengeService = new SupabaseChallengeService();

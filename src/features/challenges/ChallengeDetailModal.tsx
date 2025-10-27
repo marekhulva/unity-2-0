@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Modal, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Trophy, Users, Calendar, Target } from 'lucide-react-native';
 import { useStore } from '../../state/rootStore';
 import type { Challenge } from '../../types/challenges.types';
+import { JoinChallengeFlow } from './JoinChallengeFlow';
 
 interface ChallengeDetailModalProps {
   visible: boolean;
@@ -14,7 +15,8 @@ interface ChallengeDetailModalProps {
 
 export const ChallengeDetailModal = ({ visible, challengeId, onClose }: ChallengeDetailModalProps) => {
   const insets = useSafeAreaInsets();
-  const { currentChallenge, challengesLoading, loadChallenge } = useStore();
+  const { currentChallenge, challengesLoading, loadChallenge, fetchMyActiveChallenges } = useStore();
+  const [showJoinFlow, setShowJoinFlow] = useState(false);
 
   useEffect(() => {
     if (visible && challengeId) {
@@ -146,7 +148,7 @@ export const ChallengeDetailModal = ({ visible, challengeId, onClose }: Challeng
                 if (isJoined) {
                   console.log('View progress');
                 } else {
-                  console.log('Join challenge');
+                  setShowJoinFlow(true);
                 }
               }}
             >
@@ -156,6 +158,17 @@ export const ChallengeDetailModal = ({ visible, challengeId, onClose }: Challeng
             </TouchableOpacity>
           </View>
         )}
+
+        <JoinChallengeFlow
+          visible={showJoinFlow}
+          challenge={currentChallenge}
+          onClose={() => setShowJoinFlow(false)}
+          onSuccess={() => {
+            setShowJoinFlow(false);
+            onClose();
+            fetchMyActiveChallenges();
+          }}
+        />
       </View>
     </Modal>
   );
