@@ -1,336 +1,271 @@
-// Challenge Slice
-// Manages challenge state and actions
-
 import { StateCreator } from 'zustand';
-import { backendService } from '../../services/backend.service';
-
-export interface Challenge {
-  id: string;
-  circle_id: string;
-  title: string;
-  description: string;
-  start_date: string;
-  end_date: string;
-  status: 'upcoming' | 'active' | 'completed';
-  min_activities: number;
-  max_activities: number;
-  required_daily: number;
-  icon?: string;
-  color?: string;
-  challenge_activities?: ChallengeActivity[];
-}
-
-export interface ChallengeActivity {
-  id: string;
-  challenge_id: string;
-  title: string;
-  description?: string;
-  icon?: string;
-  canonical_name?: string;
-  order_index: number;
-}
-
-export interface ChallengeParticipant {
-  id: string;
-  challenge_id: string;
-  user_id: string;
-  selected_activity_ids: string[];
-  linked_action_ids?: string[];
-  total_completions: number;
-  consistency_percentage: number;
-  current_streak: number;
-  joined_at: string;
-  profiles?: {
-    id: string;
-    name: string;
-    username: string;
-    avatar_url: string;
-  };
-}
-
-export interface LeaderboardEntry extends ChallengeParticipant {
-  rank: number;
-}
-
-export interface GroupStats {
-  groupConsistency: number;
-  participantCount: number;
-  rating: string;
-}
+import { supabaseChallengeService } from '../../services/supabase.challenges.service';
+import type {
+  Challenge,
+  ChallengeWithDetails,
+  ChallengeParticipant,
+  UserBadge,
+  LeaderboardEntry,
+  ActivityTime,
+} from '../../types/challenges.types';
 
 export type ChallengeSlice = {
-  // State
+  globalChallenges: Challenge[];
   circleChallenges: Challenge[];
-  currentChallenge: Challenge | null;
-  myParticipation: ChallengeParticipant | null;
+  activeChallenges: ChallengeWithDetails[];
+  completedChallenges: ChallengeWithDetails[];
+  currentChallenge: ChallengeWithDetails | null;
   leaderboard: LeaderboardEntry[];
-  groupStats: GroupStats | null;
+  myBadges: UserBadge[];
   challengesLoading: boolean;
   challengeError: string | null;
-  
-  // Actions
+
+  fetchGlobalChallenges: () => Promise<void>;
   fetchCircleChallenges: (circleId: string) => Promise<void>;
+  fetchMyActiveChallenges: () => Promise<void>;
+  fetchMyCompletedChallenges: () => Promise<void>;
+  fetchMyBadges: () => Promise<void>;
   loadChallenge: (challengeId: string) => Promise<void>;
-  joinChallenge: (challengeId: string, selectedActivityIds: string[]) => Promise<boolean>;
   loadLeaderboard: (challengeId: string) => Promise<void>;
-  loadGroupStats: (challengeId: string) => Promise<void>;
-  recordActivity: (participantId: string, activityId: string, linkedActionId?: string) => Promise<boolean>;
-  getTodayCompletions: (participantId: string) => Promise<any[]>;
-  checkActivityMatch: (activityTitle: string, userId: string) => Promise<any>;
-  linkActivity: (participantId: string, actionId: string) => Promise<boolean>;
+  joinChallenge: (
+    challengeId: string,
+    selectedActivityIds: string[],
+    activityTimes: ActivityTime[]
+  ) => Promise<boolean>;
+  leaveChallenge: (participantId: string, keepActivities: boolean) => Promise<boolean>;
+  recordCompletion: (challengeId: string, actionId: string, photoUrl?: string) => Promise<boolean>;
   clearChallengeData: () => void;
 };
 
 export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => ({
-  // Initial state
+  globalChallenges: [],
   circleChallenges: [],
+  activeChallenges: [],
+  completedChallenges: [],
   currentChallenge: null,
-  myParticipation: null,
   leaderboard: [],
-  groupStats: null,
+  myBadges: [],
   challengesLoading: false,
   challengeError: null,
-  
-  // Fetch all challenges for a circle
-  fetchCircleChallenges: async (circleId) => {
-    console.log('🏆 [CHALLENGES] Fetching challenges for circle:', circleId);
+
+  fetchGlobalChallenges: async () => {
+    console.log('🌍 [STORE] Fetching global challenges');
     set({ challengesLoading: true, challengeError: null });
-    
+
     try {
-      const response = await backendService.getCircleChallenges(circleId);
-      
-      if (response.success && response.data) {
-        // Update status based on dates
-        const now = new Date();
-        const challenges = response.data.map((c: Challenge) => {
-          const start = new Date(c.start_date);
-          const end = new Date(c.end_date);
-          
-          let status: Challenge['status'] = c.status;
-          if (now < start) status = 'upcoming';
-          else if (now > end) status = 'completed';
-          else status = 'active';
-          
-          return { ...c, status };
-        });
-        
-        set({ 
-          circleChallenges: challenges,
-          challengesLoading: false 
-        });
-        
-        console.log('🟢 [CHALLENGES] Loaded challenges:', challenges.length);
-      } else {
-        throw new Error('Failed to fetch challenges');
-      }
-    } catch (error) {
-      console.error('🔴 [CHALLENGES] Error:', error);
-      set({ 
+      const challenges = await supabaseChallengeService.getGlobalChallenges();
+      set({
+        globalChallenges: challenges,
+        challengesLoading: false
+      });
+      console.log('🟢 [STORE] Loaded global challenges:', challenges.length);
+    } catch (error: any) {
+      console.error('🔴 [STORE] Error fetching global challenges:', error);
+      set({
         challengeError: error.message || 'Failed to load challenges',
-        challengesLoading: false 
+        challengesLoading: false
       });
     }
   },
-  
-  // Load a specific challenge with details
-  loadChallenge: async (challengeId) => {
-    console.log('🏆 [CHALLENGES] Loading challenge:', challengeId);
-    set({ challengesLoading: true });
-    
+
+  fetchCircleChallenges: async (circleId: string) => {
+    console.log('👥 [STORE] Fetching circle challenges for:', circleId);
+    set({ challengesLoading: true, challengeError: null });
+
     try {
-      const [challengeRes, participationRes] = await Promise.all([
-        backendService.getChallenge(challengeId),
-        backendService.getMyParticipation(challengeId)
-      ]);
-      
-      if (challengeRes.success) {
-        set({ 
-          currentChallenge: challengeRes.data,
-          myParticipation: participationRes.data || null,
-          challengesLoading: false
-        });
-      }
-    } catch (error) {
-      console.error('🔴 [CHALLENGES] Error loading challenge:', error);
+      const challenges = await supabaseChallengeService.getCircleChallenges(circleId);
+      set({
+        circleChallenges: challenges,
+        challengesLoading: false
+      });
+      console.log('🟢 [STORE] Loaded circle challenges:', challenges.length);
+    } catch (error: any) {
+      console.error('🔴 [STORE] Error fetching circle challenges:', error);
+      set({
+        challengeError: error.message || 'Failed to load challenges',
+        challengesLoading: false
+      });
+    }
+  },
+
+  fetchMyActiveChallenges: async () => {
+    console.log('📋 [STORE] Fetching my active challenges');
+    set({ challengesLoading: true });
+
+    try {
+      const challenges = await supabaseChallengeService.getMyActiveChallenges();
+      set({
+        activeChallenges: challenges,
+        challengesLoading: false
+      });
+      console.log('🟢 [STORE] Loaded active challenges:', challenges.length);
+    } catch (error: any) {
+      console.error('🔴 [STORE] Error fetching active challenges:', error);
       set({ challengesLoading: false });
     }
   },
-  
-  // Join a challenge with selected activities
-  joinChallenge: async (challengeId, selectedActivityIds) => {
-    console.log('🏆 [CHALLENGES] Joining challenge with activities:', selectedActivityIds);
+
+  fetchMyCompletedChallenges: async () => {
+    console.log('✅ [STORE] Fetching my completed challenges');
     set({ challengesLoading: true });
-    
+
     try {
-      const response = await backendService.joinChallenge(challengeId, selectedActivityIds);
-      
-      if (response.success) {
-        // Reload challenge data
+      const challenges = await supabaseChallengeService.getMyCompletedChallenges();
+      set({
+        completedChallenges: challenges,
+        challengesLoading: false
+      });
+      console.log('🟢 [STORE] Loaded completed challenges:', challenges.length);
+    } catch (error: any) {
+      console.error('🔴 [STORE] Error fetching completed challenges:', error);
+      set({ challengesLoading: false });
+    }
+  },
+
+  fetchMyBadges: async () => {
+    console.log('🏆 [STORE] Fetching my badges');
+
+    try {
+      const badges = await supabaseChallengeService.getMyBadges();
+      set({ myBadges: badges });
+      console.log('🟢 [STORE] Loaded badges:', badges.length);
+    } catch (error: any) {
+      console.error('🔴 [STORE] Error fetching badges:', error);
+    }
+  },
+
+  loadChallenge: async (challengeId: string) => {
+    console.log('🔍 [STORE] Loading challenge:', challengeId);
+    set({ challengesLoading: true });
+
+    try {
+      const challenge = await supabaseChallengeService.getChallenge(challengeId);
+      set({
+        currentChallenge: challenge,
+        challengesLoading: false
+      });
+      console.log('🟢 [STORE] Loaded challenge:', challenge?.name);
+    } catch (error: any) {
+      console.error('🔴 [STORE] Error loading challenge:', error);
+      set({ challengesLoading: false });
+    }
+  },
+
+  loadLeaderboard: async (challengeId: string) => {
+    console.log('🏆 [STORE] Loading leaderboard for:', challengeId);
+
+    try {
+      const leaderboard = await supabaseChallengeService.getLeaderboard(challengeId);
+      set({ leaderboard });
+      console.log('🟢 [STORE] Loaded leaderboard:', leaderboard.length, 'participants');
+    } catch (error: any) {
+      console.error('🔴 [STORE] Error loading leaderboard:', error);
+    }
+  },
+
+  joinChallenge: async (
+    challengeId: string,
+    selectedActivityIds: string[],
+    activityTimes: ActivityTime[]
+  ) => {
+    console.log('🏆 [STORE] Joining challenge:', challengeId);
+    set({ challengesLoading: true });
+
+    try {
+      const result = await supabaseChallengeService.joinChallenge(
+        challengeId,
+        selectedActivityIds,
+        activityTimes
+      );
+
+      if (result.success) {
         await get().loadChallenge(challengeId);
-        await get().loadLeaderboard(challengeId);
-        
-        console.log('🟢 [CHALLENGES] Successfully joined challenge');
+        await get().fetchMyActiveChallenges();
+        set({ challengesLoading: false });
+        console.log('🟢 [STORE] Successfully joined challenge');
         return true;
       } else {
-        console.error('🔴 [CHALLENGES] Failed to join:', response.error);
-        set({ 
-          challengeError: response.error || 'Failed to join challenge',
+        set({
+          challengeError: result.error || 'Failed to join challenge',
           challengesLoading: false
         });
         return false;
       }
-    } catch (error) {
-      console.error('🔴 [CHALLENGES] Error joining challenge:', error);
-      set({ 
+    } catch (error: any) {
+      console.error('🔴 [STORE] Error joining challenge:', error);
+      set({
         challengeError: error.message || 'Failed to join challenge',
         challengesLoading: false
       });
       return false;
     }
   },
-  
-  // Load leaderboard for a challenge
-  loadLeaderboard: async (challengeId) => {
-    console.log('🏆 [CHALLENGES] Loading leaderboard');
-    
+
+  leaveChallenge: async (participantId: string, keepActivities: boolean) => {
+    console.log('🚪 [STORE] Leaving challenge:', participantId);
+    set({ challengesLoading: true });
+
     try {
-      const response = await backendService.getChallengeLeaderboard(challengeId);
-      
-      if (response.success && response.data) {
-        // Calculate ranks
-        const leaderboard = response.data
-          .sort((a, b) => {
-            // Sort by consistency, then total completions
-            if (b.consistency_percentage !== a.consistency_percentage) {
-              return b.consistency_percentage - a.consistency_percentage;
-            }
-            return b.total_completions - a.total_completions;
-          })
-          .map((participant, index) => ({
-            ...participant,
-            rank: index + 1
-          }));
-        
-        set({ leaderboard });
-        console.log('🟢 [CHALLENGES] Leaderboard loaded:', leaderboard.length, 'participants');
-      }
-    } catch (error) {
-      console.error('🔴 [CHALLENGES] Error loading leaderboard:', error);
-    }
-  },
-  
-  // Load group statistics
-  loadGroupStats: async (challengeId) => {
-    console.log('🏆 [CHALLENGES] Loading group stats');
-    
-    try {
-      const response = await backendService.getGroupStats(challengeId);
-      
-      if (response.success && response.data) {
-        set({ groupStats: response.data });
-        console.log('🟢 [CHALLENGES] Group stats:', response.data);
-      }
-    } catch (error) {
-      console.error('🔴 [CHALLENGES] Error loading group stats:', error);
-    }
-  },
-  
-  // Record activity completion
-  recordActivity: async (participantId, activityId, linkedActionId) => {
-    console.log('🏆 [CHALLENGES] Recording activity completion');
-    
-    try {
-      const response = await backendService.recordChallengeActivity(
-        participantId,
-        activityId,
-        linkedActionId
-      );
-      
-      if (response.success) {
-        // Reload participation and leaderboard
-        const { currentChallenge } = get();
-        if (currentChallenge) {
-          await get().loadChallenge(currentChallenge.id);
-          await get().loadLeaderboard(currentChallenge.id);
-          await get().loadGroupStats(currentChallenge.id);
-        }
-        
-        console.log('🟢 [CHALLENGES] Activity recorded successfully');
+      const result = await supabaseChallengeService.leaveChallenge(participantId, keepActivities);
+
+      if (result.success) {
+        await get().fetchMyActiveChallenges();
+        set({ challengesLoading: false });
+        console.log('🟢 [STORE] Successfully left challenge');
         return true;
       } else {
-        console.log('⚠️ [CHALLENGES]', response.error);
+        set({
+          challengeError: result.error || 'Failed to leave challenge',
+          challengesLoading: false
+        });
         return false;
       }
-    } catch (error) {
-      console.error('🔴 [CHALLENGES] Error recording activity:', error);
+    } catch (error: any) {
+      console.error('🔴 [STORE] Error leaving challenge:', error);
+      set({ challengesLoading: false });
       return false;
     }
   },
-  
-  // Get today's completions for a participant
-  getTodayCompletions: async (participantId) => {
-    console.log('📅 [CHALLENGES] Fetching today\'s completions for participant:', participantId);
-    
+
+  recordCompletion: async (challengeId: string, actionId: string, photoUrl?: string) => {
+    console.log('✅ [STORE] Recording completion for challenge:', challengeId);
+
     try {
-      const response = await backendService.getTodayCompletions(participantId);
-      
-      if (response.success) {
-        console.log('✅ [CHALLENGES] Found', response.data?.length || 0, 'completions today');
-        return response.data || [];
-      } else {
-        console.error('🔴 [CHALLENGES] Failed to fetch today\'s completions:', response.error);
-        return [];
-      }
-    } catch (error) {
-      console.error('🔴 [CHALLENGES] Exception fetching today\'s completions:', error);
-      return [];
-    }
-  },
-  
-  // Check if activity matches existing habit
-  checkActivityMatch: async (activityTitle, userId) => {
-    console.log('🔍 [CHALLENGES] Checking for activity match:', activityTitle);
-    
-    try {
-      const response = await backendService.findActivityMatches(activityTitle, userId);
-      
-      if (response.success) {
-        return response.data;
-      }
-      return null;
-    } catch (error) {
-      console.error('🔴 [CHALLENGES] Error checking match:', error);
-      return null;
-    }
-  },
-  
-  // Link challenge activity to existing action
-  linkActivity: async (participantId, actionId) => {
-    console.log('🔗 [CHALLENGES] Linking activity to action:', actionId);
-    
-    try {
-      const response = await backendService.linkActivityToAction(participantId, actionId);
-      
-      if (response.success) {
-        console.log('🟢 [CHALLENGES] Activity linked successfully');
+      const result = await supabaseChallengeService.recordCompletion(
+        challengeId,
+        actionId,
+        photoUrl
+      );
+
+      if (result.success) {
+        await get().fetchMyActiveChallenges();
+        const { currentChallenge } = get();
+        if (currentChallenge && currentChallenge.id === challengeId) {
+          await get().loadChallenge(challengeId);
+          await get().loadLeaderboard(challengeId);
+        }
+        console.log('🟢 [STORE] Completion recorded successfully');
         return true;
+      } else {
+        console.log('⚠️ [STORE]', result.error);
+        return false;
       }
-      return false;
-    } catch (error) {
-      console.error('🔴 [CHALLENGES] Error linking activity:', error);
+    } catch (error: any) {
+      console.error('🔴 [STORE] Error recording completion:', error);
       return false;
     }
   },
-  
-  // Clear challenge data
+
   clearChallengeData: () => {
     set({
+      globalChallenges: [],
       circleChallenges: [],
+      activeChallenges: [],
+      completedChallenges: [],
       currentChallenge: null,
-      myParticipation: null,
       leaderboard: [],
-      groupStats: null,
-      challengeError: null
+      myBadges: [],
+      challengeError: null,
     });
-  }
+  },
 });

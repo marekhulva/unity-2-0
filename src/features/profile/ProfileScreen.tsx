@@ -35,6 +35,7 @@ import { supabaseService } from '../../services/supabase.service';
 // import { ResetOnboardingButton } from '../../components/ResetOnboardingButton';
 import * as ImagePicker from 'expo-image-picker';
 import { UnifiedActivityCard } from '../social/UnifiedActivityCard';
+import { ProgressTab } from './components/ProgressTab';
 
 const { width } = Dimensions.get('window');
 
@@ -231,7 +232,7 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
   const [thisWeekPercentage, setThisWeekPercentage] = useState(0);
   const [monthlyChange, setMonthlyChange] = useState('+0%');
   const [userStatus, setUserStatus] = useState('Starter');
-  const [activeTab, setActiveTab] = useState<'profile' | 'posts'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'posts' | 'progress'>('profile');
 
   // Handler for profile press (reactions and comments are handled inline)
   const handleProfilePress = (userId: string) => {
@@ -1020,6 +1021,45 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
                 </View>
               )}
             </Pressable>
+
+            {/* Progress Tab - Only show for own profile */}
+            {isOwnProfile && (
+              <Pressable
+                onPress={() => {
+                  setActiveTab('progress');
+                  if (Platform.OS !== 'web') {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }
+                }}
+                style={styles.tabButton}
+              >
+                <Text style={[
+                  styles.tabText,
+                  activeTab === 'progress' && styles.tabTextActive
+                ]}>
+                  PROGRESS
+                </Text>
+                {activeTab === 'progress' && (
+                  <View style={styles.tabIndicator}>
+                    <LinearGradient
+                      colors={[
+                        '#D4AF37',  // Antique gold highlight
+                        '#C9A050',  // Rich gold
+                        '#B8860B',  // Dark goldenrod
+                        '#A0790A',  // Deep gold
+                        '#B8860B',  // Dark goldenrod again
+                        '#C9A050',  // Rich gold again
+                        '#D4AF37'   // Antique gold edge
+                      ]}
+                      locations={[0, 0.2, 0.35, 0.5, 0.65, 0.8, 1]}
+                      style={StyleSheet.absoluteFillObject}
+                      start={{ x: 0, y: 0.5 }}
+                      end={{ x: 1, y: 0.5 }}
+                    />
+                  </View>
+                )}
+              </Pressable>
+            )}
           </View>
 
           {/* Gold gradient underline */}
@@ -1327,7 +1367,7 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
             </View>
 
               </>
-            ) : (
+            ) : activeTab === 'posts' ? (
               /* Posts Tab Content - Show all posts */
               <View style={[styles.postsTabContainer, { paddingHorizontal: 8 }]}>
                 {postsLoading ? (
@@ -1389,6 +1429,9 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
                   </View>
                 )}
               </View>
+            ) : (
+              /* Progress Tab Content */
+              <ProgressTab />
             )}
 
           </ScrollView>
@@ -1596,8 +1639,9 @@ const styles = StyleSheet.create({
   // Tab Styles - Matching Social Page
   tabRow: {
     flexDirection: 'row',
-    gap: 40,
+    gap: 20,
     justifyContent: 'center',
+    alignItems: 'center',
     paddingTop: 15,
     paddingBottom: 5,
   },
@@ -2284,5 +2328,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#FFD700',
     fontWeight: '600',
+  },
+  progressTabPlaceholder: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progressPlaceholderTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFD700',
+    marginBottom: 12,
+  },
+  progressPlaceholderText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });

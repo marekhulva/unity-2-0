@@ -5,14 +5,14 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { CheckCircle2, House, BarChart3, User2, Users } from 'lucide-react-native';
+import { CheckCircle2, House, Trophy, User2, Users } from 'lucide-react-native';
 
 import { useStore } from './state/rootStore';
 import { inspector } from './utils/componentInspector';
 import { LoginScreen } from './features/auth/LoginScreen';
 import { DailyScreen } from './features/daily/DailyScreen';
 import { SocialScreen } from './features/social/SocialScreen';
-import { ProgressScreen } from './features/progress/ProgressScreen';
+import { ChallengesScreen } from './features/challenges/ChallengesScreen';
 import { ProfileScreen } from './features/profile/ProfileScreen';
 import { CircleScreen } from './features/circle/CircleScreen';
 import { OnboardingFlow } from './features/onboarding/OnboardingFlow';
@@ -153,15 +153,15 @@ function MainTabs() {
             </View>
           )
         }} />
-      <Tab.Screen name="Progress" component={ProgressScreen}
-        options={{ 
+      <Tab.Screen name="Challenges" component={ChallengesScreen}
+        options={{
           tabBarIcon: ({color,size,focused}) => (
             <View style={{
               padding: 8,
               borderRadius: 16,
-              backgroundColor: focused ? 'rgba(229,228,226,0.15)' : 'transparent',
+              backgroundColor: focused ? 'rgba(255,215,0,0.15)' : 'transparent',
             }}>
-              <BarChart3 color={focused ? '#E5E4E2' : color} size={size}/>
+              <Trophy color={focused ? '#FFD700' : color} size={size}/>
             </View>
           )
         }} />

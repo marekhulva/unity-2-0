@@ -5,12 +5,12 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { CheckCircle2, House, BarChart3, User2 } from 'lucide-react-native';
+import { CheckCircle2, House, Trophy, User2 } from 'lucide-react-native';
 // Switch between V1 and V2 Daily screens
 // import { DailyScreen } from './src/features/daily/DailyScreen';  // Original
 import { DailyScreenV2 as DailyScreen } from './src/features/daily/DailyScreenV2';  // New hierarchical design
 import { SocialScreen } from './src/features/social/SocialScreen';
-import { ProgressMVPEnhanced } from './src/features/progress/ProgressMVPEnhanced';
+import { ChallengesScreen } from './src/features/challenges/ChallengesScreen';
 import { ProfileEnhanced } from './src/features/profile/ProfileEnhanced';
 import { OnboardingFlow } from './src/features/onboarding';
 
@@ -78,15 +78,15 @@ const MainTabs = () => {
               </View>
             )
           }} />
-        <Tab.Screen name="Progress" component={ProgressMVPEnhanced}
-          options={{ 
+        <Tab.Screen name="Challenges" component={ChallengesScreen}
+          options={{
             tabBarIcon: ({color,size,focused}) => (
               <View style={{
                 padding: 8,
                 borderRadius: 16,
-                backgroundColor: focused ? 'rgba(229,228,226,0.15)' : 'transparent',
+                backgroundColor: focused ? 'rgba(255,215,0,0.15)' : 'transparent',
               }}>
-                <BarChart3 color={focused ? '#E5E4E2' : color} size={size}/>
+                <Trophy color={focused ? '#FFD700' : color} size={size}/>
               </View>
             )
           }} />
