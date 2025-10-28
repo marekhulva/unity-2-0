@@ -427,36 +427,53 @@ export const ChallengesScreen = () => {
   );
 };
 
-const ChallengeCard = ({ challenge, onPress }: { challenge: Challenge; onPress?: () => void }) => (
-  <TouchableOpacity style={styles.challengeCard} onPress={onPress}>
-    <LinearGradient
-      colors={['rgba(255,215,0,0.1)', 'rgba(255,215,0,0.02)']}
-      style={styles.cardGradient}
-    >
-      <View style={styles.cardHeader}>
-        <Text style={styles.challengeEmoji}>{challenge.emoji}</Text>
-        <View style={styles.cardHeaderText}>
-          <Text style={styles.challengeName}>{challenge.name}</Text>
-          <Text style={styles.challengeDuration}>{challenge.duration_days} days</Text>
+const ChallengeCard = ({ challenge, onPress }: { challenge: Challenge; onPress?: () => void }) => {
+  const startDate = challenge.start_date
+    ? new Date(challenge.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    : 'Anytime';
+
+  return (
+    <TouchableOpacity style={styles.challengeCard} onPress={onPress}>
+      <View style={styles.cardContent}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.challengeEmojiLarge}>{challenge.emoji}</Text>
+          <View style={styles.cardHeaderText}>
+            <Text style={styles.challengeName}>{challenge.name}</Text>
+            <Text style={styles.challengeMeta}>
+              {challenge.scope === 'global' ? '🌍 Global' : '👥 Circle'} • {challenge.duration_days} Days
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.cardStatsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{challenge.participant_count || 0}</Text>
+            <Text style={styles.statLabel}> participants</Text>
+          </View>
+          <Text style={styles.statSeparator}>•</Text>
+          <Text style={styles.statLabel}>Starts {startDate}</Text>
+        </View>
+
+        <View style={styles.cardStatsRow}>
+          <Text style={styles.statLabel}>Success: </Text>
+          <Text style={styles.statValue}>{challenge.success_threshold}%</Text>
+          <Text style={styles.statSeparator}>•</Text>
+          <Text style={styles.statLabel}>Badge: </Text>
+          <Text style={styles.statValue}>{challenge.badge_emoji} {challenge.badge_name}</Text>
+        </View>
+
+        <View style={styles.cardButtons}>
+          <TouchableOpacity style={styles.btnSecondary} onPress={onPress}>
+            <Text style={styles.btnSecondaryText}>View Details</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.btnPrimary} onPress={onPress}>
+            <Text style={styles.btnPrimaryText}>Join</Text>
+          </TouchableOpacity>
         </View>
       </View>
-      {challenge.description && (
-        <Text style={styles.challengeDescription} numberOfLines={2}>
-          {challenge.description}
-        </Text>
-      )}
-      <View style={styles.cardFooter}>
-        <View style={styles.badgePreview}>
-          <Text style={styles.badgeEmojiSmall}>{challenge.badge_emoji}</Text>
-          <Text style={styles.badgeNameSmall}>{challenge.badge_name}</Text>
-        </View>
-        <View style={styles.viewButton}>
-          <Text style={styles.viewButtonText}>View</Text>
-        </View>
-      </View>
-    </LinearGradient>
-  </TouchableOpacity>
-);
+    </TouchableOpacity>
+  );
+};
 
 const ActiveChallengeCard = ({ challenge, onPress }: { challenge: ChallengeWithDetails; onPress?: () => void }) => {
   const progress = challenge.my_participation?.completion_percentage || 0;
@@ -519,7 +536,7 @@ const CompletedChallengeCard = ({ challenge, onPress }: { challenge: ChallengeWi
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#0a0a0a',
   },
   header: {
     paddingHorizontal: 20,
@@ -540,7 +557,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 16,
     gap: 8,
-    backgroundColor: '#000',
+    backgroundColor: '#0a0a0a',
   },
   mainTab: {
     flex: 1,
@@ -630,6 +647,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
   },
+  cardContent: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 16,
+    padding: 16,
+  },
   cardGradient: {
     padding: 16,
   },
@@ -642,18 +666,82 @@ const styles = StyleSheet.create({
   challengeEmoji: {
     fontSize: 40,
   },
+  challengeEmojiLarge: {
+    fontSize: 36,
+  },
   cardHeaderText: {
     flex: 1,
   },
   challengeName: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
     color: '#FFFFFF',
     marginBottom: 4,
+  },
+  challengeMeta: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.6)',
   },
   challengeDuration: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.6)',
+  },
+  cardStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    flexWrap: 'wrap',
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFD700',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.6)',
+  },
+  statSeparator: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.6)',
+    marginHorizontal: 6,
+  },
+  cardButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  btnSecondary: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  btnSecondaryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  btnPrimary: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFD700',
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  btnPrimaryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
   },
   challengeDescription: {
     fontSize: 14,
