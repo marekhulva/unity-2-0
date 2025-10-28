@@ -217,6 +217,8 @@ export const ChallengesScreen = () => {
     return null;
   };
 
+  const [leaderboardFilter, setLeaderboardFilter] = useState<'rank' | 'streak' | 'progress'>('rank');
+
   const renderDetailContent = () => {
     if (!selectedChallengeId || !currentChallenge) return null;
 
@@ -224,6 +226,13 @@ export const ChallengesScreen = () => {
     const isJoined = !!challenge.my_participation;
 
     if (detailTab === 'overview') {
+      const startDate = challenge.start_date
+        ? new Date(challenge.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        : 'Anytime';
+      const endDate = challenge.end_date
+        ? new Date(challenge.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        : '';
+
       return (
         <View style={styles.detailContent}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -239,55 +248,85 @@ export const ChallengesScreen = () => {
             )}
           </View>
 
-          <View style={styles.statsRow}>
-            <View style={styles.statBox}>
-              <Calendar size={20} color="#FFD700" />
-              <Text style={styles.statValue}>{challenge.duration_days}</Text>
-              <Text style={styles.statLabel}>Days</Text>
-            </View>
-
-            <View style={styles.statBox}>
-              <Users size={20} color="#FFD700" />
-              <Text style={styles.statValue}>{challenge.participant_count || 0}</Text>
-              <Text style={styles.statLabel}>Participants</Text>
-            </View>
-
-            <View style={styles.statBox}>
-              <Target size={20} color="#FFD700" />
-              <Text style={styles.statValue}>{challenge.success_threshold}%</Text>
-              <Text style={styles.statLabel}>To Pass</Text>
-            </View>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoText}>🗓️ {startDate}{endDate ? ` - ${endDate}` : ''}</Text>
+            <Text style={styles.infoText}>👥 {challenge.participant_count || 0} participants</Text>
+            <Text style={styles.infoText}>🎯 {challenge.success_threshold}% completion required</Text>
           </View>
 
           {isJoined && challenge.my_participation && (
-            <View style={styles.progressSection}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Your Progress</Text>
-              </View>
-              <View style={styles.progressCard}>
-                <Text style={styles.progressText}>
-                  Day {challenge.my_participation.current_day}/{challenge.duration_days}
-                </Text>
-                <View style={styles.progressBar}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      { width: `${challenge.my_participation.completion_percentage || 0}%` }
-                    ]}
-                  />
+            <>
+              <View style={styles.progressSection}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Your Progress</Text>
                 </View>
-                <Text style={styles.progressPercentage}>
-                  {(challenge.my_participation.completion_percentage || 0).toFixed(0)}% Complete
-                </Text>
+                <View style={styles.progressCard}>
+                  <Text style={styles.progressText}>
+                    Day {challenge.my_participation.current_day}/{challenge.duration_days}
+                  </Text>
+                  <View style={styles.progressBar}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        { width: `${challenge.my_participation.completion_percentage || 0}%` }
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.progressPercentage}>
+                    {(challenge.my_participation.completion_percentage || 0).toFixed(0)}% Complete
+                  </Text>
+                  <View style={styles.progressStats}>
+                    <Text style={styles.progressStatText}>
+                      Rank <Text style={styles.progressStatValue}>#{challenge.my_participation.rank || '—'}</Text>
+                    </Text>
+                    <Text style={styles.progressStatText}>
+                      <Text style={styles.progressStatValue}>Top 5%</Text>
+                    </Text>
+                    <Text style={styles.progressStatText}>
+                      Streak <Text style={styles.progressStatValue}>{challenge.my_participation.current_streak || 0} 🔥</Text>
+                    </Text>
+                  </View>
+                </View>
               </View>
-            </View>
+
+              <TouchableOpacity style={styles.checkInButton}>
+                <Text style={styles.checkInButtonText}>✅ Check In Now</Text>
+              </TouchableOpacity>
+            </>
           )}
+
+          <View style={styles.sectionDivider} />
 
           {(challenge.participant_count || 0) > 0 && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Crown size={20} color="#FFD700" />
-                <Text style={styles.sectionTitle}>Leaderboard</Text>
+                <Text style={styles.sectionTitle}>🏆 Leaderboard</Text>
+              </View>
+              <View style={styles.filterChips}>
+                <TouchableOpacity
+                  style={[styles.filterChip, leaderboardFilter === 'rank' && styles.filterChipActive]}
+                  onPress={() => setLeaderboardFilter('rank')}
+                >
+                  <Text style={[styles.filterChipText, leaderboardFilter === 'rank' && styles.filterChipTextActive]}>
+                    Rank
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterChip, leaderboardFilter === 'streak' && styles.filterChipActive]}
+                  onPress={() => setLeaderboardFilter('streak')}
+                >
+                  <Text style={[styles.filterChipText, leaderboardFilter === 'streak' && styles.filterChipTextActive]}>
+                    Streak
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterChip, leaderboardFilter === 'progress' && styles.filterChipActive]}
+                  onPress={() => setLeaderboardFilter('progress')}
+                >
+                  <Text style={[styles.filterChipText, leaderboardFilter === 'progress' && styles.filterChipTextActive]}>
+                    Progress %
+                  </Text>
+                </TouchableOpacity>
               </View>
               <View style={styles.leaderboardContainer}>
                 <ChallengeLeaderboard
@@ -299,24 +338,65 @@ export const ChallengesScreen = () => {
             </View>
           )}
 
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Trophy size={20} color="#FFD700" />
-              <Text style={styles.sectionTitle}>Badge Reward</Text>
-            </View>
-            <View style={styles.badgeCard}>
-              <Text style={styles.badgeEmoji}>{challenge.badge_emoji}</Text>
-              <Text style={styles.badgeName}>{challenge.badge_name}</Text>
-              <Text style={styles.badgeDescription}>
-                Complete {challenge.success_threshold}% to earn this badge
-              </Text>
-            </View>
-          </View>
+          <View style={styles.sectionDivider} />
 
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Target size={20} color="#FFD700" />
-              <Text style={styles.sectionTitle}>Daily Activities</Text>
+              <Text style={styles.sectionTitle}>Challenge Details</Text>
+            </View>
+            <View style={styles.detailsCard}>
+              <Text style={styles.detailText}>📅 Duration: {challenge.duration_days} days</Text>
+              <Text style={styles.detailText}>🗓️ {startDate}{endDate ? ` - ${endDate}` : ''}</Text>
+              <Text style={styles.detailText}>🎯 Success: {challenge.success_threshold}% completion</Text>
+              <Text style={styles.detailText}>🏆 Badge: {challenge.badge_emoji} {challenge.badge_name}</Text>
+              <Text style={styles.detailText}>🎮 Type: {challenge.type === 'streak' ? 'Streak Challenge' : 'Daily Challenge'}</Text>
+            </View>
+          </View>
+
+          <View style={styles.sectionDivider} />
+
+          {challenge.description && (
+            <>
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Description</Text>
+                </View>
+                <View style={styles.descriptionCard}>
+                  <Text style={styles.descriptionText}>{challenge.description}</Text>
+                </View>
+              </View>
+              <View style={styles.sectionDivider} />
+            </>
+          )}
+
+          {challenge.rules && (
+            <>
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Rules</Text>
+                </View>
+                <View style={styles.rulesCard}>
+                  <View style={styles.ruleItem}>
+                    <Text style={styles.ruleBullet}>•</Text>
+                    <Text style={styles.ruleText}>Complete check-in daily</Text>
+                  </View>
+                  <View style={styles.ruleItem}>
+                    <Text style={styles.ruleBullet}>•</Text>
+                    <Text style={styles.ruleText}>Maintain consistent streak for best results</Text>
+                  </View>
+                  <View style={styles.ruleItem}>
+                    <Text style={styles.ruleBullet}>•</Text>
+                    <Text style={styles.ruleText}>Earn badge by completing {challenge.success_threshold}% of days</Text>
+                  </View>
+                </View>
+              </View>
+              <View style={styles.sectionDivider} />
+            </>
+          )}
+
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Activities Included</Text>
             </View>
             {challenge.predetermined_activities && Array.isArray(challenge.predetermined_activities) && challenge.predetermined_activities.length > 0 ? (
               challenge.predetermined_activities.map((activity: any, index: number) => (
@@ -975,5 +1055,128 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#000',
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    marginVertical: 20,
+  },
+  infoCard: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  infoText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  filterChips: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 20,
+  },
+  filterChipActive: {
+    backgroundColor: 'rgba(255,215,0,0.2)',
+    borderColor: 'rgba(255,215,0,0.4)',
+  },
+  filterChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.6)',
+  },
+  filterChipTextActive: {
+    color: '#FFD700',
+  },
+  progressStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.05)',
+  },
+  progressStatText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.62)',
+  },
+  progressStatValue: {
+    fontWeight: '600',
+    color: '#FFD700',
+  },
+  checkInButton: {
+    backgroundColor: '#FFD700',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  checkInButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  detailsCard: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 16,
+    padding: 16,
+  },
+  detailText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  descriptionCard: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 16,
+    padding: 16,
+  },
+  descriptionText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+    lineHeight: 22,
+  },
+  rulesCard: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 16,
+    padding: 16,
+  },
+  ruleItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  ruleBullet: {
+    fontSize: 16,
+    color: '#FFD700',
+    fontWeight: 'bold',
+    marginRight: 12,
+    marginTop: 2,
+  },
+  ruleText: {
+    flex: 1,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+    lineHeight: 20,
   },
 });
