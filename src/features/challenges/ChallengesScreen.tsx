@@ -937,28 +937,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 24,
-  },
-  statBox: {
-    flex: 1,
-    backgroundColor: 'rgba(255,215,0,0.1)',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    gap: 8,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#FFD700',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.6)',
-  },
   progressSection: {
     marginBottom: 24,
   },
