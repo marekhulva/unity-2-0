@@ -778,11 +778,12 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: 'normal',
     color: '#FFD700',
   },
   statLabel: {
     fontSize: 12,
+    fontWeight: 'normal',
     color: 'rgba(255,255,255,0.6)',
   },
   statSeparator: {
