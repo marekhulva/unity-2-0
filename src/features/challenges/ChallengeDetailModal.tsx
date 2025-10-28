@@ -2,10 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Modal, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { X, Trophy, Users, Calendar, Target } from 'lucide-react-native';
+import { X, Trophy, Users, Calendar, Target, Crown } from 'lucide-react-native';
 import { useStore } from '../../state/rootStore';
 import type { Challenge } from '../../types/challenges.types';
 import { JoinChallengeFlow } from './JoinChallengeFlow';
+import { ChallengeLeaderboard } from './ChallengeLeaderboard';
 
 interface ChallengeDetailModalProps {
   visible: boolean;
@@ -88,6 +89,22 @@ export const ChallengeDetailModal = ({ visible, challengeId, onClose }: Challeng
                 <Text style={styles.statLabel}>To Pass</Text>
               </View>
             </View>
+
+            {(challenge.participant_count || 0) > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Crown size={20} color="#FFD700" />
+                  <Text style={styles.sectionTitle}>Top Participants</Text>
+                </View>
+                <View style={styles.leaderboardContainer}>
+                  <ChallengeLeaderboard
+                    challengeId={challenge.id}
+                    compact={true}
+                    maxEntries={5}
+                  />
+                </View>
+              </View>
+            )}
 
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
@@ -286,6 +303,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: '#FFD700',
+  },
+  leaderboardContainer: {
+    height: 300,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   badgeCard: {
     alignItems: 'center',

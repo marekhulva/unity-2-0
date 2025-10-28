@@ -186,4 +186,5 @@ export interface LeaderboardEntry {
   current_streak: number;
   days_taken?: number;
   rank: number;
+  percentile?: number;
 }

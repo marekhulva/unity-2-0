@@ -15,6 +15,7 @@ export type ChallengeSlice = {
   activeChallenges: ChallengeWithDetails[];
   completedChallenges: ChallengeWithDetails[];
   currentChallenge: ChallengeWithDetails | null;
+  newlyCompletedChallenge: ChallengeWithDetails | null;
   leaderboard: LeaderboardEntry[];
   myBadges: UserBadge[];
   challengesLoading: boolean;
@@ -34,6 +35,7 @@ export type ChallengeSlice = {
   ) => Promise<boolean>;
   leaveChallenge: (participantId: string, keepActivities: boolean) => Promise<boolean>;
   recordCompletion: (challengeId: string, actionId: string, photoUrl?: string) => Promise<boolean>;
+  clearCompletionModal: () => void;
   clearChallengeData: () => void;
 };
 
@@ -43,6 +45,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
   activeChallenges: [],
   completedChallenges: [],
   currentChallenge: null,
+  newlyCompletedChallenge: null,
   leaderboard: [],
   myBadges: [],
   challengesLoading: false,
@@ -231,6 +234,9 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
     console.log('✅ [STORE] Recording completion for challenge:', challengeId);
 
     try {
+      const previousChallenge = get().activeChallenges.find(c => c.id === challengeId);
+      const wasPreviouslyActive = previousChallenge?.my_participation?.status === 'active';
+
       const result = await supabaseChallengeService.recordCompletion(
         challengeId,
         actionId,
@@ -239,7 +245,16 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
 
       if (result.success) {
         await get().fetchMyActiveChallenges();
-        const { currentChallenge } = get();
+        const { currentChallenge, activeChallenges } = get();
+
+        const updatedChallenge = activeChallenges.find(c => c.id === challengeId);
+        const isNowCompleted = updatedChallenge?.my_participation?.status === 'completed';
+
+        if (wasPreviouslyActive && isNowCompleted && updatedChallenge) {
+          console.log('🎉 [STORE] Challenge just completed! Showing completion modal');
+          set({ newlyCompletedChallenge: updatedChallenge });
+        }
+
         if (currentChallenge && currentChallenge.id === challengeId) {
           await get().loadChallenge(challengeId);
           await get().loadLeaderboard(challengeId);
@@ -254,6 +269,10 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
       console.error('🔴 [STORE] Error recording completion:', error);
       return false;
     }
+  },
+
+  clearCompletionModal: () => {
+    set({ newlyCompletedChallenge: null });
   },
 
   clearChallengeData: () => {

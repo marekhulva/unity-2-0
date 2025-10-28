@@ -125,6 +125,20 @@ class SupabaseChallengeService {
       return { success: false, error: 'Already joined this challenge' };
     }
 
+    const { data: challenge } = await supabase
+      .from('challenges')
+      .select('duration_days')
+      .eq('id', challengeId)
+      .single();
+
+    if (!challenge) {
+      return { success: false, error: 'Challenge not found' };
+    }
+
+    const personalStartDate = new Date();
+    const personalEndDate = new Date();
+    personalEndDate.setDate(personalEndDate.getDate() + challenge.duration_days);
+
     const { data, error } = await supabase
       .from('challenge_participants')
       .insert({
@@ -132,6 +146,13 @@ class SupabaseChallengeService {
         user_id: user.id,
         selected_activity_ids: selectedActivityIds,
         activity_times: activityTimes,
+        personal_start_date: personalStartDate.toISOString(),
+        personal_end_date: personalEndDate.toISOString(),
+        current_day: 1,
+        completed_days: 0,
+        current_streak: 0,
+        longest_streak: 0,
+        completion_percentage: 0,
       })
       .select()
       .single();
@@ -141,7 +162,7 @@ class SupabaseChallengeService {
       return { success: false, error: error.message };
     }
 
-    console.log('🟢 [CHALLENGES] Successfully joined challenge');
+    console.log('🟢 [CHALLENGES] Successfully joined challenge with personal start date:', personalStartDate.toISOString());
     return { success: true, data };
   }
 
@@ -285,6 +306,8 @@ class SupabaseChallengeService {
       await this.awardBadge(userId, challengeId, badgeEarned as any);
     }
 
+    await this.recalculateLeaderboardRanks(challengeId);
+
     console.log('🟢 [CHALLENGES] Progress updated:', { completionPercentage, status, badgeEarned });
   }
 
@@ -327,10 +350,19 @@ class SupabaseChallengeService {
     }
   }
 
-  async getLeaderboard(challengeId: string, limit: number = 100): Promise<LeaderboardEntry[]> {
-    console.log('🏆 [CHALLENGES] Fetching leaderboard for:', challengeId);
+  async getLeaderboard(
+    challengeId: string,
+    options?: {
+      filter?: 'all' | 'friends' | 'circle';
+      sort?: 'rank' | 'fastest' | 'perfect';
+      limit?: number;
+    }
+  ): Promise<LeaderboardEntry[]> {
+    console.log('🏆 [CHALLENGES] Fetching leaderboard for:', challengeId, options);
 
-    const { data, error } = await supabase
+    const { filter = 'all', sort = 'rank', limit = 100 } = options || {};
+
+    let query = supabase
       .from('challenge_participants')
       .select(`
         user_id,
@@ -338,16 +370,66 @@ class SupabaseChallengeService {
         completed_days,
         current_streak,
         days_taken,
+        "rank",
+        percentile,
         profiles!user_id (
-          username,
           name,
           avatar_url
         )
       `)
       .eq('challenge_id', challengeId)
-      .order('completion_percentage', { ascending: false })
-      .order('days_taken', { ascending: true })
-      .limit(limit);
+      .neq('status', 'left');
+
+    if (filter === 'friends') {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: friendships } = await supabase
+          .from('friendships')
+          .select('friend_id')
+          .eq('user_id', user.id)
+          .eq('status', 'accepted');
+
+        const friendIds = friendships?.map(f => f.friend_id) || [];
+        if (friendIds.length > 0) {
+          query = query.in('user_id', [...friendIds, user.id]);
+        }
+      }
+    } else if (filter === 'circle') {
+      const { data: challenge } = await supabase
+        .from('challenges')
+        .select('circle_id')
+        .eq('id', challengeId)
+        .single();
+
+      if (challenge?.circle_id) {
+        const { data: members } = await supabase
+          .from('circle_members')
+          .select('user_id')
+          .eq('circle_id', challenge.circle_id);
+
+        const memberIds = members?.map(m => m.user_id) || [];
+        if (memberIds.length > 0) {
+          query = query.in('user_id', memberIds);
+        }
+      }
+    }
+
+    switch (sort) {
+      case 'fastest':
+        query = query.order('days_taken', { ascending: true }).order('completion_percentage', { ascending: false });
+        break;
+      case 'perfect':
+        query = query.order('completion_percentage', { ascending: false }).order('days_taken', { ascending: true });
+        break;
+      case 'rank':
+      default:
+        query = query.order('completion_percentage', { ascending: false }).order('days_taken', { ascending: true });
+        break;
+    }
+
+    query = query.limit(limit);
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('🔴 [CHALLENGES] Error fetching leaderboard:', error);
@@ -356,17 +438,74 @@ class SupabaseChallengeService {
 
     const leaderboard: LeaderboardEntry[] = (data || []).map((entry: any, index: number) => ({
       user_id: entry.user_id,
-      username: entry.profiles?.username || 'Unknown',
+      username: entry.profiles?.name || 'Unknown',
       name: entry.profiles?.name,
       avatar_url: entry.profiles?.avatar_url,
       completion_percentage: entry.completion_percentage || 0,
       completed_days: entry.completed_days || 0,
       current_streak: entry.current_streak || 0,
       days_taken: entry.days_taken,
-      rank: index + 1,
+      rank: entry.rank || index + 1,
+      percentile: entry.percentile,
     }));
 
     return leaderboard;
+  }
+
+  async recalculateLeaderboardRanks(challengeId: string): Promise<void> {
+    console.log('📊 [CHALLENGES] Recalculating leaderboard ranks for:', challengeId);
+
+    const { data: participants, error } = await supabase
+      .from('challenge_participants')
+      .select('id, user_id, completed_days, days_taken, completion_percentage')
+      .eq('challenge_id', challengeId)
+      .neq('status', 'left');
+
+    if (error || !participants || participants.length === 0) {
+      console.log('❌ [CHALLENGES] No participants to rank');
+      return;
+    }
+
+    const { data: challenge } = await supabase
+      .from('challenges')
+      .select('duration_days')
+      .eq('id', challengeId)
+      .single();
+
+    if (!challenge) return;
+
+    const ranked = participants
+      .map(p => {
+        const progressScore = ((p.completed_days || 0) / challenge.duration_days) * 1000;
+        const speedScore = 1000 - (p.days_taken || 0);
+        const rankScore = progressScore + speedScore;
+
+        return {
+          id: p.id,
+          user_id: p.user_id,
+          rankScore,
+          completion_percentage: p.completion_percentage || 0,
+          days_taken: p.days_taken || 0,
+        };
+      })
+      .sort((a, b) => b.rankScore - a.rankScore);
+
+    const totalParticipants = ranked.length;
+
+    for (let i = 0; i < ranked.length; i++) {
+      const rank = i + 1;
+      const percentile = ((totalParticipants - rank) / totalParticipants) * 100;
+
+      await supabase
+        .from('challenge_participants')
+        .update({
+          rank,
+          percentile: Math.round(percentile * 10) / 10,
+        })
+        .eq('id', ranked[i].id);
+    }
+
+    console.log('🟢 [CHALLENGES] Ranks updated for', ranked.length, 'participants');
   }
 
   async getMyActiveChallenges(): Promise<ChallengeWithDetails[]> {

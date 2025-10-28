@@ -6,6 +6,7 @@ import { Trophy, Users, CheckCircle2 } from 'lucide-react-native';
 import { useStore } from '../../state/rootStore';
 import type { Challenge, ChallengeWithDetails } from '../../types/challenges.types';
 import { ChallengeDetailModal } from './ChallengeDetailModal';
+import { ChallengeCompletionModal } from './ChallengeCompletionModal';
 
 type TabType = 'discover' | 'active' | 'completed';
 
@@ -19,10 +20,12 @@ export const ChallengesScreen = () => {
     globalChallenges,
     activeChallenges,
     completedChallenges,
+    newlyCompletedChallenge,
     challengesLoading,
     fetchGlobalChallenges,
     fetchMyActiveChallenges,
     fetchMyCompletedChallenges,
+    clearCompletionModal,
   } = useStore();
 
   useEffect(() => {
@@ -197,6 +200,12 @@ export const ChallengesScreen = () => {
         challengeId={selectedChallengeId}
         onClose={handleCloseDetail}
       />
+
+      <ChallengeCompletionModal
+        visible={!!newlyCompletedChallenge}
+        challenge={newlyCompletedChallenge}
+        onClose={clearCompletionModal}
+      />
     </View>
   );
 };
@@ -235,6 +244,10 @@ const ChallengeCard = ({ challenge, onPress }: { challenge: Challenge; onPress?:
 const ActiveChallengeCard = ({ challenge, onPress }: { challenge: ChallengeWithDetails; onPress?: () => void }) => {
   const progress = challenge.my_participation?.completion_percentage || 0;
   const currentDay = challenge.my_participation?.current_day || 1;
+  const personalEndDate = challenge.my_participation?.personal_end_date;
+  const daysRemaining = personalEndDate
+    ? Math.max(0, Math.ceil((new Date(personalEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
+    : challenge.duration_days - currentDay + 1;
 
   return (
     <TouchableOpacity style={styles.challengeCard} onPress={onPress}>
@@ -247,7 +260,7 @@ const ActiveChallengeCard = ({ challenge, onPress }: { challenge: ChallengeWithD
           <View style={styles.cardHeaderText}>
             <Text style={styles.challengeName}>{challenge.name}</Text>
             <Text style={styles.challengeDuration}>
-              Day {currentDay}/{challenge.duration_days}
+              Day {currentDay}/{challenge.duration_days} • {daysRemaining} days left
             </Text>
           </View>
         </View>
