@@ -1388,6 +1388,13 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
                         mediaUrl: post.media_url,
                         audioUri: post.media_url && (post.type === 'audio' || post.media_type === 'audio') ? post.media_url : undefined,
                         photoUri: post.media_url && (post.type === 'photo' || post.media_type === 'photo') ? post.media_url : undefined,
+                        // Challenge fields (map from snake_case to camelCase)
+                        isChallenge: post.is_challenge,
+                        challengeName: post.challenge_name,
+                        challengeId: post.challenge_id,
+                        challengeProgress: post.challenge_progress,
+                        leaderboardPosition: post.leaderboard_position,
+                        totalParticipants: post.total_participants,
                         // Add user info
                         username: profileData?.username || 'User',
                         displayName: profileData?.display_name || profileData?.username || 'User',
