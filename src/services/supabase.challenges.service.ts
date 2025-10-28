@@ -68,8 +68,13 @@ class SupabaseChallengeService {
       return null;
     }
 
+    console.log('🟢 [CHALLENGES] Challenge data loaded:', data?.name);
+
     const participantCount = await this.getParticipantCount(challengeId);
+    console.log('🟢 [CHALLENGES] Participant count:', participantCount);
+
     const myParticipation = await this.getMyParticipation(challengeId);
+    console.log('🟢 [CHALLENGES] My participation:', myParticipation ? 'Found' : 'Not found', myParticipation);
 
     return {
       ...data,
