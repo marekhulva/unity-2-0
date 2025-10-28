@@ -30,8 +30,18 @@ class SupabaseChallengeService {
       throw error;
     }
 
-    console.log('🟢 [CHALLENGES] Found global challenges:', data?.length || 0);
-    return data || [];
+    const challengesWithCounts = await Promise.all(
+      (data || []).map(async (challenge) => {
+        const participantCount = await this.getParticipantCount(challenge.id);
+        return {
+          ...challenge,
+          participant_count: participantCount,
+        };
+      })
+    );
+
+    console.log('🟢 [CHALLENGES] Found global challenges:', challengesWithCounts.length);
+    return challengesWithCounts;
   }
 
   async getCircleChallenges(circleId: string): Promise<Challenge[]> {
@@ -50,8 +60,18 @@ class SupabaseChallengeService {
       throw error;
     }
 
-    console.log('🟢 [CHALLENGES] Found circle challenges:', data?.length || 0);
-    return data || [];
+    const challengesWithCounts = await Promise.all(
+      (data || []).map(async (challenge) => {
+        const participantCount = await this.getParticipantCount(challenge.id);
+        return {
+          ...challenge,
+          participant_count: participantCount,
+        };
+      })
+    );
+
+    console.log('🟢 [CHALLENGES] Found circle challenges:', challengesWithCounts.length);
+    return challengesWithCounts;
   }
 
   async getChallenge(challengeId: string): Promise<ChallengeWithDetails | null> {
@@ -533,10 +553,16 @@ class SupabaseChallengeService {
       return [];
     }
 
-    const challenges: ChallengeWithDetails[] = (participations || []).map((p: any) => ({
-      ...p.challenges,
-      my_participation: p,
-    }));
+    const challenges: ChallengeWithDetails[] = await Promise.all(
+      (participations || []).map(async (p: any) => {
+        const participantCount = await this.getParticipantCount(p.challenges.id);
+        return {
+          ...p.challenges,
+          participant_count: participantCount,
+          my_participation: p,
+        };
+      })
+    );
 
     return challenges;
   }
@@ -561,10 +587,16 @@ class SupabaseChallengeService {
       return [];
     }
 
-    const challenges: ChallengeWithDetails[] = (participations || []).map((p: any) => ({
-      ...p.challenges,
-      my_participation: p,
-    }));
+    const challenges: ChallengeWithDetails[] = await Promise.all(
+      (participations || []).map(async (p: any) => {
+        const participantCount = await this.getParticipantCount(p.challenges.id);
+        return {
+          ...p.challenges,
+          participant_count: participantCount,
+          my_participation: p,
+        };
+      })
+    );
 
     return challenges;
   }
