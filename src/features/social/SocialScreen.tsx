@@ -1061,6 +1061,20 @@ export const SocialScreen = () => {
             )}
           </View>
 
+          {/* Circle Switcher - Below golden line */}
+          {feedView === 'circle' && circleId && userCircles && userCircles.length > 1 && (
+            <View style={styles.circleSwitcherContainer}>
+              <CircleSelector
+                circles={userCircles}
+                activeCircleId={activeCircleId}
+                onCircleSelect={setActiveCircle}
+                onJoinCircle={() => setShowJoinCircleModal(true)}
+                loading={circlesLoading}
+                error={circlesError}
+              />
+            </View>
+          )}
+
           {/* Circle Sub-tabs - HIDDEN FOR TESTING */}
           {/* {feedView === 'circle' && circleId && (
             <View style={styles.circleSubTabs}>
@@ -2597,6 +2611,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255,255,255,0.5)',
     letterSpacing: 0.5,
+  },
+  circleSwitcherContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
   emptyState: {
     paddingVertical: 120,
