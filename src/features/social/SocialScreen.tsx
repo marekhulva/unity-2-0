@@ -608,16 +608,31 @@ export const SocialScreen = () => {
         <Animated.View style={[styles.header, headerAnimatedStyle]}>
           <View style={styles.headerTop}>
             <Text style={styles.logoText}>UNITY</Text>
+
+            {feedView === 'circle' && userCircles && userCircles.length > 0 && (
+              <View style={styles.headerCircleSelector}>
+                <CircleSelector
+                  circles={userCircles}
+                  activeCircleId={activeCircleId}
+                  onCircleSelect={setActiveCircle}
+                  onJoinCircle={() => setShowJoinCircleModal(true)}
+                  loading={circlesLoading}
+                  error={circlesError}
+                  compact
+                />
+              </View>
+            )}
+
             <View style={styles.headerActions}>
               {feedView === 'circle' ? (
-                <Pressable 
+                <Pressable
                   style={styles.headerButton}
                   onPress={() => setShowMembersModal(true)}
                 >
                   <Users size={20} color="#FFD700" />
                 </Pressable>
               ) : (
-                <Pressable 
+                <Pressable
                   style={styles.headerButton}
                   onPress={() => setShowDiscoverModal(true)}
                 >
@@ -812,28 +827,13 @@ export const SocialScreen = () => {
                       </Text>
                     </View>
 
-                    {/* Circle Selector on the right - only in circle view */}
-                    {feedView === 'circle' && (
-                      <View style={{ marginLeft: 8, zIndex: 9999 }} pointerEvents="box-none">
-                        <CircleSelector
-                          circles={userCircles}
-                          activeCircleId={activeCircleId}
-                          onCircleSelect={setActiveCircle}
-                          onJoinCircle={() => setShowJoinCircleModal(true)}
-                          loading={circlesLoading}
-                          error={circlesError}
-                          style={{ paddingHorizontal: 0, paddingVertical: 0 }}
-                        />
-                      </View>
-                    )}
+                    {/* Circle Selector moved to header */}
 
-                    {feedView !== 'circle' && (
-                      <View style={styles.composerIcons}>
-                        <Camera size={18} color="rgba(255,215,0,0.8)" />
-                        <ImageIcon size={18} color="rgba(255,215,0,0.8)" />
-                        <Mic size={18} color="rgba(255,215,0,0.8)" />
-                      </View>
-                    )}
+                    <View style={styles.composerIcons}>
+                      <Camera size={18} color="rgba(255,215,0,0.8)" />
+                      <ImageIcon size={18} color="rgba(255,215,0,0.8)" />
+                      <Mic size={18} color="rgba(255,215,0,0.8)" />
+                    </View>
                   </Pressable>
                 </View>
               ) : (
@@ -852,20 +852,7 @@ export const SocialScreen = () => {
                     <Text style={[styles.composerName, { flex: 1 }]}>{user?.name || 'You'}</Text>
                   </View>
 
-                  {/* Circle Selector in expanded header - only in circle view */}
-                  {feedView === 'circle' && (
-                    <View style={{ marginRight: 8, zIndex: 9999 }}>
-                      <CircleSelector
-                        circles={userCircles}
-                        activeCircleId={activeCircleId}
-                        onCircleSelect={setActiveCircle}
-                        onJoinCircle={() => setShowJoinCircleModal(true)}
-                        loading={circlesLoading}
-                        error={circlesError}
-                        style={{ paddingHorizontal: 0, paddingVertical: 0 }}
-                      />
-                    </View>
-                  )}
+                  {/* Circle Selector moved to header */}
 
                   <Pressable
                     style={styles.composerClose}
@@ -2241,6 +2228,11 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 8,
     marginLeft: 24, // Move slightly to the right
+  },
+  headerCircleSelector: {
+    flex: 1,
+    marginLeft: 16,
+    marginRight: 16,
   },
   headerActions: {
     flexDirection: 'row',

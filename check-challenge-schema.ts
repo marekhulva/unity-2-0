@@ -5,29 +5,26 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-async function main() {
-  console.log('📊 Checking Challenge Database Schema...\n');
+async function checkSchema() {
+  console.log('📋 Fetching existing challenge to see schema...');
 
-  const tables = [
-    'challenges',
-    'challenge_participants',
-    'challenge_completions',
-    'challenge_activities',
-    'challenge_forum_threads',
-    'challenge_forum_replies',
-    'challenge_activity_schedules',
-    'user_badges'
-  ];
+  const { data, error } = await supabase
+    .from('challenges')
+    .select('*')
+    .limit(1)
+    .single();
 
-  for (const table of tables) {
-    const { data, error } = await supabase.from(table).select('*').limit(0);
-    
-    if (error) {
-      console.log(`❌ ${table}: DOES NOT EXIST (${error.message})`);
-    } else {
-      console.log(`✅ ${table}: EXISTS`);
-    }
+  if (error) {
+    console.error('🔴 Error:', error);
+    process.exit(1);
   }
+
+  console.log('🟢 Existing challenge structure:');
+  console.log(JSON.stringify(data, null, 2));
+  console.log('\n📊 Fields present:');
+  console.log(Object.keys(data).sort().join(', '));
+
+  process.exit(0);
 }
 
-main().catch(console.error);
+checkSchema();
