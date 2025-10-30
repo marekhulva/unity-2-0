@@ -51,28 +51,6 @@ export const CircleScreen = () => {
     setSelectedUserId(userId);
   };
 
-  // Initial mount: Fetch user's circles
-  useEffect(() => {
-    console.log('[CircleScreen] Component mounted, fetching circles');
-    fetchUserCircles();
-  }, []);
-
-  // Set default activeCircleId when circles load
-  useEffect(() => {
-    if (userCircles.length > 0 && !activeCircleId) {
-      console.log('[CircleScreen] Setting default circle to:', userCircles[0].name);
-      setActiveCircle(userCircles[0].id);
-    }
-  }, [userCircles, activeCircleId]);
-
-  // Load data when active circle changes
-  useEffect(() => {
-    if (activeCircleId) {
-      console.log('[CircleScreen] Active circle changed, loading data for:', activeCircleId);
-      loadData();
-    }
-  }, [activeCircleId, loadData]);
-
   const calculateMemberStats = useCallback(async () => {
     try {
       // Fetch bulk completion stats for all members in 2 queries instead of 2*N
@@ -124,6 +102,27 @@ export const CircleScreen = () => {
     }
     setIsLoading(false);
   }, [activeCircleId]);
+
+  useEffect(() => {
+    console.log('[CircleScreen] Component mounted, fetching circles');
+    fetchUserCircles();
+  }, []);
+
+  // Set default activeCircleId when circles load
+  useEffect(() => {
+    if (userCircles.length > 0 && !activeCircleId) {
+      console.log('[CircleScreen] Setting default circle to:', userCircles[0].name);
+      setActiveCircle(userCircles[0].id);
+    }
+  }, [userCircles, activeCircleId]);
+
+  // Load data when active circle changes
+  useEffect(() => {
+    if (activeCircleId) {
+      console.log('[CircleScreen] Active circle changed, loading data for:', activeCircleId);
+      loadData();
+    }
+  }, [activeCircleId, loadData]);
 
   useEffect(() => {
     if (circleMembers && circleMembers.length > 0) {
