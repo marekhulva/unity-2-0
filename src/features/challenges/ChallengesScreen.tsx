@@ -8,6 +8,8 @@ import type { Challenge, ChallengeWithDetails } from '../../types/challenges.typ
 import { ChallengeCompletionModal } from './ChallengeCompletionModal';
 import { ChallengeLeaderboard } from './ChallengeLeaderboard';
 import { JoinChallengeFlow } from './JoinChallengeFlow';
+import { NotificationBell } from '../notifications/NotificationBell';
+import { NotificationsModal } from '../notifications/NotificationsModal';
 
 type MainTabType = 'discover' | 'active' | 'completed';
 type DetailTabType = 'overview' | 'feed' | 'forum';
@@ -18,6 +20,7 @@ export const ChallengesScreen = () => {
   const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<DetailTabType>('overview');
   const [showJoinFlow, setShowJoinFlow] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const {
     globalChallenges,
@@ -469,8 +472,13 @@ export const ChallengesScreen = () => {
       />
 
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <Text style={styles.title}>Challenges</Text>
-        {!selectedChallengeId && <Text style={styles.subtitle}>Compete, grow, earn badges</Text>}
+        <View style={styles.headerContent}>
+          <View>
+            <Text style={styles.title}>Challenges</Text>
+            {!selectedChallengeId && <Text style={styles.subtitle}>Compete, grow, earn badges</Text>}
+          </View>
+          <NotificationBell onPress={() => setShowNotifications(true)} />
+        </View>
       </View>
 
       {renderMainTabs()}
@@ -502,6 +510,11 @@ export const ChallengesScreen = () => {
         visible={!!newlyCompletedChallenge}
         challenge={newlyCompletedChallenge}
         onClose={clearCompletionModal}
+      />
+
+      <NotificationsModal
+        visible={showNotifications}
+        onClose={() => setShowNotifications(false)}
       />
     </View>
   );
@@ -621,6 +634,11 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingBottom: 16,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   title: {
     fontSize: 32,
