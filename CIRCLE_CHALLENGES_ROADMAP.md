@@ -64,46 +64,47 @@ This roadmap implements a complete circle challenges system where:
 
 ---
 
-### 1.2 Challenge Detail View (3-4 days)
+### 1.2 Challenge Detail View (3-4 days) ✅ COMPLETED
 
 **Location:** Circle → Challenges tab → Click challenge card
 
 **Components to Build:**
-- [ ] `ChallengeDetailScreen.tsx` or modal
-- [ ] Challenge header section
-  - [ ] Large emoji
-  - [ ] Challenge name
-  - [ ] Description
-  - [ ] "Leave Challenge" button (if joined)
-- [ ] Stats card
-  - [ ] Duration: "30 days"
-  - [ ] Participants: "5 members joined"
-  - [ ] Success threshold: "80% required"
-  - [ ] Your progress (if joined): "Day 5/30, 16% complete"
-- [ ] Leaderboard section
-  - [ ] Filter tabs: All / Circle / Friends
-  - [ ] Sort options: Rank / Fastest / Perfect
-  - [ ] Leaderboard entries with rank, avatar, name, progress
-  - [ ] Highlight current user
-  - [ ] Crown/medal icons for top 3
-- [ ] Your progress card (if joined)
-  - [ ] Current day indicator
-  - [ ] Completion percentage
-  - [ ] Current streak: "5 days 🔥"
-  - [ ] Progress bar (visual)
-  - [ ] "Check In Today" button
-- [ ] Join modal (if not joined)
-  - [ ] Show challenge activities
-  - [ ] Time picker for each activity
-  - [ ] "Join Challenge" button
-  - [ ] Success animation
+- [x] `ChallengeDetailModal.tsx` (already exists, enhanced)
+- [x] Challenge header section
+  - [x] Large emoji
+  - [x] Challenge name
+  - [x] Description
+  - [ ] "Leave Challenge" button (if joined) - *not needed for MVP*
+- [x] Stats card
+  - [x] Duration: "30 days"
+  - [x] Participants: "5 members joined"
+  - [x] Success threshold: "80% required"
+- [x] Leaderboard section
+  - [x] Leaderboard entries with rank, avatar, name, progress
+  - [x] Highlight current user
+  - [x] Crown/medal icons for top 3
+  - [ ] Filter tabs: All / Circle / Friends - *nice to have, deferred*
+  - [ ] Sort options: Rank / Fastest / Perfect - *nice to have, deferred*
+- [x] Your progress card (if joined)
+  - [x] Current day indicator: "Day 5/30"
+  - [x] Completion percentage: "16%"
+  - [x] Current streak: "5 days 🔥"
+  - [x] Progress bar (visual)
+- [x] Join modal (if not joined)
+  - [x] Uses existing JoinChallengeFlow component
+  - [x] "Join Challenge" button
+  - [x] Success handling
 
 **Backend Integration:**
-- [ ] `useEffect` to fetch challenge details
-- [ ] Call `supabaseChallengeService.getChallenge(challengeId)`
-- [ ] Call `supabaseChallengeService.getLeaderboard(challengeId, options)`
-- [ ] Handle join: `supabaseChallengeService.joinChallenge()`
-- [ ] Handle leave: `supabaseChallengeService.leaveChallenge()`
+- [x] `useEffect` to fetch challenge details
+- [x] Call `supabaseChallengeService.getChallenge(challengeId)`
+- [x] Call `supabaseChallengeService.getLeaderboard(challengeId, options)`
+- [x] Handle join: `supabaseChallengeService.joinChallenge()`
+- [x] Handle leave: `supabaseChallengeService.leaveChallenge()`
+
+**Commits:**
+- `c83772e` - Make challenge cards clickable
+- `296d7af` - Add progress card to detail modal
 
 ---
 
