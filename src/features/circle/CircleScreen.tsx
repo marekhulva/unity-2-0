@@ -21,6 +21,7 @@ import { useStore } from '../../state/rootStore';
 import { supabase, supabaseService } from '../../services/supabase.service';
 import { calculateConsistency } from '../../utils/consistencyCalculator';
 import { ProfileScreen } from '../profile/ProfileScreen';
+import { CircleSelector } from '../circles/components/CircleSelector';
 
 export const CircleScreen = () => {
   const insets = useSafeAreaInsets();
@@ -30,12 +31,19 @@ export const CircleScreen = () => {
     circleMembers,
     loadCircleData,
     currentUser,
-    user
+    user,
+    userCircles,
+    activeCircleId,
+    setActiveCircle,
+    fetchUserCircles,
+    circlesLoading,
+    circlesError,
   } = useStore();
 
   const [isLoading, setIsLoading] = useState(false);
   const [membersWithStats, setMembersWithStats] = useState<any[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [showJoinCircleModal, setShowJoinCircleModal] = useState(false);
 
   const handleMemberPress = (userId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -50,6 +58,14 @@ export const CircleScreen = () => {
       loadData();
     }
   }, [circleId]);
+
+  // Reload data when active circle changes
+  useEffect(() => {
+    if (activeCircleId && activeCircleId === circleId) {
+      console.log('[CircleScreen] Active circle changed, reloading data for:', activeCircleId);
+      loadData();
+    }
+  }, [activeCircleId]);
 
   useEffect(() => {
     if (circleMembers && circleMembers.length > 0) {
@@ -124,7 +140,7 @@ export const CircleScreen = () => {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header - Matching Social V6 exactly */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{circleName?.toUpperCase() || 'CIRCLE'}</Text>
+        <Text style={styles.headerTitle}>CIRCLES</Text>
         <View style={styles.headerUnderline}>
           <LinearGradient
             colors={[
@@ -143,6 +159,20 @@ export const CircleScreen = () => {
           />
         </View>
       </View>
+
+      {/* Circle Switcher - Below golden line */}
+      {circleId && userCircles && userCircles.length > 1 && (
+        <View style={styles.circleSwitcherContainer}>
+          <CircleSelector
+            circles={userCircles}
+            activeCircleId={activeCircleId}
+            onCircleSelect={setActiveCircle}
+            onJoinCircle={() => setShowJoinCircleModal(true)}
+            loading={circlesLoading}
+            error={circlesError}
+          />
+        </View>
+      )}
 
       <ScrollView 
         style={styles.scrollView}
@@ -337,7 +367,14 @@ const styles = StyleSheet.create({
     height: 2,
     overflow: 'hidden',
   },
-  
+
+  circleSwitcherContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+    backgroundColor: '#000',
+  },
+
   scrollView: {
     flex: 1,
   },

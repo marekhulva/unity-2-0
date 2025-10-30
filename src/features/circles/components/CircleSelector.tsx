@@ -100,16 +100,10 @@ export const CircleSelector: React.FC<CircleSelectorProps> = ({
           setShowBottomSheet(true);
         }}
       >
-        <View style={styles.triggerContent}>
-          <Text style={styles.triggerEmoji}>{activeCircle?.emoji || '👥'}</Text>
-          <View style={styles.triggerTextContainer}>
-            <Text style={styles.triggerLabel}>Circle</Text>
-            <Text style={styles.triggerName} numberOfLines={1}>
-              {activeCircle?.name || 'Select Circle'}
-            </Text>
-          </View>
-        </View>
-        <ChevronDown size={20} color="#FFD700" />
+        <Text style={styles.triggerName} numberOfLines={1}>
+          {activeCircle?.name || 'Select Circle'}
+        </Text>
+        <ChevronDown size={14} color="rgba(255,255,255,0.4)" />
       </Pressable>
 
       <BottomSheetModal
@@ -262,12 +256,13 @@ const styles = StyleSheet.create({
   trigger: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255,215,0,0.2)',
   },
   triggerContent: {
     flexDirection: 'row',
@@ -288,9 +283,11 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   triggerName: {
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
   compactTrigger: {
     flexDirection: 'row',

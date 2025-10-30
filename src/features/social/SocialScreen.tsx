@@ -609,20 +609,6 @@ export const SocialScreen = () => {
           <View style={styles.headerTop}>
             <Text style={styles.logoText}>UNITY</Text>
 
-            {feedView === 'circle' && userCircles && userCircles.length > 0 && (
-              <View style={styles.headerCircleSelector}>
-                <CircleSelector
-                  circles={userCircles}
-                  activeCircleId={activeCircleId}
-                  onCircleSelect={setActiveCircle}
-                  onJoinCircle={() => setShowJoinCircleModal(true)}
-                  loading={circlesLoading}
-                  error={circlesError}
-                  compact
-                />
-              </View>
-            )}
-
             <View style={styles.headerActions}>
               {feedView === 'circle' ? (
                 <Pressable
@@ -2242,11 +2228,6 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 8,
     marginLeft: 24, // Move slightly to the right
-  },
-  headerCircleSelector: {
-    flex: 1,
-    marginLeft: 16,
-    marginRight: 16,
   },
   headerActions: {
     flexDirection: 'row',
