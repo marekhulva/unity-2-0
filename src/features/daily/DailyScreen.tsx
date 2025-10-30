@@ -31,7 +31,7 @@ import * as Haptics from 'expo-haptics';
 import { HapticManager } from '../../utils/haptics';
 import ChallengeDebugV2 from '../../utils/challengeDebugV2';
 import { supabaseChallengeService } from '../../services/supabase.challenges.service';
-import { supabase } from '../../services/supabase';
+import { supabase } from '../../services/supabase.service';
 
 // CircleSelector removed - only needed in Social feed
 
