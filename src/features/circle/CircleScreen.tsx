@@ -19,6 +19,7 @@ import * as Haptics from 'expo-haptics';
 
 import { useStore } from '../../state/rootStore';
 import { supabase, supabaseService } from '../../services/supabase.service';
+import { backendService } from '../../services/backend.service';
 import { calculateConsistency } from '../../utils/consistencyCalculator';
 import { ProfileScreen } from '../profile/ProfileScreen';
 import { CircleSelector } from '../circles/components/CircleSelector';
@@ -26,10 +27,6 @@ import { CircleSelector } from '../circles/components/CircleSelector';
 export const CircleScreen = () => {
   const insets = useSafeAreaInsets();
   const {
-    circleId,
-    circleName,
-    circleMembers,
-    loadCircleData,
     currentUser,
     user,
     userCircles,
@@ -41,9 +38,13 @@ export const CircleScreen = () => {
   } = useStore();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [circleMembers, setCircleMembers] = useState<any[]>([]);
   const [membersWithStats, setMembersWithStats] = useState<any[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [showJoinCircleModal, setShowJoinCircleModal] = useState(false);
+
+  // Get active circle details from userCircles
+  const activeCircle = userCircles.find(c => c.id === activeCircleId);
 
   const handleMemberPress = (userId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -52,17 +53,10 @@ export const CircleScreen = () => {
     setSelectedUserId(userId);
   };
 
+  // Load data when active circle changes
   useEffect(() => {
-    // Only load if we don't have members yet
-    if (circleId && (!circleMembers || circleMembers.length === 0)) {
-      loadData();
-    }
-  }, [circleId]);
-
-  // Reload data when active circle changes
-  useEffect(() => {
-    if (activeCircleId && activeCircleId === circleId) {
-      console.log('[CircleScreen] Active circle changed, reloading data for:', activeCircleId);
+    if (activeCircleId) {
+      console.log('[CircleScreen] Active circle changed, loading data for:', activeCircleId);
       loadData();
     }
   }, [activeCircleId]);
@@ -104,19 +98,33 @@ export const CircleScreen = () => {
   };
 
   const loadData = async () => {
+    if (!activeCircleId) return;
+
     setIsLoading(true);
-    if (circleId) {
-      await loadCircleData();
+    try {
+      console.log('[CircleScreen] Fetching members for circle:', activeCircleId);
+      const response = await backendService.getCircleMembers(activeCircleId);
+
+      if (response.success && response.data) {
+        console.log('[CircleScreen] Loaded', response.data.length, 'members');
+        setCircleMembers(response.data);
+      } else {
+        console.error('[CircleScreen] Failed to load members:', response);
+        setCircleMembers([]);
+      }
+    } catch (error) {
+      console.error('[CircleScreen] Error loading members:', error);
+      setCircleMembers([]);
     }
     setIsLoading(false);
   };
 
-  // If not in a circle, show join prompt
-  if (!circleId) {
+  // If not in any circles, show join prompt
+  if (!userCircles || userCircles.length === 0) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>CIRCLE</Text>
+          <Text style={styles.headerTitle}>CIRCLES</Text>
           <LinearGradient
             colors={['#FFD700', '#FFA500', '#FFD700']}
             start={{ x: 0, y: 0 }}
@@ -124,7 +132,7 @@ export const CircleScreen = () => {
             style={styles.headerGradient}
           />
         </View>
-        
+
         <View style={styles.emptyContainer}>
           <Users size={80} color="#FFD700" />
           <Text style={styles.emptyTitle}>Join a Circle</Text>
@@ -161,7 +169,7 @@ export const CircleScreen = () => {
       </View>
 
       {/* Circle Switcher - Below golden line */}
-      {circleId && userCircles && userCircles.length > 1 && (
+      {userCircles && userCircles.length > 1 && (
         <View style={styles.circleSwitcherContainer}>
           <CircleSelector
             circles={userCircles}
