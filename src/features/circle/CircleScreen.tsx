@@ -12,7 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle as SvgCircle } from 'react-native-svg';
-import { Users, Trophy, Crown, Award, X } from 'lucide-react-native';
+import { Users, Trophy, Crown, Award, X, ChevronDown } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
@@ -40,6 +40,7 @@ export const CircleScreen = () => {
   const [membersWithStats, setMembersWithStats] = useState<any[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [showJoinCircleModal, setShowJoinCircleModal] = useState(false);
+  const [showCircleSwitcher, setShowCircleSwitcher] = useState(false);
 
   // Use ref to track current request and prevent race conditions
   const currentRequestId = useRef<string | null>(null);
@@ -184,9 +185,24 @@ export const CircleScreen = () => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header - Matching Social V6 exactly */}
+      {/* Header with integrated circle switcher */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>CIRCLES</Text>
+        <Pressable
+          style={styles.headerTitleContainer}
+          onPress={() => {
+            if (userCircles.length > 1) {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setShowCircleSwitcher(true);
+            }
+          }}
+        >
+          <Text style={styles.headerTitle}>
+            {activeCircle?.name?.toUpperCase() || 'CIRCLES'}
+          </Text>
+          {userCircles.length > 1 && (
+            <ChevronDown size={14} color="rgba(255,255,255,0.4)" style={styles.headerChevron} />
+          )}
+        </Pressable>
         <View style={styles.headerUnderline}>
           <LinearGradient
             colors={[
@@ -205,20 +221,6 @@ export const CircleScreen = () => {
           />
         </View>
       </View>
-
-      {/* Circle Switcher - Below golden line */}
-      {userCircles && userCircles.length > 1 && (
-        <View style={styles.circleSwitcherContainer}>
-          <CircleSelector
-            circles={userCircles}
-            activeCircleId={activeCircleId}
-            onCircleSelect={setActiveCircle}
-            onJoinCircle={() => setShowJoinCircleModal(true)}
-            loading={circlesLoading}
-            error={circlesError}
-          />
-        </View>
-      )}
 
       <ScrollView 
         style={styles.scrollView}
@@ -395,6 +397,88 @@ export const CircleScreen = () => {
           }}
         />
       )}
+
+      {/* Circle Switcher Bottom Sheet */}
+      <Modal
+        visible={showCircleSwitcher}
+        transparent
+        animationType="none"
+        onRequestClose={() => setShowCircleSwitcher(false)}
+      >
+        <View style={styles.circleSwitcherOverlay}>
+          <Pressable
+            style={StyleSheet.absoluteFillObject}
+            onPress={() => setShowCircleSwitcher(false)}
+          />
+
+          <Animated.View
+            entering={FadeInDown.springify().damping(20)}
+            style={styles.circleSwitcherSheet}
+          >
+            <LinearGradient
+              colors={['#1a1a1a', '#0a0a0a']}
+              style={StyleSheet.absoluteFillObject}
+            />
+
+            <View style={styles.sheetHandle} />
+
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Switch Circle</Text>
+              <Text style={styles.sheetSubtitle}>
+                {userCircles.length} {userCircles.length === 1 ? 'circle' : 'circles'} available
+              </Text>
+            </View>
+
+            <ScrollView
+              style={styles.sheetContent}
+              contentContainerStyle={styles.sheetContentContainer}
+              showsVerticalScrollIndicator={false}
+            >
+              {userCircles.map((circle, index) => {
+                const isActive = circle.id === activeCircleId;
+                return (
+                  <Pressable
+                    key={circle.id}
+                    style={[styles.circleItem, isActive && styles.circleItemActive]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setActiveCircle(circle.id);
+                      setShowCircleSwitcher(false);
+                    }}
+                  >
+                    {isActive && (
+                      <LinearGradient
+                        colors={['rgba(255,215,0,0.15)', 'rgba(255,215,0,0.05)']}
+                        style={StyleSheet.absoluteFillObject}
+                      />
+                    )}
+
+                    <View style={styles.circleItemContent}>
+                      <View style={styles.circleItemLeft}>
+                        <Text style={styles.circleEmoji}>{circle.emoji || '👥'}</Text>
+                        <View style={styles.circleInfo}>
+                          <Text style={styles.circleName}>{circle.name}</Text>
+                          {circle.member_count !== undefined && (
+                            <Text style={styles.circleMeta}>
+                              {circle.member_count} {circle.member_count === 1 ? 'member' : 'members'}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+
+                      {isActive && (
+                        <View style={styles.checkContainer}>
+                          <Crown size={20} color="#FFD700" strokeWidth={3} />
+                        </View>
+                      )}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -411,6 +495,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.95)',
   },
   
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+
   headerTitle: {
     fontSize: 14,
     fontWeight: '700',
@@ -418,7 +509,11 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     textAlign: 'center',
   },
-  
+
+  headerChevron: {
+    marginLeft: 4,
+  },
+
   headerUnderline: {
     position: 'absolute',
     bottom: 0,
@@ -605,5 +700,115 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255,255,255,0.5)',
     textAlign: 'center',
+  },
+
+  circleSwitcherOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
+  },
+
+  circleSwitcherSheet: {
+    maxHeight: '75%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
+    borderTopWidth: 1,
+    borderColor: 'rgba(255,215,0,0.2)',
+  },
+
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+
+  sheetHeader: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+
+  sheetTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+
+  sheetSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
+  },
+
+  sheetContent: {
+    flex: 1,
+  },
+
+  sheetContentContainer: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+
+  circleItem: {
+    marginBottom: 12,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+
+  circleItemActive: {
+    borderColor: 'rgba(255,215,0,0.3)',
+  },
+
+  circleItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+  },
+
+  circleItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+
+  circleEmoji: {
+    fontSize: 32,
+    marginRight: 16,
+  },
+
+  circleInfo: {
+    flex: 1,
+  },
+
+  circleName: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+
+  circleMeta: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.5)',
+  },
+
+  checkContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,215,0,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
