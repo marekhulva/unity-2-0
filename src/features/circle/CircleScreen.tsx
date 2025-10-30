@@ -27,7 +27,6 @@ import { CircleSelector } from '../circles/components/CircleSelector';
 export const CircleScreen = () => {
   const insets = useSafeAreaInsets();
   const {
-    currentUser,
     user,
     userCircles,
     activeCircleId,
@@ -52,6 +51,20 @@ export const CircleScreen = () => {
     // Show profile in modal instead of navigating
     setSelectedUserId(userId);
   };
+
+  // Initial mount: Fetch user's circles
+  useEffect(() => {
+    console.log('[CircleScreen] Component mounted, fetching circles');
+    fetchUserCircles();
+  }, []);
+
+  // Set default activeCircleId when circles load
+  useEffect(() => {
+    if (userCircles.length > 0 && !activeCircleId) {
+      console.log('[CircleScreen] Setting default circle to:', userCircles[0].name);
+      setActiveCircle(userCircles[0].id);
+    }
+  }, [userCircles, activeCircleId]);
 
   // Load data when active circle changes
   useEffect(() => {
@@ -237,7 +250,7 @@ export const CircleScreen = () => {
                 .sort((a, b) => b.consistencyPercentage - a.consistencyPercentage)
                 .map((member, index) => {
                 const consistency = member.consistencyPercentage || 0;
-                const isCurrentUser = member.user_id === currentUser?.id;
+                const isCurrentUser = member.user_id === user?.id;
                 const displayName = member.profiles?.username || member.profiles?.name || 'Unknown User';
                 
                 return (
