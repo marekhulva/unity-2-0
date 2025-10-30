@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle as SvgCircle } from 'react-native-svg';
-import { Users, Trophy, TrendingUp, Crown, Award, X } from 'lucide-react-native';
+import { Users, Trophy, Crown, Award, X } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
@@ -40,6 +40,9 @@ export const CircleScreen = () => {
   const [membersWithStats, setMembersWithStats] = useState<any[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [showJoinCircleModal, setShowJoinCircleModal] = useState(false);
+
+  // Use ref to track current request and prevent race conditions
+  const currentRequestId = useRef<string | null>(null);
 
   // Get active circle details from userCircles
   const activeCircle = userCircles.find(c => c.id === activeCircleId);
@@ -84,23 +87,36 @@ export const CircleScreen = () => {
   const loadData = useCallback(async () => {
     if (!activeCircleId) return;
 
+    // Generate unique request ID to prevent race conditions
+    const requestId = `${activeCircleId}-${Date.now()}`;
+    currentRequestId.current = requestId;
+
     setIsLoading(true);
     try {
-      console.log('[CircleScreen] Fetching members for circle:', activeCircleId);
+      console.log('[CircleScreen] Fetching members for circle:', activeCircleId, 'requestId:', requestId);
       const response = await backendService.getCircleMembers(activeCircleId);
 
-      if (response.success && response.data) {
-        console.log('[CircleScreen] Loaded', response.data.length, 'members');
-        setCircleMembers(response.data);
+      // Only update state if this is still the current request
+      if (currentRequestId.current === requestId) {
+        if (response.success && response.data) {
+          console.log('[CircleScreen] Loaded', response.data.length, 'members (requestId:', requestId, ')');
+          setCircleMembers(response.data);
+        } else {
+          console.error('[CircleScreen] Failed to load members:', response);
+          setCircleMembers([]);
+        }
+        setIsLoading(false);
       } else {
-        console.error('[CircleScreen] Failed to load members:', response);
-        setCircleMembers([]);
+        console.log('[CircleScreen] Discarding stale response for requestId:', requestId);
       }
     } catch (error) {
-      console.error('[CircleScreen] Error loading members:', error);
-      setCircleMembers([]);
+      // Only update state if this is still the current request
+      if (currentRequestId.current === requestId) {
+        console.error('[CircleScreen] Error loading members:', error);
+        setCircleMembers([]);
+        setIsLoading(false);
+      }
     }
-    setIsLoading(false);
   }, [activeCircleId]);
 
   useEffect(() => {
@@ -136,12 +152,23 @@ export const CircleScreen = () => {
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>CIRCLES</Text>
-          <LinearGradient
-            colors={['#FFD700', '#FFA500', '#FFD700']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.headerGradient}
-          />
+          <View style={styles.headerUnderline}>
+            <LinearGradient
+              colors={[
+                '#D4AF37',  // Antique gold highlight
+                '#C9A050',  // Rich gold
+                '#B8860B',  // Dark goldenrod
+                '#A0790A',  // Deep gold (no grey)
+                '#B8860B',  // Dark goldenrod again
+                '#C9A050',  // Rich gold again
+                '#D4AF37'   // Antique gold edge
+              ]}
+              locations={[0, 0.2, 0.35, 0.5, 0.65, 0.8, 1]}
+              style={StyleSheet.absoluteFillObject}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+            />
+          </View>
         </View>
 
         <View style={styles.emptyContainer}>
@@ -218,20 +245,14 @@ export const CircleScreen = () => {
             <View style={styles.statItem}>
               <Trophy size={24} color="#FFD700" />
               <Text style={styles.statValue}>
-                {membersWithStats?.length > 0 
+                {membersWithStats?.length > 0
                   ? Math.round(
-                      membersWithStats.reduce((acc, m) => acc + (m.consistencyPercentage || 0), 0) / 
+                      membersWithStats.reduce((acc, m) => acc + (m.consistencyPercentage || 0), 0) /
                       membersWithStats.length
                     )
                   : 0}%
               </Text>
               <Text style={styles.statLabel}>Avg Consistency</Text>
-            </View>
-            
-            <View style={styles.statItem}>
-              <TrendingUp size={24} color="#FFD700" />
-              <Text style={styles.statValue}>7</Text>
-              <Text style={styles.statLabel}>Day Streak</Text>
             </View>
           </View>
         </Animated.View>
