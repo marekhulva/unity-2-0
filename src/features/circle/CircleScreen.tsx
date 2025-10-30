@@ -22,6 +22,7 @@ import { backendService } from '../../services/backend.service';
 import { ProfileScreen } from '../profile/ProfileScreen';
 import { CircleSelector } from '../circles/components/CircleSelector';
 import { JoinCircleModal } from '../social/JoinCircleModal';
+import { ChallengeDetailModal } from '../challenges/ChallengeDetailModal';
 
 export const CircleScreen = () => {
   const insets = useSafeAreaInsets();
@@ -45,6 +46,7 @@ export const CircleScreen = () => {
   const [showJoinCircleModal, setShowJoinCircleModal] = useState(false);
   const [showCircleSwitcher, setShowCircleSwitcher] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'challenges' | 'members'>('overview');
+  const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(null);
 
   // Use ref to track current request and prevent race conditions
   const currentRequestId = useRef<string | null>(null);
@@ -427,24 +429,31 @@ export const CircleScreen = () => {
                 <Animated.View
                   key={challenge.id}
                   entering={FadeInDown.delay(index * 100).springify()}
-                  style={styles.challengeCard}
                 >
-                  <LinearGradient
-                    colors={['rgba(255,215,0,0.1)', 'rgba(0,0,0,0.3)']}
-                    style={StyleSheet.absoluteFillObject}
-                  />
-                  <View style={styles.challengeHeader}>
-                    <Text style={styles.challengeEmoji}>{challenge.emoji || '🎯'}</Text>
-                    <View style={styles.challengeInfo}>
-                      <Text style={styles.challengeName}>{challenge.name}</Text>
-                      <Text style={styles.challengeMeta}>
-                        {challenge.duration_days} days • {challenge.scope}
-                      </Text>
+                  <Pressable
+                    style={styles.challengeCard}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setSelectedChallengeId(challenge.id);
+                    }}
+                  >
+                    <LinearGradient
+                      colors={['rgba(255,215,0,0.1)', 'rgba(0,0,0,0.3)']}
+                      style={StyleSheet.absoluteFillObject}
+                    />
+                    <View style={styles.challengeHeader}>
+                      <Text style={styles.challengeEmoji}>{challenge.emoji || '🎯'}</Text>
+                      <View style={styles.challengeInfo}>
+                        <Text style={styles.challengeName}>{challenge.name}</Text>
+                        <Text style={styles.challengeMeta}>
+                          {challenge.duration_days} days • {challenge.participant_count || 0} joined
+                        </Text>
+                      </View>
                     </View>
-                  </View>
-                  {challenge.description && (
-                    <Text style={styles.challengeDescription}>{challenge.description}</Text>
-                  )}
+                    {challenge.description && (
+                      <Text style={styles.challengeDescription}>{challenge.description}</Text>
+                    )}
+                  </Pressable>
                 </Animated.View>
               ))
             )}
@@ -540,6 +549,13 @@ export const CircleScreen = () => {
           }}
         />
       )}
+
+      {/* Challenge Detail Modal */}
+      <ChallengeDetailModal
+        visible={!!selectedChallengeId}
+        challengeId={selectedChallengeId}
+        onClose={() => setSelectedChallengeId(null)}
+      />
 
       {/* Circle Switcher Bottom Sheet */}
       <Modal
