@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,6 @@ import {
   Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle as SvgCircle } from 'react-native-svg';
 import { Users, Trophy, TrendingUp, Crown, Award, X } from 'lucide-react-native';
@@ -18,11 +17,11 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 import { useStore } from '../../state/rootStore';
-import { supabase, supabaseService } from '../../services/supabase.service';
+import { supabaseService } from '../../services/supabase.service';
 import { backendService } from '../../services/backend.service';
-import { calculateConsistency } from '../../utils/consistencyCalculator';
 import { ProfileScreen } from '../profile/ProfileScreen';
 import { CircleSelector } from '../circles/components/CircleSelector';
+import { JoinCircleModal } from '../social/JoinCircleModal';
 
 export const CircleScreen = () => {
   const insets = useSafeAreaInsets();
@@ -72,15 +71,9 @@ export const CircleScreen = () => {
       console.log('[CircleScreen] Active circle changed, loading data for:', activeCircleId);
       loadData();
     }
-  }, [activeCircleId]);
+  }, [activeCircleId, loadData]);
 
-  useEffect(() => {
-    if (circleMembers && circleMembers.length > 0) {
-      calculateMemberStats();
-    }
-  }, [circleMembers]);
-
-  const calculateMemberStats = async () => {
+  const calculateMemberStats = useCallback(async () => {
     try {
       // Fetch bulk completion stats for all members in 2 queries instead of 2*N
       const userIds = circleMembers.map(m => m.user_id);
@@ -108,9 +101,9 @@ export const CircleScreen = () => {
       }));
       setMembersWithStats(membersWithConsistency);
     }
-  };
+  }, [circleMembers]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!activeCircleId) return;
 
     setIsLoading(true);
@@ -130,7 +123,13 @@ export const CircleScreen = () => {
       setCircleMembers([]);
     }
     setIsLoading(false);
-  };
+  }, [activeCircleId]);
+
+  useEffect(() => {
+    if (circleMembers && circleMembers.length > 0) {
+      calculateMemberStats();
+    }
+  }, [circleMembers, calculateMemberStats]);
 
   // If not in any circles, show join prompt
   if (!userCircles || userCircles.length === 0) {
@@ -244,9 +243,17 @@ export const CircleScreen = () => {
           
           {isLoading ? (
             <ActivityIndicator size="large" color="#FFD700" />
+          ) : membersWithStats.length === 0 ? (
+            <View style={styles.emptyLeaderboard}>
+              <Users size={48} color="rgba(255,215,0,0.3)" />
+              <Text style={styles.emptyLeaderboardTitle}>No members yet</Text>
+              <Text style={styles.emptyLeaderboardSubtitle}>
+                This circle is waiting for members to join
+              </Text>
+            </View>
           ) : (
             <View>
-              {(membersWithStats || [])
+              {membersWithStats
                 .sort((a, b) => b.consistencyPercentage - a.consistencyPercentage)
                 .map((member, index) => {
                 const consistency = member.consistencyPercentage || 0;
@@ -355,6 +362,18 @@ export const CircleScreen = () => {
             <ProfileScreen userId={selectedUserId} isInModal={true} source="Circle" />
           </View>
         </Modal>
+      )}
+
+      {/* Join Circle Modal */}
+      {showJoinCircleModal && (
+        <JoinCircleModal
+          visible={showJoinCircleModal}
+          onClose={() => setShowJoinCircleModal(false)}
+          onSuccess={async () => {
+            setShowJoinCircleModal(false);
+            await fetchUserCircles();
+          }}
+        />
       )}
     </View>
   );
@@ -546,6 +565,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255,255,255,0.5)',
     marginTop: 10,
+    textAlign: 'center',
+  },
+
+  emptyLeaderboard: {
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+
+  emptyLeaderboardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+
+  emptyLeaderboardSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.5)',
     textAlign: 'center',
   },
 });
