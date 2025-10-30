@@ -268,3 +268,49 @@ Everything is safe! 🎉
 - [ ] Plan dual leaderboard UI (within-circle + global)
 - [ ] Design milestone celebration posts
 - [ ] Create achievement card designs for social sharing
+
+---
+
+# Circle Challenges Implementation Branch
+**Date:** October 30, 2025
+**Branch:** `ChallangeAuto`
+**Status:** Ready to implement
+
+## 📋 Implementation Started
+
+Created new branch `ChallangeAuto` with complete roadmap for circle challenges system.
+
+**Roadmap Document:** `CIRCLE_CHALLENGES_ROADMAP.md`
+
+**What's Included:**
+- ✅ Phase 1: Core challenge experience (4 weeks)
+  - Challenge discovery (notifications + circle tab)
+  - Challenge detail view with leaderboards
+  - Daily tracking (both Daily page + Challenge page)
+  - Reminder system (push notifications)
+- ✅ Phase 2: Social features (2 weeks)
+  - Milestone auto-posts to feed
+  - Challenge creation UI
+- ✅ Phase 3: **Viral invitation system** (1 week)
+  - Deep linking setup
+  - Auto-join flow (friend clicks link → signs up → auto-joins circle + challenge)
+  - Invitation landing page
+  - Invitation management dashboard
+- ✅ Phase 4: Advanced features (ongoing)
+  - Strava integration
+  - Apple Health / Google Fit
+  - Challenge templates
+  - Circle vs circle competition
+
+**Key Features:**
+- Both notification types (in-app bell + push)
+- Both tracking methods (Daily page + Challenge detail)
+- **Viral invitation loop:** Weston invites Matt → Matt signs up → auto-joins circle + challenge
+
+**GitHub:**
+- Branch: `ChallangeAuto`
+- Commit: `8f08c6b`
+- Push: Successful
+- URL: https://github.com/marekhulva/unity-2-0/tree/ChallangeAuto
+
+**Next Action:** Start implementing Phase 1.2 (Challenge Detail View)
