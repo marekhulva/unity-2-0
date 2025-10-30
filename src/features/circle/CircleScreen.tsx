@@ -33,6 +33,9 @@ export const CircleScreen = () => {
     fetchUserCircles,
     circlesLoading,
     circlesError,
+    circleChallenges,
+    fetchCircleChallenges,
+    challengesLoading,
   } = useStore();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -41,6 +44,7 @@ export const CircleScreen = () => {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [showJoinCircleModal, setShowJoinCircleModal] = useState(false);
   const [showCircleSwitcher, setShowCircleSwitcher] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'challenges' | 'members'>('overview');
 
   // Use ref to track current request and prevent race conditions
   const currentRequestId = useRef<string | null>(null);
@@ -222,46 +226,92 @@ export const CircleScreen = () => {
         </View>
       </View>
 
-      <ScrollView 
+      {/* View Tabs */}
+      <View style={styles.viewTabs}>
+        <Pressable
+          style={[styles.viewTab, activeTab === 'overview' && styles.viewTabActive]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setActiveTab('overview');
+          }}
+        >
+          <Text style={[styles.viewTabText, activeTab === 'overview' && styles.viewTabTextActive]}>
+            Overview
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={[styles.viewTab, activeTab === 'challenges' && styles.viewTabActive]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setActiveTab('challenges');
+            if (activeCircleId && !circleChallenges.length) {
+              fetchCircleChallenges(activeCircleId);
+            }
+          }}
+        >
+          <Text style={[styles.viewTabText, activeTab === 'challenges' && styles.viewTabTextActive]}>
+            Challenges
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={[styles.viewTab, activeTab === 'members' && styles.viewTabActive]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setActiveTab('members');
+          }}
+        >
+          <Text style={[styles.viewTabText, activeTab === 'members' && styles.viewTabTextActive]}>
+            Members
+          </Text>
+        </Pressable>
+      </View>
+
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Circle Stats Card */}
-        <Animated.View 
-          entering={FadeInDown.delay(100).springify()}
-          style={styles.statsCard}
-        >
-          <LinearGradient
-            colors={['rgba(255,215,0,0.1)', 'rgba(0,0,0,0.3)']}
-            style={StyleSheet.absoluteFillObject}
-          />
-          
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Users size={24} color="#FFD700" />
-              <Text style={styles.statValue}>{membersWithStats?.length || 0}</Text>
-              <Text style={styles.statLabel}>Members</Text>
-            </View>
-            
-            <View style={styles.statItem}>
-              <Trophy size={24} color="#FFD700" />
-              <Text style={styles.statValue}>
-                {membersWithStats?.length > 0
-                  ? Math.round(
-                      membersWithStats.reduce((acc, m) => acc + (m.consistencyPercentage || 0), 0) /
-                      membersWithStats.length
-                    )
-                  : 0}%
-              </Text>
-              <Text style={styles.statLabel}>Avg Consistency</Text>
-            </View>
-          </View>
-        </Animated.View>
+        {/* Overview Tab */}
+        {activeTab === 'overview' && (
+          <>
+            {/* Circle Stats Card */}
+            <Animated.View
+              entering={FadeInDown.delay(100).springify()}
+              style={styles.statsCard}
+            >
+              <LinearGradient
+                colors={['rgba(255,215,0,0.1)', 'rgba(0,0,0,0.3)']}
+                style={StyleSheet.absoluteFillObject}
+              />
 
-        {/* Leaderboard */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>LEADERBOARD</Text>
+              <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                  <Users size={24} color="#FFD700" />
+                  <Text style={styles.statValue}>{membersWithStats?.length || 0}</Text>
+                  <Text style={styles.statLabel}>Members</Text>
+                </View>
+
+                <View style={styles.statItem}>
+                  <Trophy size={24} color="#FFD700" />
+                  <Text style={styles.statValue}>
+                    {membersWithStats?.length > 0
+                      ? Math.round(
+                          membersWithStats.reduce((acc, m) => acc + (m.consistencyPercentage || 0), 0) /
+                          membersWithStats.length
+                        )
+                      : 0}%
+                  </Text>
+                  <Text style={styles.statLabel}>Avg Consistency</Text>
+                </View>
+              </View>
+            </Animated.View>
+
+            {/* Leaderboard */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>OVERALL LEADERBOARD</Text>
+              <Text style={styles.sectionSubtitle}>Based on daily action completion</Text>
           
           {isLoading ? (
             <ActivityIndicator size="large" color="#FFD700" />
@@ -353,6 +403,99 @@ export const CircleScreen = () => {
             </View>
           )}
         </View>
+          </>
+        )}
+
+        {/* Challenges Tab */}
+        {activeTab === 'challenges' && (
+          <View style={styles.section}>
+            {challengesLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#FFD700" />
+                <Text style={styles.loadingText}>Loading challenges...</Text>
+              </View>
+            ) : circleChallenges.length === 0 ? (
+              <View style={styles.emptyLeaderboard}>
+                <Trophy size={48} color="rgba(255,215,0,0.3)" />
+                <Text style={styles.emptyLeaderboardTitle}>No challenges yet</Text>
+                <Text style={styles.emptyLeaderboardSubtitle}>
+                  This circle hasn't joined any challenges
+                </Text>
+              </View>
+            ) : (
+              circleChallenges.map((challenge, index) => (
+                <Animated.View
+                  key={challenge.id}
+                  entering={FadeInDown.delay(index * 100).springify()}
+                  style={styles.challengeCard}
+                >
+                  <LinearGradient
+                    colors={['rgba(255,215,0,0.1)', 'rgba(0,0,0,0.3)']}
+                    style={StyleSheet.absoluteFillObject}
+                  />
+                  <View style={styles.challengeHeader}>
+                    <Text style={styles.challengeEmoji}>{challenge.emoji || '🎯'}</Text>
+                    <View style={styles.challengeInfo}>
+                      <Text style={styles.challengeName}>{challenge.name}</Text>
+                      <Text style={styles.challengeMeta}>
+                        {challenge.duration_days} days • {challenge.scope}
+                      </Text>
+                    </View>
+                  </View>
+                  {challenge.description && (
+                    <Text style={styles.challengeDescription}>{challenge.description}</Text>
+                  )}
+                </Animated.View>
+              ))
+            )}
+          </View>
+        )}
+
+        {/* Members Tab */}
+        {activeTab === 'members' && (
+          <View style={styles.section}>
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#FFD700" />
+                <Text style={styles.loadingText}>Loading members...</Text>
+              </View>
+            ) : membersWithStats.length === 0 ? (
+              <View style={styles.emptyLeaderboard}>
+                <Users size={48} color="rgba(255,215,0,0.3)" />
+                <Text style={styles.emptyLeaderboardTitle}>No members yet</Text>
+                <Text style={styles.emptyLeaderboardSubtitle}>
+                  This circle is waiting for members to join
+                </Text>
+              </View>
+            ) : (
+              membersWithStats.map((member, index) => {
+                const isCurrentUser = member.user_id === user?.id;
+                const displayName = member.profiles?.username || member.profiles?.name || 'Unknown User';
+
+                return (
+                  <Animated.View
+                    key={member.user_id}
+                    entering={FadeInDown.delay(index * 50).springify()}
+                  >
+                    <Pressable
+                      style={[styles.memberListItem, isCurrentUser && styles.currentUserCard]}
+                      onPress={() => handleMemberPress(member.user_id)}
+                    >
+                      <View style={styles.avatar}>
+                        <Text style={styles.avatarText}>
+                          {displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                        </Text>
+                      </View>
+                      <Text style={styles.memberName} numberOfLines={1}>
+                        {displayName} {isCurrentUser && '(You)'}
+                      </Text>
+                    </Pressable>
+                  </Animated.View>
+                );
+              })
+            )}
+          </View>
+        )}
       </ScrollView>
 
       {/* Profile View Modal - Shows when a member is clicked */}
@@ -581,6 +724,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFD700',
     letterSpacing: 1.5,
+    marginBottom: 8,
+  },
+
+  sectionSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.4)',
     marginBottom: 16,
   },
   
@@ -810,5 +959,112 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,215,0,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  viewTabs: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#000',
+    gap: 8,
+  },
+
+  viewTab: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+
+  viewTabActive: {
+    backgroundColor: 'rgba(255,215,0,0.1)',
+    borderColor: 'rgba(255,215,0,0.3)',
+  },
+
+  viewTabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.5)',
+  },
+
+  viewTabTextActive: {
+    color: '#FFD700',
+  },
+
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+
+  loadingText: {
+    marginTop: 16,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
+  },
+
+  challengeCard: {
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.2)',
+    overflow: 'hidden',
+  },
+
+  challengeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+
+  challengeEmoji: {
+    fontSize: 32,
+    marginRight: 12,
+  },
+
+  challengeInfo: {
+    flex: 1,
+  },
+
+  challengeName: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+
+  challengeMeta: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.5)',
+  },
+
+  challengeDescription: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+    lineHeight: 20,
+  },
+
+  memberListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+  },
+
+  memberName: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#FFF',
+    flex: 1,
   },
 });
