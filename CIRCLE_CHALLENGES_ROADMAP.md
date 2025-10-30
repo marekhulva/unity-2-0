@@ -30,37 +30,38 @@ This roadmap implements a complete circle challenges system where:
 - [ ] Loading states with ActivityIndicator
 - [ ] Error states
 
-**B. Notification System** (3-4 days)
-- [ ] Create `notifications` table in database
-  ```sql
-  CREATE TABLE notifications (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-    type TEXT NOT NULL,
-    title TEXT NOT NULL,
-    body TEXT,
-    data JSONB DEFAULT '{}'::jsonb,
-    read BOOLEAN DEFAULT false,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    read_at TIMESTAMPTZ
-  );
-  CREATE INDEX idx_notifications_user ON notifications(user_id, read, created_at DESC);
-  ```
-- [ ] Backend service: `notifications.service.ts`
-  - [ ] `createNotification(userId, type, title, body, data)`
-  - [ ] `getMyNotifications()`
-  - [ ] `markAsRead(notificationId)`
-  - [ ] `markAllAsRead()`
-  - [ ] `getUnreadCount()`
-- [ ] Zustand store slice: `notificationsSlice.ts`
-- [ ] UI: Notification bell icon in header (shows red dot when unread)
-- [ ] UI: Notification dropdown list
-- [ ] UI: Mark as read functionality
-- [ ] Backend: When challenge created → notify all circle members
-- [ ] Push notification infrastructure (Expo Notifications)
+**B. Notification System** ✅ COMPLETED (3-4 days)
+- [x] Create `notifications` table in database
+  - [x] Migration: `20251030_create_notifications_table.sql`
+  - [x] RLS policies, indexes, helper functions
+  - [x] Added `push_token` column to profiles
+- [x] Backend service: `supabase.notifications.service.ts`
+  - [x] `createNotification(userId, type, title, body, data)`
+  - [x] `getNotifications()`
+  - [x] `markAsRead(notificationId)`
+  - [x] `markAllAsRead()`
+  - [x] `getUnreadCount()`
+  - [x] `subscribeToNotifications()` - Realtime updates
+- [x] Zustand store slice: `notificationSlice.ts`
+  - [x] State: notifications[], unreadCount, loading
+  - [x] Actions: fetch, markAsRead, subscribe/unsubscribe
+  - [x] Integrated into rootStore
+- [x] UI: Notification bell icon in header (shows unread badge)
+  - [x] `NotificationBell.tsx` - Shows count, pulse animation
+- [x] UI: Notification modal list
+  - [x] `NotificationsModal.tsx` - Full notification list with emojis
+  - [x] Mark as read on tap
+  - [x] Mark all as read button
+  - [x] Empty state
+- [ ] Backend: When challenge created → notify all circle members (deferred to Phase 2)
+- [ ] Push notification infrastructure (Expo Notifications) (deferred to Phase 4)
   - [ ] Request permissions
   - [ ] Store device tokens in profiles table
   - [ ] Send test notification
+
+**Commits:**
+- `7518fe0` - Phase 1.1B: Create notification system infrastructure
+- `6bfc23f` - Phase 1.1B: Add notification bell UI and notifications modal
 
 ---
 
