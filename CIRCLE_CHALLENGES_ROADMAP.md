@@ -110,19 +110,22 @@ This roadmap implements a complete circle challenges system where:
 
 ### 1.3 Daily Tracking - BOTH Methods
 
-**A. Daily Actions Page Integration** (2-3 days)
-- [ ] Modify `DailyScreen.tsx`
-- [ ] Call `getUserChallengeActivities()` on load
-- [ ] Merge challenge activities with regular actions
-- [ ] Visual distinction for challenge activities
-  - [ ] Badge/chip showing challenge name
-  - [ ] Border or background color
-  - [ ] Challenge emoji displayed
-- [ ] Show current streak next to activity: "3 days 🔥"
-- [ ] Checkbox completion triggers challenge tracking
-  - [ ] Call `recordChallengeActivity()` when checked
-  - [ ] Update streak display
-  - [ ] Show celebration animation on milestone (7, 14 days)
+**A. Daily Actions Page Integration** ✅ COMPLETED (2-3 days)
+- [x] Modify `DailyScreen.tsx`
+- [x] Call `getUserChallengeActivities()` on load
+- [x] Merge challenge activities with regular actions
+- [x] Visual distinction for challenge activities
+  - [x] Badge/chip showing challenge name
+  - [x] Border or background color
+  - [x] Challenge emoji displayed
+- [ ] Show current streak next to activity: "3 days 🔥" (deferred)
+- [x] Checkbox completion triggers challenge tracking
+  - [x] Call `recordChallengeActivity()` when checked
+  - [x] Update streak display via service
+  - [ ] Show celebration animation on milestone (7, 14 days) (deferred to Phase 2)
+
+**Commits:**
+- `e18adf6` - Phase 1.3A: Integrate challenge activities into Daily page
 
 **B. Challenge Detail "Check In" Button** (1-2 days)
 - [ ] "Check In" button on Challenge Detail page
