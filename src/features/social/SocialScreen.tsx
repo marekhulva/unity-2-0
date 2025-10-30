@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -54,6 +54,7 @@ import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';  // Using expo-av for now as expo-audio API might be different
 import { FeedSkeleton } from '../../components/SkeletonLoader';
 import { supabase } from '../../services/supabase.service';
+import { backendService } from '../../services/backend.service';
 import * as ImagePicker from 'expo-image-picker';
 import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 
@@ -92,10 +93,6 @@ export const SocialScreen = () => {
   const follow = useStore(s => s.followFeed);
   const completedActions = useStore(s => s.completedActions);
   const user = useStore(s => s.user);
-  const circleId = useStore(s => s.circleId);
-  const circleName = useStore(s => s.circleName);
-  const circleMembers = useStore(s => s.circleMembers);  // Added to fetch real circle members
-  const loadCircleData = useStore(s => s.loadCircleData);
   // Challenge store connections
   const circleChallenges = useStore(s => s.circleChallenges);
   const fetchCircleChallenges = useStore(s => s.fetchCircleChallenges);
@@ -144,7 +141,12 @@ export const SocialScreen = () => {
   const [showJoinChallengeModal, setShowJoinChallengeModal] = useState(false);
   const [selectedChallenge, setSelectedChallenge] = useState<any>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  
+
+  // Local state for circle data (using activeCircleId pattern)
+  const [circleMembers, setCircleMembers] = useState<any[]>([]);
+  const [activeCircleName, setActiveCircleName] = useState<string>('');
+  const currentMembersRequestId = useRef<string | null>(null);
+
   // Circle view state - show tabbed interface when user is in a circle
   const [showCircleView, setShowCircleView] = useState(false);
   // Circle sub-tab state for the 3 tabs
@@ -226,10 +228,49 @@ export const SocialScreen = () => {
   // Animation values
   const scrollY = useSharedValue(0);
   const fabScale = useSharedValue(1);
-  
+
+  // Load circle members data for activeCircleId
+  const loadCircleMembers = useCallback(async () => {
+    if (!activeCircleId) {
+      setCircleMembers([]);
+      setActiveCircleName('');
+      return;
+    }
+
+    const requestId = `${activeCircleId}-${Date.now()}`;
+    currentMembersRequestId.current = requestId;
+
+    try {
+      console.log('[SocialScreen] Fetching members for circle:', activeCircleId, 'requestId:', requestId);
+
+      const activeCircle = userCircles.find(c => c.id === activeCircleId);
+      if (activeCircle) {
+        setActiveCircleName(activeCircle.name);
+      }
+
+      const response = await backendService.getCircleMembers(activeCircleId);
+
+      if (currentMembersRequestId.current === requestId) {
+        if (response.success && response.data) {
+          console.log('[SocialScreen] Loaded', response.data.length, 'members (requestId:', requestId, ')');
+          setCircleMembers(response.data);
+        } else {
+          console.error('[SocialScreen] Failed to load members:', response);
+          setCircleMembers([]);
+        }
+      } else {
+        console.log('[SocialScreen] Discarding stale response for requestId:', requestId);
+      }
+    } catch (error) {
+      if (currentMembersRequestId.current === requestId) {
+        console.error('[SocialScreen] Error loading members:', error);
+        setCircleMembers([]);
+      }
+    }
+  }, [activeCircleId, userCircles]);
+
   // Load data on mount - properly check circle membership
   useEffect(() => {
-    loadCircleData();
     fetchFeeds();
     loadFollowing();
     // Load all user's circles for the selector
@@ -243,6 +284,14 @@ export const SocialScreen = () => {
       fetchFeeds(false); // false = don't reset pagination
     }
   }, [activeCircleId]);
+
+  // Load circle members when activeCircleId changes
+  useEffect(() => {
+    if (activeCircleId) {
+      console.log('[SocialScreen] Active circle changed, loading members for:', activeCircleId);
+      loadCircleMembers();
+    }
+  }, [activeCircleId, loadCircleMembers]);
 
   // Set default sub-tab when switching to circle
   useEffect(() => {
@@ -259,9 +308,9 @@ export const SocialScreen = () => {
   // Fetch challenges when on challenges tab
   useEffect(() => {
     const loadChallengeData = async () => {
-      if (feedView === 'circle' && circleSubTab === 'challenges' && circleId) {
-        console.log('🏆 Auto-fetching challenges for circle:', circleId);
-        await fetchCircleChallenges(circleId);
+      if (feedView === 'circle' && circleSubTab === 'challenges' && activeCircleId) {
+        console.log('🏆 Auto-fetching challenges for circle:', activeCircleId);
+        await fetchCircleChallenges(activeCircleId);
         
         // After challenges are loaded, load leaderboard and participation for each
         // We'll use a timeout to ensure the state has updated
@@ -280,7 +329,7 @@ export const SocialScreen = () => {
     };
     
     loadChallengeData();
-  }, [feedView, circleSubTab, circleId, fetchCircleChallenges, loadLeaderboard, loadChallenge]);
+  }, [feedView, circleSubTab, activeCircleId, fetchCircleChallenges, loadLeaderboard, loadChallenge]);
   
   // Don't create actionPosts anymore - completed actions are now saved to database and will appear in the feed
   // This prevents duplicates where the same completion appears twice (once from local state, once from database)
@@ -1048,7 +1097,7 @@ export const SocialScreen = () => {
           </View>
 
           {/* Circle Switcher - Below golden line */}
-          {feedView === 'circle' && circleId && userCircles && userCircles.length > 1 && (
+          {feedView === 'circle' && activeCircleId && userCircles && userCircles.length > 1 && (
             <View style={styles.circleSwitcherContainer}>
               <CircleSelector
                 circles={userCircles}
@@ -1062,7 +1111,7 @@ export const SocialScreen = () => {
           )}
 
           {/* Circle Sub-tabs - HIDDEN FOR TESTING */}
-          {/* {feedView === 'circle' && circleId && (
+          {/* {feedView === 'circle' && activeCircleId && (
             <View style={styles.circleSubTabs}>
               <View style={styles.circleSubTabsRow}>
                 <Pressable 
@@ -1092,14 +1141,14 @@ export const SocialScreen = () => {
                   onPress={() => {
                     setCircleSubTab('members');
                     // Load circle members when switching to members tab
-                    loadCircleData();
+                    loadCircleMembers();
                   }}
                 >
                   <Text style={[
                     styles.circleSubTabText,
                     circleSubTab === 'members' && styles.circleSubTabTextActive
                   ]}>
-                    {circleName ? (circleName.split(' ')[0].toUpperCase().slice(0, 8)) : 'CIRCLE'}
+                    {activeCircleName ? (activeCircleName.split(' ')[0].toUpperCase().slice(0, 8)) : 'CIRCLE'}
                   </Text>
                   {circleSubTab === 'members' && (
                     <View style={styles.circleSubTabIndicator}>
@@ -1118,11 +1167,11 @@ export const SocialScreen = () => {
                   onPress={async () => {
                     setCircleSubTab('challenges');
                     // Load challenges when switching to challenges tab
-                    if (circleId) {
-                      console.log('🏆 Loading challenges for circle:', circleId);
-                      await fetchCircleChallenges(circleId);
+                    if (activeCircleId) {
+                      console.log('🏆 Loading challenges for circle:', activeCircleId);
+                      await fetchCircleChallenges(activeCircleId);
                     } else {
-                      console.log('⚠️ No circleId, user needs to join a circle first');
+                      console.log('⚠️ No activeCircleId, user needs to join a circle first');
                     }
                   }}
                 >
@@ -1149,7 +1198,7 @@ export const SocialScreen = () => {
           
           {/* Circle Info Section removed per user request */}
           {/* Join Circle Card - Only show when user hasn't joined a circle */}
-          {feedView === 'circle' && !circleId && !feedLoading && (
+          {feedView === 'circle' && !activeCircleId && !feedLoading && (
             <Pressable 
               style={styles.joinCard}
               onPress={() => setShowJoinCircleModal(true)}
@@ -1169,7 +1218,7 @@ export const SocialScreen = () => {
           )}
           
           {/* Circle-specific content based on sub-tab */}
-          {feedView === 'circle' && circleId && circleSubTab === 'members' && (
+          {feedView === 'circle' && activeCircleId && circleSubTab === 'members' && (
             <View style={styles.circleMembersContainer}>
               {circleMembers && circleMembers.length > 0 ? (
                 <>
@@ -1244,14 +1293,14 @@ export const SocialScreen = () => {
                 <>
                   <Text style={styles.circleMembersTitle}>No Members Yet</Text>
                   <Text style={styles.circleMembersSubtitle}>
-                    Be the first to invite friends to {circleName || 'your circle'}
+                    Be the first to invite friends to {activeCircleName || 'your circle'}
                   </Text>
                 </>
               )}
             </View>
           )}
           
-          {feedView === 'circle' && circleId && circleSubTab === 'challenges' && (
+          {feedView === 'circle' && activeCircleId && circleSubTab === 'challenges' && (
             <ScrollView style={styles.circleChallengesContainer}>
               {challengesLoading ? (
                 <View style={styles.loadingContainer}>
@@ -1308,7 +1357,7 @@ export const SocialScreen = () => {
           )}
           
           {/* Posts - Show only for feed tabs (Following or Circle Feed sub-tab) */}
-          {(feedView === 'follow' || (feedView === 'circle' && circleId && circleSubTab === 'feed')) && (
+          {(feedView === 'follow' || (feedView === 'circle' && activeCircleId && circleSubTab === 'feed')) && (
             feedLoading ? (
               <FeedSkeleton />
             ) : posts.length === 0 ? (
@@ -1587,9 +1636,9 @@ export const SocialScreen = () => {
             await new Promise(resolve => setTimeout(resolve, 500));
             
             // Refresh challenges after joining
-            if (circleId) {
+            if (activeCircleId) {
               console.log('🎯 [CHALLENGE] Refreshing circle challenges');
-              await fetchCircleChallenges(circleId);
+              await fetchCircleChallenges(activeCircleId);
             }
             
             // IMPORTANT: Refresh Daily actions to include new challenge activities

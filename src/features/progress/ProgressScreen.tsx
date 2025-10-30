@@ -54,12 +54,6 @@ export const ProgressScreen = ({ navigation }: any) => {
   const [goalCompletionStats, setGoalCompletionStats] = useState<Record<string, any>>({});
   const [overallStats, setOverallStats] = useState({ expected: 0, completed: 0, percentage: 0 });
   const [allGoalActions, setAllGoalActions] = useState<Record<string, any[]>>({}); // For activity display only, NOT for consistency calculation
-  
-  // Circle-related state for leaderboard
-  const circleId = useStore(s => s.circleId);
-  const circleName = useStore(s => s.circleName);
-  const circleMembers = useStore(s => s.circleMembers);
-  const loadCircleData = useStore(s => s.loadCircleData);
 
   // Multiple circles support
   const userCircles = useStore(s => s.userCircles);
@@ -241,10 +235,6 @@ export const ProgressScreen = ({ navigation }: any) => {
       fetchGoals();
     }
     fetchCompletionStats();
-    // Load circle data if user is in a circle
-    if (circleId) {
-      loadCircleData();
-    }
     // Load all user's circles for the selector
     fetchUserCircles();
   }, []);
