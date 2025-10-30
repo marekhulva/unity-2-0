@@ -170,30 +170,35 @@ class SupabaseNotificationService {
     }
   }
 
-  subscribeToNotifications(callback: (payload: any) => void) {
-    const { data: { user } } = supabase.auth.getUser();
-    if (!user) return null;
+  async subscribeToNotifications(callback: (payload: any) => void) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
 
-    console.log('🔔 [NOTIFICATIONS] Subscribing to realtime notifications');
+      console.log('🔔 [NOTIFICATIONS] Subscribing to realtime notifications');
 
-    const channel = supabase
-      .channel('notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user}`,
-        },
-        (payload) => {
-          console.log('🔔 [NOTIFICATIONS] New notification received:', payload);
-          callback(payload);
-        }
-      )
-      .subscribe();
+      const channel = supabase
+        .channel('notifications')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            console.log('🔔 [NOTIFICATIONS] New notification received:', payload);
+            callback(payload);
+          }
+        )
+        .subscribe();
 
-    return channel;
+      return channel;
+    } catch (error) {
+      console.error('🔴 [NOTIFICATIONS] Error subscribing:', error);
+      return null;
+    }
   }
 }
 
