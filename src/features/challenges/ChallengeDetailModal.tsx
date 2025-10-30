@@ -90,6 +90,47 @@ export const ChallengeDetailModal = ({ visible, challengeId, onClose }: Challeng
               </View>
             </View>
 
+            {isJoined && challenge.my_participation && (
+              <View style={styles.progressCard}>
+                <LinearGradient
+                  colors={['rgba(255,215,0,0.15)', 'rgba(255,215,0,0.05)']}
+                  style={StyleSheet.absoluteFillObject}
+                />
+                <View style={styles.progressHeader}>
+                  <Trophy size={20} color="#FFD700" />
+                  <Text style={styles.progressHeaderText}>Your Progress</Text>
+                </View>
+                <View style={styles.progressStatsRow}>
+                  <View style={styles.progressStatItem}>
+                    <Text style={styles.progressStatValue}>
+                      Day {challenge.my_participation.current_day}/{challenge.duration_days}
+                    </Text>
+                    <Text style={styles.progressStatLabel}>Current Day</Text>
+                  </View>
+                  <View style={styles.progressStatItem}>
+                    <Text style={styles.progressStatValue}>
+                      {Math.round(challenge.my_participation.completion_percentage)}%
+                    </Text>
+                    <Text style={styles.progressStatLabel}>Complete</Text>
+                  </View>
+                  <View style={styles.progressStatItem}>
+                    <Text style={styles.progressStatValue}>
+                      {challenge.my_participation.current_streak} 🔥
+                    </Text>
+                    <Text style={styles.progressStatLabel}>Streak</Text>
+                  </View>
+                </View>
+                <View style={styles.progressBarContainer}>
+                  <View
+                    style={[
+                      styles.progressBarFill,
+                      { width: `${challenge.my_participation.completion_percentage}%` },
+                    ]}
+                  />
+                </View>
+              </View>
+            )}
+
             {(challenge.participant_count || 0) > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
@@ -397,5 +438,53 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#000',
+  },
+  progressCard: {
+    marginVertical: 24,
+    padding: 20,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.3)',
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 8,
+  },
+  progressHeaderText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFD700',
+  },
+  progressStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 16,
+  },
+  progressStatItem: {
+    alignItems: 'center',
+  },
+  progressStatValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  progressStatLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.5)',
+    marginTop: 4,
+  },
+  progressBarContainer: {
+    height: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#FFD700',
+    borderRadius: 4,
   },
 });
