@@ -479,7 +479,8 @@ export const CircleScreen = () => {
                     )}
                   </Pressable>
                 </Animated.View>
-              ))
+              ))}
+              </View>
             )}
           </View>
         )}

@@ -15,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { X, Plus, Trash2 } from 'lucide-react-native';
 import { supabaseChallengeService } from '../../services/supabase.challenges.service';
 import { supabaseNotificationService } from '../../services/supabase.notifications.service';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../services/supabase.service';
 import type { PredeterminedActivity } from '../../types/challenges.types';
 
 interface CreateChallengeModalProps {
