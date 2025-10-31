@@ -945,6 +945,54 @@ class SupabaseChallengeService {
     console.log('🟢 [CHALLENGES] Activity completed successfully');
     return { success: true };
   }
+
+  async createChallenge(params: {
+    circleId: string;
+    name: string;
+    description: string;
+    emoji: string;
+    durationDays: number;
+    successThreshold: number;
+    activities: PredeterminedActivity[];
+  }): Promise<{ success: boolean; challengeId?: string; error?: string }> {
+    try {
+      console.log('🎯 [CHALLENGES] Creating new circle challenge:', params.name);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return { success: false, error: 'User not authenticated' };
+      }
+
+      const { data: challenge, error } = await supabase
+        .from('challenges')
+        .insert({
+          circle_id: params.circleId,
+          name: params.name,
+          description: params.description,
+          emoji: params.emoji,
+          type: 'streak',
+          scope: 'circle',
+          duration_days: params.durationDays,
+          success_threshold: params.successThreshold,
+          predetermined_activities: params.activities,
+          status: 'active',
+          created_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('🔴 [CHALLENGES] Error creating challenge:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log('✅ [CHALLENGES] Challenge created successfully:', challenge.id);
+      return { success: true, challengeId: challenge.id };
+    } catch (error: any) {
+      console.error('🔴 [CHALLENGES] Exception creating challenge:', error);
+      return { success: false, error: error.message || 'Unknown error' };
+    }
+  }
 }
 
 export const supabaseChallengeService = new SupabaseChallengeService();

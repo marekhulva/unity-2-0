@@ -12,7 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle as SvgCircle } from 'react-native-svg';
-import { Users, Trophy, Crown, Award, X, ChevronDown } from 'lucide-react-native';
+import { Users, Trophy, Crown, Award, X, ChevronDown, Plus } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
@@ -23,6 +23,7 @@ import { ProfileScreen } from '../profile/ProfileScreen';
 import { CircleSelector } from '../circles/components/CircleSelector';
 import { JoinCircleModal } from '../social/JoinCircleModal';
 import { ChallengeDetailModal } from '../challenges/ChallengeDetailModal';
+import { CreateChallengeModal } from '../challenges/CreateChallengeModal';
 
 export const CircleScreen = () => {
   const insets = useSafeAreaInsets();
@@ -47,6 +48,7 @@ export const CircleScreen = () => {
   const [showCircleSwitcher, setShowCircleSwitcher] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'challenges' | 'members'>('overview');
   const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(null);
+  const [showCreateChallenge, setShowCreateChallenge] = useState(false);
 
   // Use ref to track current request and prevent race conditions
   const currentRequestId = useRef<string | null>(null);
@@ -421,15 +423,37 @@ export const CircleScreen = () => {
                 <Trophy size={48} color="rgba(255,215,0,0.3)" />
                 <Text style={styles.emptyLeaderboardTitle}>No challenges yet</Text>
                 <Text style={styles.emptyLeaderboardSubtitle}>
-                  This circle hasn't joined any challenges
+                  Create the first challenge for this circle
                 </Text>
+                <Pressable
+                  style={styles.createChallengeButton}
+                  onPress={() => setShowCreateChallenge(true)}
+                >
+                  <LinearGradient
+                    colors={['#FFD700', '#FFA500']}
+                    style={StyleSheet.absoluteFillObject}
+                  />
+                  <Plus size={20} color="#000000" />
+                  <Text style={styles.createChallengeButtonText}>Create Challenge</Text>
+                </Pressable>
               </View>
             ) : (
-              circleChallenges.map((challenge, index) => (
-                <Animated.View
-                  key={challenge.id}
-                  entering={FadeInDown.delay(index * 100).springify()}
+              <View>
+                {/* Create Challenge Button (when challenges exist) */}
+                <Pressable
+                  style={styles.createChallengeButtonSmall}
+                  onPress={() => setShowCreateChallenge(true)}
                 >
+                  <Plus size={18} color="#FFD700" />
+                  <Text style={styles.createChallengeButtonSmallText}>New Challenge</Text>
+                </Pressable>
+
+                {/* Challenge Cards */}
+                {circleChallenges.map((challenge, index) => (
+                  <Animated.View
+                    key={challenge.id}
+                    entering={FadeInDown.delay(index * 100).springify()}
+                  >
                   <Pressable
                     style={styles.challengeCard}
                     onPress={() => {
@@ -555,6 +579,18 @@ export const CircleScreen = () => {
         visible={!!selectedChallengeId}
         challengeId={selectedChallengeId}
         onClose={() => setSelectedChallengeId(null)}
+      />
+
+      {/* Create Challenge Modal */}
+      <CreateChallengeModal
+        visible={showCreateChallenge}
+        onClose={() => setShowCreateChallenge(false)}
+        circleId={activeCircleId || ''}
+        circleName={activeCircle?.name || 'Circle'}
+        onSuccess={() => {
+          setShowCreateChallenge(false);
+          fetchCircleChallenges(activeCircleId || '');
+        }}
       />
 
       {/* Circle Switcher Bottom Sheet */}
@@ -1064,6 +1100,43 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255,255,255,0.7)',
     lineHeight: 20,
+  },
+
+  createChallengeButton: {
+    marginTop: 24,
+    height: 56,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    overflow: 'hidden',
+  },
+
+  createChallengeButtonText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#000000',
+  },
+
+  createChallengeButtonSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,215,0,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.3)',
+    marginBottom: 16,
+  },
+
+  createChallengeButtonSmallText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFD700',
   },
 
   memberListItem: {
