@@ -256,14 +256,21 @@ export const DailyScreen = () => {
 
     // Handle challenge activity completion
     if (selectedAction.isFromChallenge && selectedAction.challengeActivityId) {
+      // Determine if this is a linked activity (has a real action UUID) or challenge-only
+      const isLinkedActivity = selectedAction.id && !selectedAction.id.startsWith('challenge-');
+      const linkedActionId = isLinkedActivity ? selectedAction.id : undefined;
+
       console.log('🏆 [DAILY] Recording challenge activity completion:', {
-        challengeId: selectedAction.challengeId,
+        participantId: selectedAction.challengeParticipantId,
         activityId: selectedAction.challengeActivityId,
+        linkedActionId,
+        isLinkedActivity,
       });
 
       const success = await recordCompletion(
-        selectedAction.challengeId,
+        selectedAction.challengeParticipantId,
         selectedAction.challengeActivityId,
+        linkedActionId,
         mediaUri
       );
 

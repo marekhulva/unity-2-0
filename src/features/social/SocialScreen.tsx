@@ -717,18 +717,18 @@ export const SocialScreen = () => {
 
             <Pressable
               onPress={() => {
-                setFeedView('explore');
+                setFeedView('following');
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
               style={styles.tabButton}
             >
               <Text style={[
                 styles.tabText,
-                feedView === 'explore' && styles.tabTextActive
+                feedView === 'following' && styles.tabTextActive
               ]}>
-                EXPLORE
+                FOLLOWING
               </Text>
-              {feedView === 'explore' && (
+              {feedView === 'following' && (
                 <View style={styles.tabIndicator}>
                   <LinearGradient
                     colors={[
@@ -1481,45 +1481,41 @@ export const SocialScreen = () => {
             )
           )}
 
-          {/* Explore Tab Content */}
-          {feedView === 'explore' && (
-            <View style={styles.exploreContainer}>
-              <View style={styles.exploreHeader}>
-                <View style={styles.exploreIcon}>
-                  <Sparkles size={32} color="#FFD700" />
-                </View>
-                <Text style={styles.exploreTitle}>Discover & Explore</Text>
-                <Text style={styles.exploreSubtitle}>
-                  Public posts and trending content coming soon!
-                </Text>
-              </View>
+          {/* Following Tab Content */}
+          {feedView === 'following' && (
+            <View style={styles.followingContainer}>
+              {follow.length === 0 ? (
+                <View style={styles.exploreContainer}>
+                  <View style={styles.exploreHeader}>
+                    <View style={styles.exploreIcon}>
+                      <UserPlus size={32} color="#FFD700" />
+                    </View>
+                    <Text style={styles.exploreTitle}>Following Feed</Text>
+                    <Text style={styles.exploreSubtitle}>
+                      Follow users to see their posts here
+                    </Text>
+                  </View>
 
-              <View style={styles.exploreSection}>
-                <Text style={styles.exploreSectionTitle}>🔥 Trending Challenges</Text>
-                <View style={styles.explorePlaceholder}>
-                  <Text style={styles.explorePlaceholderText}>
-                    Popular challenges will appear here
-                  </Text>
+                  <View style={styles.exploreSection}>
+                    <Text style={styles.exploreSectionTitle}>🌟 Discover Users</Text>
+                    <View style={styles.explorePlaceholder}>
+                      <Text style={styles.explorePlaceholderText}>
+                        Start following users to build your feed
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-              </View>
-
-              <View style={styles.exploreSection}>
-                <Text style={styles.exploreSectionTitle}>⭐ Success Stories</Text>
-                <View style={styles.explorePlaceholder}>
-                  <Text style={styles.explorePlaceholderText}>
-                    Inspirational achievements from the community
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.exploreSection}>
-                <Text style={styles.exploreSectionTitle}>🌟 Discover Circles</Text>
-                <View style={styles.explorePlaceholder}>
-                  <Text style={styles.explorePlaceholderText}>
-                    Find new circles to join
-                  </Text>
-                </View>
-              </View>
+              ) : (
+                posts.map((post, index) => (
+                  <UnifiedActivityCard
+                    key={`${post.id}-${index}`}
+                    post={post}
+                    onCommentPress={() => handleCommentPress(post)}
+                    onLikePress={() => handleLike(post.id)}
+                    onUserPress={(userId) => handleUserPress(userId)}
+                  />
+                ))
+              )}
             </View>
           )}
         </Animated.ScrollView>
@@ -3602,6 +3598,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
+  // Following Tab Styles
+  followingContainer: {
+    flex: 1,
+    paddingHorizontal: 8,
+  },
   // Explore Tab Styles
   exploreContainer: {
     flex: 1,

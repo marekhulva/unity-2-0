@@ -1,6 +1,6 @@
 import { StateCreator } from 'zustand';
 
-export type Visibility = 'circle'|'follow'|'explore';
+export type Visibility = 'circle'|'following';
 export type ShareDraft = {
   type: 'checkin'|'status'|'photo'|'audio';
   visibility: Visibility;

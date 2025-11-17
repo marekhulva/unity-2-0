@@ -24,6 +24,7 @@ import { CircleSelector } from '../circles/components/CircleSelector';
 import { JoinCircleModal } from '../social/JoinCircleModal';
 import { ChallengeDetailModal } from '../challenges/ChallengeDetailModal';
 import { CreateChallengeModal } from '../challenges/CreateChallengeModal';
+import { ChallengeCard } from '../challenges/components/ChallengeCard';
 
 export const CircleScreen = () => {
   const insets = useSafeAreaInsets();
@@ -454,32 +455,15 @@ export const CircleScreen = () => {
                     key={challenge.id}
                     entering={FadeInDown.delay(index * 100).springify()}
                   >
-                  <Pressable
-                    style={styles.challengeCard}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setSelectedChallengeId(challenge.id);
-                    }}
-                  >
-                    <LinearGradient
-                      colors={['rgba(255,215,0,0.1)', 'rgba(0,0,0,0.3)']}
-                      style={StyleSheet.absoluteFillObject}
+                    <ChallengeCard
+                      challenge={challenge}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setSelectedChallengeId(challenge.id);
+                      }}
                     />
-                    <View style={styles.challengeHeader}>
-                      <Text style={styles.challengeEmoji}>{challenge.emoji || '🎯'}</Text>
-                      <View style={styles.challengeInfo}>
-                        <Text style={styles.challengeName}>{challenge.name}</Text>
-                        <Text style={styles.challengeMeta}>
-                          {challenge.duration_days} days • {challenge.participant_count || 0} joined
-                        </Text>
-                      </View>
-                    </View>
-                    {challenge.description && (
-                      <Text style={styles.challengeDescription}>{challenge.description}</Text>
-                    )}
-                  </Pressable>
-                </Animated.View>
-              ))}
+                  </Animated.View>
+                ))}
               </View>
             )}
           </View>

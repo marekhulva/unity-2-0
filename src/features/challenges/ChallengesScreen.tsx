@@ -10,6 +10,7 @@ import { ChallengeLeaderboard } from './ChallengeLeaderboard';
 import { JoinChallengeFlow } from './JoinChallengeFlow';
 import { NotificationBell } from '../notifications/NotificationBell';
 import { NotificationsModal } from '../notifications/NotificationsModal';
+import { ChallengeCard } from './components/ChallengeCard';
 
 type MainTabType = 'discover' | 'active' | 'completed';
 type DetailTabType = 'overview' | 'feed' | 'forum';
@@ -98,9 +99,7 @@ export const ChallengesScreen = () => {
   const renderDetailTabs = () => {
     if (!selectedChallengeId || !currentChallenge) return null;
 
-    const tabs: DetailTabType[] = currentChallenge.scope === 'global'
-      ? ['overview', 'feed', 'forum']
-      : ['overview', 'feed'];
+    const tabs: DetailTabType[] = ['overview', 'feed', 'forum'];
 
     return (
       <View style={styles.detailTabBar}>
@@ -542,54 +541,6 @@ export const ChallengesScreen = () => {
         onClose={() => setShowNotifications(false)}
       />
     </View>
-  );
-};
-
-const ChallengeCard = ({ challenge, onPress }: { challenge: Challenge; onPress?: () => void }) => {
-  const startDate = challenge.start_date
-    ? new Date(challenge.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    : 'Anytime';
-
-  return (
-    <TouchableOpacity style={styles.challengeCard} onPress={onPress}>
-      <View style={styles.cardContent}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.challengeEmojiLarge}>{challenge.emoji}</Text>
-          <View style={styles.cardHeaderText}>
-            <Text style={styles.challengeName}>{challenge.name}</Text>
-            <Text style={styles.challengeMeta}>
-              {challenge.scope === 'global' ? '🌍 Global' : '👥 Circle'} • {challenge.duration_days} Days
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.cardStatsRow}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{challenge.participant_count || 0}</Text>
-            <Text style={styles.statLabel}> participants</Text>
-          </View>
-          <Text style={styles.statSeparator}>•</Text>
-          <Text style={styles.statLabel}>Starts {startDate}</Text>
-        </View>
-
-        <View style={styles.cardStatsRow}>
-          <Text style={styles.statLabel}>Success: </Text>
-          <Text style={styles.statValue}>{challenge.success_threshold}%</Text>
-          <Text style={styles.statSeparator}>•</Text>
-          <Text style={styles.statLabel}>Badge: </Text>
-          <Text style={styles.statValue}>{challenge.badge_emoji} {challenge.badge_name}</Text>
-        </View>
-
-        <View style={styles.cardButtons}>
-          <TouchableOpacity style={styles.btnSecondary} onPress={onPress}>
-            <Text style={styles.btnSecondaryText}>View Details</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.btnPrimary} onPress={onPress}>
-            <Text style={styles.btnPrimaryText}>Join</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </TouchableOpacity>
   );
 };
 

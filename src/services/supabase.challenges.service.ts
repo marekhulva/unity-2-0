@@ -270,49 +270,75 @@ class SupabaseChallengeService {
   }
 
   async recordCompletion(
-    challengeId: string,
-    actionId: string,
+    participantId: string,
+    activityId: string,
+    linkedActionId?: string,
     photoUrl?: string
   ): Promise<{ success: boolean; error?: string }> {
-    console.log('✅ [CHALLENGES] Recording completion');
+    console.log('✅ [CHALLENGES] Recording completion:', {
+      participantId,
+      activityId,
+      linkedActionId,
+    });
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'Not authenticated' };
+
+    const { data: participant, error: participantError } = await supabase
+      .from('challenge_participants')
+      .select('user_id, challenge_id')
+      .eq('id', participantId)
+      .single();
+
+    if (participantError || !participant) {
+      console.error('🔴 [CHALLENGES] Error fetching participant:', participantError);
+      return { success: false, error: 'Participant not found' };
+    }
 
     const today = new Date().toISOString().split('T')[0];
 
     const { data: existing } = await supabase
       .from('challenge_completions')
       .select('id')
-      .eq('user_id', user.id)
-      .eq('challenge_id', challengeId)
-      .eq('action_id', actionId)
+      .eq('participant_id', participantId)
+      .eq('challenge_activity_id', activityId)
       .eq('completion_date', today)
-      .single();
+      .maybeSingle();
 
     if (existing) {
+      console.log('⚠️ [CHALLENGES] Activity already completed today');
       return { success: false, error: 'Already completed today' };
+    }
+
+    const completionData: any = {
+      user_id: participant.user_id,
+      challenge_id: participant.challenge_id,
+      participant_id: participantId,
+      challenge_activity_id: activityId,
+      completion_date: today,
+      verification_type: photoUrl ? 'photo' : 'honor',
+    };
+
+    if (linkedActionId) {
+      completionData.action_id = linkedActionId;
+    }
+
+    if (photoUrl) {
+      completionData.photo_url = photoUrl;
     }
 
     const { error } = await supabase
       .from('challenge_completions')
-      .insert({
-        user_id: user.id,
-        challenge_id: challengeId,
-        action_id: actionId,
-        completion_date: today,
-        photo_url: photoUrl,
-        verification_type: photoUrl ? 'photo' : 'honor',
-      });
+      .insert(completionData);
 
     if (error) {
       console.error('🔴 [CHALLENGES] Error recording completion:', error);
       return { success: false, error: error.message };
     }
 
-    await this.updateParticipantProgress(challengeId, user.id);
+    await this.updateParticipantProgress(participant.challenge_id, participant.user_id);
 
-    console.log('🟢 [CHALLENGES] Completion recorded');
+    console.log('🟢 [CHALLENGES] Completion recorded successfully');
     return { success: true };
   }
 

@@ -35,7 +35,7 @@ export type ChallengeSlice = {
     activityTimes: ActivityTime[]
   ) => Promise<boolean>;
   leaveChallenge: (participantId: string, keepActivities: boolean) => Promise<boolean>;
-  recordCompletion: (challengeId: string, actionId: string, photoUrl?: string) => Promise<boolean>;
+  recordCompletion: (participantId: string, activityId: string, linkedActionId?: string, photoUrl?: string) => Promise<boolean>;
   clearCompletionModal: () => void;
   clearChallengeData: () => void;
 };
@@ -251,35 +251,44 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
     }
   },
 
-  recordCompletion: async (challengeId: string, actionId: string, photoUrl?: string) => {
-    console.log('✅ [STORE] Recording completion for challenge:', challengeId);
+  recordCompletion: async (participantId: string, activityId: string, linkedActionId?: string, photoUrl?: string) => {
+    console.log('✅ [STORE] Recording completion:', {
+      participantId,
+      activityId,
+      linkedActionId,
+    });
 
     try {
-      const previousChallenge = get().activeChallenges.find(c => c.id === challengeId);
-      const wasPreviouslyActive = previousChallenge?.my_participation?.status === 'active';
-
       const result = await supabaseChallengeService.recordCompletion(
-        challengeId,
-        actionId,
+        participantId,
+        activityId,
+        linkedActionId,
         photoUrl
       );
 
       if (result.success) {
         await get().fetchMyActiveChallenges();
-        const { currentChallenge, activeChallenges } = get();
+        const { activeChallenges } = get();
 
-        const updatedChallenge = activeChallenges.find(c => c.id === challengeId);
-        const isNowCompleted = updatedChallenge?.my_participation?.status === 'completed';
+        const updatedParticipation = activeChallenges.find(
+          c => c.my_participation?.id === participantId
+        );
 
-        if (wasPreviouslyActive && isNowCompleted && updatedChallenge) {
-          console.log('🎉 [STORE] Challenge just completed! Showing completion modal');
-          set({ newlyCompletedChallenge: updatedChallenge });
+        if (updatedParticipation) {
+          const challengeId = updatedParticipation.id;
+          const { currentChallenge } = get();
+
+          if (currentChallenge && currentChallenge.id === challengeId) {
+            await get().loadChallenge(challengeId);
+            await get().loadLeaderboard(challengeId);
+          }
+
+          if (updatedParticipation.my_participation?.status === 'completed') {
+            console.log('🎉 [STORE] Challenge just completed! Showing completion modal');
+            set({ newlyCompletedChallenge: updatedParticipation });
+          }
         }
 
-        if (currentChallenge && currentChallenge.id === challengeId) {
-          await get().loadChallenge(challengeId);
-          await get().loadLeaderboard(challengeId);
-        }
         console.log('🟢 [STORE] Completion recorded successfully');
         return true;
       } else {

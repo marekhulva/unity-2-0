@@ -158,7 +158,7 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
         // Check which activities are already completed today
         const todayCompletions = await backendService.getTodayChallengeCompletions();
         const completedActivityIds = new Set(
-          todayCompletions.data?.map((c: any) => c.activity_id) || []
+          todayCompletions.data?.map((c: any) => c.challenge_activity_id) || []
         );
         console.log('✅ [ACTIONS] Already completed today:', completedActivityIds);
         
