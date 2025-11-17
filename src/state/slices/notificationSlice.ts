@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand';
 import { supabaseNotificationService, type Notification } from '../../services/supabase.notifications.service';
+import { supabase } from '../../services/supabase.service';
 
 export type NotificationSlice = {
   notifications: Notification[];
@@ -86,7 +87,7 @@ export const createNotificationSlice: StateCreator<
   unsubscribeFromNotifications: () => {
     const channel = get().notificationsChannel;
     if (channel) {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
       set({ notificationsChannel: null });
     }
   },

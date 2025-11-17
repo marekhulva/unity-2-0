@@ -74,6 +74,60 @@ class SupabaseChallengeService {
     return challengesWithCounts;
   }
 
+  async getAllUserCircleChallenges(): Promise<Challenge[]> {
+    console.log('👥 [CHALLENGES] Fetching all challenges from user circles');
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.log('🔴 [CHALLENGES] No user found');
+      return [];
+    }
+
+    const { data: circleData, error: circleError } = await supabase
+      .from('circle_members')
+      .select('circle_id')
+      .eq('user_id', user.id);
+
+    if (circleError) {
+      console.error('🔴 [CHALLENGES] Error fetching user circles:', circleError);
+      return [];
+    }
+
+    if (!circleData || circleData.length === 0) {
+      console.log('🟡 [CHALLENGES] User has no circles');
+      return [];
+    }
+
+    const circleIds = circleData.map(c => c.circle_id);
+    console.log('🟢 [CHALLENGES] User is in', circleIds.length, 'circles');
+
+    const { data, error } = await supabase
+      .from('challenges')
+      .select('*')
+      .eq('scope', 'circle')
+      .in('circle_id', circleIds)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('🔴 [CHALLENGES] Error fetching all circle challenges:', error);
+      throw error;
+    }
+
+    const challengesWithCounts = await Promise.all(
+      (data || []).map(async (challenge) => {
+        const participantCount = await this.getParticipantCount(challenge.id);
+        return {
+          ...challenge,
+          participant_count: participantCount,
+        };
+      })
+    );
+
+    console.log('🟢 [CHALLENGES] Found total circle challenges:', challengesWithCounts.length);
+    return challengesWithCounts;
+  }
+
   async getChallenge(challengeId: string): Promise<ChallengeWithDetails | null> {
     console.log('🔍 [CHALLENGES] Fetching challenge:', challengeId);
 

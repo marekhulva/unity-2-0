@@ -24,20 +24,24 @@ export const ChallengesScreen = () => {
 
   const {
     globalChallenges,
+    circleChallenges,
     activeChallenges,
     completedChallenges,
     currentChallenge,
     newlyCompletedChallenge,
     challengesLoading,
     fetchGlobalChallenges,
+    fetchAllUserCircleChallenges,
     fetchMyActiveChallenges,
     fetchMyCompletedChallenges,
+    fetchDailyActions,
     clearCompletionModal,
     loadChallenge,
   } = useStore();
 
   useEffect(() => {
     fetchGlobalChallenges();
+    fetchAllUserCircleChallenges();
     fetchMyActiveChallenges();
     fetchMyCompletedChallenges();
   }, []);
@@ -125,13 +129,33 @@ export const ChallengesScreen = () => {
           </View>
 
           {challengesLoading ? (
-            <ActivityIndicator size="large" color="#FFD700" style={{ marginTop: 40 }} />
+            <ActivityIndicator size="large" color="#FFD700" style={{ marginTop: 20 }} />
           ) : globalChallenges.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No challenges available yet</Text>
+            <View style={styles.emptyStateSmall}>
+              <Text style={styles.emptyTextSmall}>No global challenges available yet</Text>
             </View>
           ) : (
             globalChallenges.map(challenge => (
+              <ChallengeCard
+                key={challenge.id}
+                challenge={challenge}
+                onPress={() => handleChallengePress(challenge.id)}
+              />
+            ))
+          )}
+
+          <View style={[styles.sectionHeader, { marginTop: 24 }]}>
+            <Text style={styles.sectionEmoji}>👥</Text>
+            <Text style={styles.sectionTitle}>Circle Challenges</Text>
+          </View>
+
+          {circleChallenges.length === 0 ? (
+            <View style={styles.emptyStateSmall}>
+              <Text style={styles.emptyTextSmall}>No circle challenges yet</Text>
+              <Text style={styles.emptySubtext}>Join a circle to see their challenges</Text>
+            </View>
+          ) : (
+            circleChallenges.map(challenge => (
               <ChallengeCard
                 key={challenge.id}
                 challenge={challenge}
@@ -502,6 +526,7 @@ export const ChallengesScreen = () => {
           onSuccess={() => {
             setShowJoinFlow(false);
             fetchMyActiveChallenges();
+            fetchDailyActions();
           }}
         />
       )}

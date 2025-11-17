@@ -16,7 +16,7 @@ interface ChallengeDetailModalProps {
 
 export const ChallengeDetailModal = ({ visible, challengeId, onClose }: ChallengeDetailModalProps) => {
   const insets = useSafeAreaInsets();
-  const { currentChallenge, challengesLoading, loadChallenge, fetchMyActiveChallenges } = useStore();
+  const { currentChallenge, challengesLoading, loadChallenge, fetchMyActiveChallenges, fetchDailyActions } = useStore();
   const [showJoinFlow, setShowJoinFlow] = useState(false);
 
   useEffect(() => {
@@ -225,6 +225,7 @@ export const ChallengeDetailModal = ({ visible, challengeId, onClose }: Challeng
             setShowJoinFlow(false);
             onClose();
             fetchMyActiveChallenges();
+            fetchDailyActions();
           }}
         />
       </View>

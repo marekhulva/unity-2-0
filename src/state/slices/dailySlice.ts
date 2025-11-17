@@ -198,7 +198,7 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
           console.log('⏰ [ACTIONS] Scheduled time for this activity:', scheduledTime);
           
           const actionItem = {
-            id: `challenge-${activity.id}`, // Prefix to avoid ID conflicts
+            id: `challenge-${activity.challengeId}-${activity.id}`, // Make unique per challenge
             title: activity.display_name || activity.title || 'Unknown Activity', // Use display_name field
             type: 'commitment' as const,
             frequency: 'Daily',

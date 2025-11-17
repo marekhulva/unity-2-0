@@ -1604,6 +1604,13 @@ class SupabaseService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
+    // Get post author info for notifications
+    const { data: post } = await supabase
+      .from('posts')
+      .select('user_id, content, profiles!user_id(username)')
+      .eq('id', postId)
+      .single();
+
     // Check if user already reacted
     const { data: existing } = await supabase
       .from('post_reactions')
@@ -1634,6 +1641,26 @@ class SupabaseService {
         .single();
 
       if (error) throw error;
+
+      // Send notification to post author (if not reacting to own post)
+      if (post && post.user_id !== user.id) {
+        const { supabaseNotificationService } = await import('./supabase.notifications.service');
+        const { data: actorProfile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', user.id)
+          .single();
+
+        await supabaseNotificationService.createSocialNotification({
+          userId: post.user_id,
+          type: 'like',
+          actorUserId: user.id,
+          actorName: actorProfile?.username || 'Someone',
+          postId,
+          postTitle: post.content?.substring(0, 50) || 'your post'
+        });
+      }
+
       return data;
     }
   }
@@ -1641,6 +1668,13 @@ class SupabaseService {
   async addComment(postId: string, content: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
+
+    // Get post author info for notifications
+    const { data: post } = await supabase
+      .from('posts')
+      .select('user_id, content')
+      .eq('id', postId)
+      .single();
 
     const { data, error } = await supabase
       .from('post_comments')
@@ -1653,6 +1687,26 @@ class SupabaseService {
       .single();
 
     if (error) throw error;
+
+    // Send notification to post author (if not commenting on own post)
+    if (post && post.user_id !== user.id) {
+      const { supabaseNotificationService } = await import('./supabase.notifications.service');
+      const { data: actorProfile } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .single();
+
+      await supabaseNotificationService.createSocialNotification({
+        userId: post.user_id,
+        type: 'comment',
+        actorUserId: user.id,
+        actorName: actorProfile?.username || 'Someone',
+        postId,
+        commentText: content.substring(0, 100)
+      });
+    }
+
     return data;
   }
 

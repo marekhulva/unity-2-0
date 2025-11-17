@@ -30,8 +30,6 @@ import { Sparkles, Zap, Trophy, TrendingUp, Clock, Calendar, Target, CheckCircle
 import * as Haptics from 'expo-haptics';
 import { HapticManager } from '../../utils/haptics';
 import ChallengeDebugV2 from '../../utils/challengeDebugV2';
-import { supabaseChallengeService } from '../../services/supabase.challenges.service';
-import { supabase } from '../../services/supabase.service';
 
 // CircleSelector removed - only needed in Social feed
 
@@ -53,30 +51,10 @@ export const DailyScreen = () => {
   const [showSharePrompt, setShowSharePrompt] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [selectedAction, setSelectedAction] = useState<any>(null);
-  const [challengeActivities, setChallengeActivities] = useState<any[]>([]);
-  const [completedChallengeActivities, setCompletedChallengeActivities] = useState<Set<string>>(new Set());
 
-  // Merge regular actions with challenge activities
-  const mergedActions = [
-    ...actions,
-    ...challengeActivities.map(ca => ({
-      id: `challenge-${ca.id}`,
-      title: ca.title,
-      time: ca.scheduledTime,
-      done: completedChallengeActivities.has(ca.id),
-      isFromChallenge: true,
-      challengeName: ca.challengeName,
-      challengeId: ca.challengeId,
-      challengeActivityId: ca.id,
-      challengeIcon: ca.emoji,
-      goalTitle: undefined,
-      goalId: undefined,
-    }))
-  ];
-
-  const completed = mergedActions.filter(a=>a.done).length;
-  const progress = mergedActions.length ? (completed/mergedActions.length)*100 : 0;
-  const allCompleted = mergedActions.length > 0 && completed === mergedActions.length;
+  const completed = actions.filter(a=>a.done).length;
+  const progress = actions.length ? (completed/actions.length)*100 : 0;
+  const allCompleted = actions.length > 0 && completed === actions.length;
 
   // Multiple circles support
   const userCircles = useStore(s => s.userCircles);
@@ -105,10 +83,7 @@ export const DailyScreen = () => {
   useEffect(() => {
     console.log('🟦 [DAILY] DailyScreen mounted - fetching actions');
     fetchDailyActions();
-    // Load all user's circles for the selector
     fetchUserCircles();
-    // Fetch challenge activities
-    loadChallengeActivities();
   }, []);
 
   // Handle circle selection changes
@@ -118,47 +93,6 @@ export const DailyScreen = () => {
       fetchDailyActions();
     }
   }, [activeCircleId]);
-
-  // Fetch challenge activities
-  const loadChallengeActivities = async () => {
-    try {
-      const activities = await supabaseChallengeService.getUserChallengeActivities();
-      console.log('🏆 [DAILY] Loaded challenge activities:', activities);
-      setChallengeActivities(activities);
-
-      // Check which activities are already completed today
-      const completedToday = await checkCompletedChallengeActivities(activities);
-      setCompletedChallengeActivities(completedToday);
-    } catch (error) {
-      console.error('❌ [DAILY] Error loading challenge activities:', error);
-    }
-  };
-
-  // Check which challenge activities have been completed today
-  const checkCompletedChallengeActivities = async (activities: any[]): Promise<Set<string>> => {
-    const completed = new Set<string>();
-    const today = new Date().toISOString().split('T')[0];
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return completed;
-
-      const { data: completions } = await supabase
-        .from('challenge_completions')
-        .select('challenge_activity_id')
-        .eq('user_id', user.id)
-        .gte('completed_at', `${today}T00:00:00`)
-        .lte('completed_at', `${today}T23:59:59`);
-
-      if (completions) {
-        completions.forEach(c => completed.add(c.challenge_activity_id));
-      }
-    } catch (error) {
-      console.error('❌ [DAILY] Error checking completions:', error);
-    }
-
-    return completed;
-  };
   
   // Log actions when component mounts or actions change
   useEffect(() => {
@@ -334,13 +268,9 @@ export const DailyScreen = () => {
       );
 
       if (success) {
-        // Update local state to mark as completed
-        setCompletedChallengeActivities(prev => {
-          const updated = new Set(prev);
-          updated.add(selectedAction.challengeActivityId);
-          return updated;
-        });
         console.log('✅ [DAILY] Challenge activity marked as completed');
+        // The store handles updating the action state, so we just need to refresh
+        await fetchDailyActions();
       } else {
         console.error('❌ [DAILY] Failed to record challenge completion');
       }
@@ -552,7 +482,7 @@ export const DailyScreen = () => {
               {/* Real goals */}
               {goals.slice(0, 3).map((goal, index) => {
                 // Calculate progress for each goal
-                const goalActions = mergedActions.filter(a => a.goalId === goal.id);
+                const goalActions = actions.filter(a => a.goalId === goal.id);
                 const goalCompleted = goalActions.filter(a => a.done).length;
                 const goalProgress = goalActions.length > 0
                   ? (goalCompleted / goalActions.length) * 100
@@ -593,16 +523,16 @@ export const DailyScreen = () => {
         <View style={styles.actionsContainer}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>TODAY'S MISSION</Text>
-            {mergedActions.length > 0 && (
+            {actions.length > 0 && (
               <View style={styles.sectionBadge}>
-                <Text style={styles.sectionBadgeText}>{completed}/{mergedActions.length}</Text>
+                <Text style={styles.sectionBadgeText}>{completed}/{actions.length}</Text>
               </View>
             )}
           </View>
 
-          {mergedActions.length > 0 ? (
+          {actions.length > 0 ? (
             <View style={styles.actionsList}>
-              {mergedActions
+              {actions
                 .sort((a, b) => {
                   // Sort by time (earliest first)
                   if (!a.time && !b.time) return 0;
@@ -761,7 +691,7 @@ export const DailyScreen = () => {
         onClose={() => setShowSharePrompt(false)}
         progress={progress}
         completedActions={completed}
-        totalActions={mergedActions.length}
+        totalActions={actions.length}
         streak={currentStreak}
       />
       {/* Removed ShareComposer - sharing is handled in PrivacySelectionModal */}

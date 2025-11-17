@@ -23,6 +23,7 @@ export type ChallengeSlice = {
 
   fetchGlobalChallenges: () => Promise<void>;
   fetchCircleChallenges: (circleId: string) => Promise<void>;
+  fetchAllUserCircleChallenges: () => Promise<void>;
   fetchMyActiveChallenges: () => Promise<void>;
   fetchMyCompletedChallenges: () => Promise<void>;
   fetchMyBadges: () => Promise<void>;
@@ -84,6 +85,26 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
       console.log('🟢 [STORE] Loaded circle challenges:', challenges.length);
     } catch (error: any) {
       console.error('🔴 [STORE] Error fetching circle challenges:', error);
+      set({
+        challengeError: error.message || 'Failed to load challenges',
+        challengesLoading: false
+      });
+    }
+  },
+
+  fetchAllUserCircleChallenges: async () => {
+    console.log('👥 [STORE] Fetching all user circle challenges');
+    set({ challengesLoading: true, challengeError: null });
+
+    try {
+      const challenges = await supabaseChallengeService.getAllUserCircleChallenges();
+      set({
+        circleChallenges: challenges,
+        challengesLoading: false
+      });
+      console.log('🟢 [STORE] Loaded all user circle challenges:', challenges.length);
+    } catch (error: any) {
+      console.error('🔴 [STORE] Error fetching all user circle challenges:', error);
       set({
         challengeError: error.message || 'Failed to load challenges',
         challengesLoading: false

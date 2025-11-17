@@ -43,7 +43,7 @@ export const CreateChallengeModal = ({
   const [durationDays, setDurationDays] = useState('7');
   const [successThreshold, setSuccessThreshold] = useState('80');
   const [activities, setActivities] = useState<PredeterminedActivity[]>([
-    { id: 1, title: '', emoji: '✅', frequency: 'daily' },
+    { id: 'act1', title: '', emoji: '✅', frequency: 'daily' },
   ]);
 
   const resetForm = () => {
@@ -52,23 +52,23 @@ export const CreateChallengeModal = ({
     setEmoji('🎯');
     setDurationDays('7');
     setSuccessThreshold('80');
-    setActivities([{ id: 1, title: '', emoji: '✅', frequency: 'daily' }]);
+    setActivities([{ id: 'act1', title: '', emoji: '✅', frequency: 'daily' }]);
   };
 
   const addActivity = () => {
     setActivities([
       ...activities,
-      { id: activities.length + 1, title: '', emoji: '✅', frequency: 'daily' },
+      { id: `act${activities.length + 1}`, title: '', emoji: '✅', frequency: 'daily' },
     ]);
   };
 
-  const removeActivity = (id: number) => {
+  const removeActivity = (id: string) => {
     if (activities.length > 1) {
       setActivities(activities.filter(a => a.id !== id));
     }
   };
 
-  const updateActivity = (id: number, field: keyof PredeterminedActivity, value: any) => {
+  const updateActivity = (id: string, field: keyof PredeterminedActivity, value: any) => {
     setActivities(activities.map(a => (a.id === id ? { ...a, [field]: value } : a)));
   };
 
