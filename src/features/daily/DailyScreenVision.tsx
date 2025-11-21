@@ -1,182 +1,89 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, Dimensions, Pressable, ActivityIndicator, Alert } from 'react-native';
+import React, { useEffect, useState, useMemo } from 'react';
+import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  interpolate,
-  Easing,
-  FadeInDown,
-  FadeIn,
-  withSpring,
-  withSequence,
-  withDelay,
-} from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useStore } from '../../state/rootStore';
-import { RadialProgress } from '../../ui/RadialProgress';
-import { HapticButton } from '../../ui/HapticButton';
-import { DailyReviewModal } from './DailyReviewModal';
-import { ActionItem } from './ActionItem';
-import { GoalCard } from './GoalCard';
 import { PrivacySelectionModal } from './PrivacySelectionModal';
 import { SocialSharePrompt } from '../social/SocialSharePrompt';
-import { EmptyState } from '../../ui/EmptyState';
 import { LuxuryTheme } from '../../design/luxuryTheme';
-import { Sparkles, Zap, Trophy, TrendingUp, Clock, Calendar, Target, CheckCircle2, Circle, CheckCircle } from 'lucide-react-native';
+import { CheckCircle2, Circle, Clock } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { HapticManager } from '../../utils/haptics';
 import ChallengeDebugV2 from '../../utils/challengeDebugV2';
 
-const { width, height } = Dimensions.get('window');
+type TimePeriod = 'morning' | 'afternoon' | 'evening';
+
+interface GroupedActions {
+  morning: any[];
+  afternoon: any[];
+  evening: any[];
+}
 
 export const DailyScreenVision = () => {
   const insets = useSafeAreaInsets();
-  const actions = useStore(s=>s.actions);
-  const goals = useStore(s=>s.goals);
-  const actionsLoading = useStore(s=>s.actionsLoading);
-  const actionsError = useStore(s=>s.actionsError);
-  const fetchDailyActions = useStore(s=>s.fetchDailyActions);
-  const openOnboarding = useStore(s=>s.openOnboarding);
-  const toggleAction = useStore(s=>s.toggleAction);
-  const addCompletedAction = useStore(s=>s.addCompletedAction);
-  const addPost = useStore(s=>s.addPost);
-  const recordCompletion = useStore(s=>s.recordCompletion);
-  const openReview = useStore(s=>s.openDailyReview);
+  const actions = useStore(s => s.actions);
+  const goals = useStore(s => s.goals);
+  const actionsLoading = useStore(s => s.actionsLoading);
+  const actionsError = useStore(s => s.actionsError);
+  const fetchDailyActions = useStore(s => s.fetchDailyActions);
+  const openOnboarding = useStore(s => s.openOnboarding);
+  const toggleAction = useStore(s => s.toggleAction);
+  const addCompletedAction = useStore(s => s.addCompletedAction);
+  const addPost = useStore(s => s.addPost);
+  const recordCompletion = useStore(s => s.recordCompletion);
   const [showSharePrompt, setShowSharePrompt] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [selectedAction, setSelectedAction] = useState<any>(null);
 
-  const completed = actions.filter(a=>a.done).length;
-  const progress = actions.length ? (completed/actions.length)*100 : 0;
-  const allCompleted = actions.length > 0 && completed === actions.length;
-
-  const userCircles = useStore(s => s.userCircles);
-  const activeCircleId = useStore(s => s.activeCircleId);
-  const setActiveCircle = useStore(s => s.setActiveCircle);
-  const fetchUserCircles = useStore(s => s.fetchUserCircles);
-  const circlesLoading = useStore(s => s.circlesLoading);
-  const circlesError = useStore(s => s.circlesError);
-  const joinCircle = useStore(s => s.joinCircle);
-
-  const pulseAnimation = useSharedValue(0);
-  const progressScale = useSharedValue(0);
-  const glowIntensity = useSharedValue(0);
-  const shimmerAnimation = useSharedValue(0);
-  const heroCardScale = useSharedValue(0.95);
-  const streakAnimation = useSharedValue(0);
-
+  const completed = actions.filter(a => a.done).length;
+  const progress = actions.length ? Math.round((completed / actions.length) * 100) : 0;
   const currentStreak = 7;
-  const bestStreak = 21;
 
   useEffect(() => {
-    console.log('🟦 [DAILY-VISION] DailyScreenVision mounted - fetching actions');
+    console.log('🟦 [DAILY-VISION] DailyScreenVision mounted');
     fetchDailyActions();
-    fetchUserCircles();
   }, []);
 
-  useEffect(() => {
-    if (activeCircleId !== undefined) {
-      fetchDailyActions();
-    }
-  }, [activeCircleId]);
-
-  useEffect(() => {
-    console.log('🟦 [DAILY-VISION] Current actions:', actions.map(a => ({
-      title: a.title,
-      goalId: a.goalId,
-      goalTitle: a.goalTitle,
-      isFromChallenge: a.isFromChallenge,
-      challengeName: a.challengeName,
-      time: a.time
-    })));
-    console.log('🟦 [DAILY-VISION] Current goals:', goals.map(g => ({ id: g.id, title: g.title })));
-  }, [actions, goals]);
-
-  useEffect(() => {
-    heroCardScale.value = withSpring(1, { damping: 12 });
-
-    shimmerAnimation.value = withRepeat(
-      withTiming(1, { duration: 4000, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true
-    );
-  }, []);
-
-  useEffect(() => {
-    heroCardScale.value = withSpring(1, { damping: 15, stiffness: 100 });
-    progressScale.value = withDelay(200, withSpring(1, { damping: 12 }));
-
-    if (currentStreak > 0) {
-      streakAnimation.value = withRepeat(
-        withSequence(
-          withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
-          withTiming(0, { duration: 1500, easing: Easing.inOut(Easing.ease) })
-        ),
-        -1
-      );
-    }
-  }, []);
-
-  useEffect(() => {
-    glowIntensity.value = withTiming(0.3, { duration: 500 });
-  }, []);
-
-  useEffect(() => {
-    pulseAnimation.value = withRepeat(
-      withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true
-    );
-  }, []);
-
-  const heroCardStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: heroCardScale.value }],
-  }));
-
-  const shimmerStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(shimmerAnimation.value, [0, 0.5, 1], [0, 0.6, 0]),
-    transform: [
-      { translateX: interpolate(shimmerAnimation.value, [0, 1], [-200, 200]) }
-    ],
-  }));
-
-  const progressRingStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: progressScale.value }],
-  }));
-
-  const glowStyle = useAnimatedStyle(() => ({
-    shadowOpacity: 0,
-    shadowRadius: 0,
-  }));
-
-  const streakGlowStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(streakAnimation.value, [0, 1], [0.6, 1]),
-    transform: [{ scale: interpolate(streakAnimation.value, [0, 1], [1, 1.1]) }],
-  }));
-
-  const getTimeOfDay = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return { greeting: 'Good Morning', emoji: '☀️' };
-    if (hour < 18) return { greeting: 'Good Afternoon', emoji: '🌤' };
-    return { greeting: 'Good Evening', emoji: '🌙' };
+  const getTimePeriod = (time?: string): TimePeriod => {
+    if (!time) return 'morning';
+    const hour = parseInt(time.split(':')[0]);
+    if (hour < 12) return 'morning';
+    if (hour < 18) return 'afternoon';
+    return 'evening';
   };
 
-  const { greeting, emoji } = getTimeOfDay();
+  const groupedActions = useMemo<GroupedActions>(() => {
+    const groups: GroupedActions = {
+      morning: [],
+      afternoon: [],
+      evening: [],
+    };
 
-  const handleRetry = async () => {
-    try {
-      await fetchDailyActions();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to refresh actions. Please try again.');
-    }
-  };
+    actions.forEach(action => {
+      const period = getTimePeriod(action.time);
+      groups[period].push(action);
+    });
+
+    Object.keys(groups).forEach(key => {
+      groups[key as TimePeriod].sort((a, b) => {
+        if (!a.time || !b.time) return 0;
+        const timeA = a.time.split(':').map(Number);
+        const timeB = b.time.split(':').map(Number);
+        return (timeA[0] * 60 + timeA[1]) - (timeB[0] * 60 + timeB[1]);
+      });
+    });
+
+    return groups;
+  }, [actions]);
+
+  const nextAction = useMemo(() => {
+    return actions.find(a => !a.done);
+  }, [actions]);
 
   const formatTime = (time?: string) => {
-    if (!time) return undefined;
+    if (!time) return '';
     const parts = time.split(':');
     let hours = parseInt(parts[0]);
     const minutes = parts[1];
@@ -185,6 +92,20 @@ export const DailyScreenVision = () => {
     hours = hours % 12 || 12;
     return `${hours}:${minutes} ${period}`;
   };
+
+  const formatTime24 = (time?: string) => {
+    if (!time) return '';
+    return time.substring(0, 5);
+  };
+
+  const getCurrentDate = () => {
+    const now = new Date();
+    const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
+    const monthDay = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return { dayName, monthDay };
+  };
+
+  const { dayName, monthDay } = getCurrentDate();
 
   const handleTaskToggle = (action: any) => {
     if (!action.done) {
@@ -212,27 +133,11 @@ export const DailyScreenVision = () => {
     ChallengeDebugV2.startNewFlow();
     ChallengeDebugV2.checkpoint('CP1-DAILY-START', 'Selected action in Daily screen', selectedAction);
 
-    console.log('🎯 [DAILY-VISION] handlePrivacySelect called:', {
-      visibility,
-      contentType,
-      content,
-      action: selectedAction?.title,
-      isFromChallenge: selectedAction?.isFromChallenge,
-      newVisibility
-    });
-
     if (!selectedAction) return;
 
     if (selectedAction.isFromChallenge && selectedAction.challengeActivityId) {
       const isLinkedActivity = selectedAction.id && !selectedAction.id.startsWith('challenge-');
       const linkedActionId = isLinkedActivity ? selectedAction.id : undefined;
-
-      console.log('🏆 [DAILY-VISION] Recording challenge activity completion:', {
-        participantId: selectedAction.challengeParticipantId,
-        activityId: selectedAction.challengeActivityId,
-        linkedActionId,
-        isLinkedActivity,
-      });
 
       const success = await recordCompletion(
         selectedAction.challengeParticipantId,
@@ -242,10 +147,7 @@ export const DailyScreenVision = () => {
       );
 
       if (success) {
-        console.log('✅ [DAILY-VISION] Challenge activity marked as completed');
         await fetchDailyActions();
-      } else {
-        console.error('❌ [DAILY-VISION] Failed to record challenge completion');
       }
     } else {
       toggleAction(selectedAction.id);
@@ -254,11 +156,9 @@ export const DailyScreenVision = () => {
     HapticManager.context.actionCompleted();
 
     const actionType = contentType === 'text' ? 'milestone' : 'check';
-
     const finalMediaUrl = mediaUri || (contentType === 'photo'
       ? `https://picsum.photos/400/400?random=${Date.now()}`
       : undefined);
-
     const isPrivate = newVisibility ? newVisibility.isPrivate : visibility === 'private';
 
     addCompletedAction({
@@ -300,17 +200,7 @@ export const DailyScreenVision = () => {
         };
 
         ChallengeDebugV2.checkpoint('CP2-POST-DATA', 'Post data created in Daily', postData);
-
-        console.log('🎯 [DEBUG] Creating post with challenge data:', {
-          isChallenge: postData.isChallenge,
-          challengeName: postData.challengeName,
-          isFromChallenge: selectedAction.isFromChallenge,
-          actionTitle: selectedAction.title,
-          newVisibility,
-        });
-
         await addPost(postData);
-        console.log('✅ Post saved to database for action:', selectedAction.title);
       } catch (error) {
         console.error('❌ Failed to save post to database:', error);
       }
@@ -318,6 +208,87 @@ export const DailyScreenVision = () => {
 
     setShowPrivacyModal(false);
     setSelectedAction(null);
+  };
+
+  const handleRetry = async () => {
+    try {
+      await fetchDailyActions();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to refresh actions. Please try again.');
+    }
+  };
+
+  const renderPeriodSection = (period: TimePeriod, periodActions: any[]) => {
+    if (periodActions.length === 0) return null;
+
+    const periodNames = {
+      morning: 'Morning',
+      afternoon: 'Afternoon',
+      evening: 'Evening',
+    };
+
+    return (
+      <View key={period}>
+        <View style={styles.periodHeader}>
+          <Text style={styles.periodHeaderText}>{periodNames[period]}</Text>
+        </View>
+
+        <View style={styles.timeline}>
+          {periodActions.map((action, index) => {
+            const isActive = !action.done && action.id === nextAction?.id;
+            return (
+              <Animated.View
+                key={action.id}
+                entering={FadeInDown.delay(index * 50).springify()}
+                style={styles.timelineItem}
+              >
+                <Text style={styles.timelineTime}>{formatTime24(action.time)}</Text>
+                <View style={[
+                  styles.timelineDot,
+                  action.done && styles.timelineDotCompleted,
+                  isActive && styles.timelineDotActive,
+                ]} />
+                <Pressable
+                  style={[
+                    styles.timelineCard,
+                    action.done && styles.timelineCardCompleted,
+                  ]}
+                  onPress={() => handleTaskToggle(action)}
+                >
+                  <View style={styles.cardContent}>
+                    <Text style={[
+                      styles.cardTitle,
+                      action.done && styles.cardTitleCompleted,
+                    ]}>
+                      {action.title}
+                    </Text>
+                    <View style={styles.cardMeta}>
+                      {action.goalTitle && (
+                        <>
+                          <Text style={styles.cardMetaText}>{action.goalTitle}</Text>
+                        </>
+                      )}
+                      {action.challengeName && (
+                        <>
+                          {action.goalTitle && <Text style={styles.cardMetaText}>•</Text>}
+                          <Text style={styles.cardMetaText}>{action.challengeName}</Text>
+                        </>
+                      )}
+                    </View>
+                  </View>
+                  <View style={[
+                    styles.completionCircle,
+                    action.done && styles.completionCircleCompleted,
+                  ]}>
+                    {action.done && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                </Pressable>
+              </Animated.View>
+            );
+          })}
+        </View>
+      </View>
+    );
   };
 
   if (actionsError && !actionsLoading) {
@@ -347,180 +318,109 @@ export const DailyScreenVision = () => {
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
-          {
-            paddingTop: 20,
-            paddingBottom: insets.bottom + 180
-          }
+          { paddingBottom: insets.bottom + 100 }
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Animated.View
-          entering={FadeInDown.duration(500).springify()}
-          style={styles.greetingContainer}
-        >
-          <Text style={styles.todayLabel}>TODAY</Text>
-          <Text style={styles.date}>
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-          </Text>
-        </Animated.View>
+        <View style={styles.dailyContainer}>
+          <Animated.View
+            entering={FadeInDown.duration(400).springify()}
+            style={styles.dailyHero}
+          >
+            <View style={styles.todayDate}>
+              <LinearGradient
+                colors={['#FFD700', '#FFA500']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFillObject}
+              />
+              <Text style={styles.dayName}>{dayName}</Text>
+              <Text style={styles.dateNum}>{monthDay}</Text>
+            </View>
 
-        <Animated.View
-          entering={FadeInDown.delay(100).springify()}
-          style={[styles.heroCard, heroCardStyle]}
-        >
-          <BlurView intensity={10} tint="dark" style={StyleSheet.absoluteFillObject} />
-
-          <Animated.View style={[styles.heroLiquidFill, { height: `${progress + (progress > 0 ? 14 : 0)}%` }]}>
-            <LinearGradient
-              colors={['rgba(255, 215, 0, 0.2)', 'rgba(255, 170, 0, 0.15)', 'rgba(255, 140, 0, 0.1)']}
-              style={StyleSheet.absoluteFillObject}
-              start={{ x: 0, y: 1 }}
-              end={{ x: 0.5, y: 0 }}
-            />
-          </Animated.View>
-
-          <Animated.View style={[styles.heroShimmer, shimmerStyle]}>
-            <LinearGradient
-              colors={['transparent', 'rgba(255, 255, 255, 0.1)', 'transparent']}
-              style={{ flex: 1 }}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            />
-          </Animated.View>
-
-          <Animated.View style={[styles.progressRing, progressRingStyle]}>
-            <RadialProgress
-              progress={progress}
-              size={100}
-              strokeWidth={5}
-              color='#FFFFFF'
-            />
-          </Animated.View>
-
-          <View style={styles.messageContainer}>
-            {progress === 100 ? (
-              <View style={styles.completionMessage}>
-                <Text style={styles.completionText}>Perfect Day</Text>
-                <View style={styles.completionCheck}>
-                  <Text style={styles.checkmark}>✓</Text>
+            <View style={styles.dailyProgress}>
+              <View style={styles.progressRingWrapper}>
+                <View style={[
+                  styles.progressRingOuter,
+                  {
+                    background: `conic-gradient(#E7B43A ${progress * 3.6}deg, rgba(255,255,255,0.08) ${progress * 3.6}deg)`
+                  } as any
+                ]}>
+                  <LinearGradient
+                    colors={progress > 0 ? ['#E7B43A', '#E7B43A'] : ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.08)']}
+                    style={[StyleSheet.absoluteFillObject, { borderRadius: 40 }]}
+                  />
+                  <View style={styles.progressRingInner}>
+                    <Text style={styles.progressPercent}>{progress}%</Text>
+                    <Text style={styles.progressLabel}>DONE</Text>
+                  </View>
                 </View>
               </View>
-            ) : progress >= 80 ? (
-              <Text style={styles.motivationText}>So close</Text>
-            ) : progress >= 50 ? (
-              <Text style={styles.motivationText}>Halfway there</Text>
-            ) : progress > 0 ? (
-              <Text style={styles.motivationText}>Good start</Text>
-            ) : (
-              <Text style={styles.motivationText}>Start your day</Text>
-            )}
-          </View>
-        </Animated.View>
+              <View style={styles.progressStats}>
+                <View style={styles.progressStat}>
+                  <Text style={styles.statLabel}>Completed</Text>
+                  <Text style={styles.statValue}>{completed} of {actions.length}</Text>
+                </View>
+                <View style={styles.progressStat}>
+                  <Text style={styles.statLabel}>Current streak</Text>
+                  <Text style={styles.statValue}>{currentStreak} days 🔥</Text>
+                </View>
+              </View>
+            </View>
+          </Animated.View>
 
-        <View style={styles.actionsContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>TODAY'S MISSION</Text>
-            {actions.length > 0 && (
-              <View style={styles.sectionBadge}>
-                <Text style={styles.sectionBadgeText}>{completed}/{actions.length}</Text>
+          {nextAction && (
+            <Animated.View
+              entering={FadeInDown.delay(100).springify()}
+              style={styles.section}
+            >
+              <View style={styles.nextUpCard}>
+                <Text style={styles.nextLabel}>UP NEXT</Text>
+                <Text style={styles.nextTitle}>{nextAction.title}</Text>
+                <View style={styles.nextTime}>
+                  <Clock size={12} color="rgba(255,255,255,0.6)" />
+                  <Text style={styles.nextTimeText}>{formatTime(nextAction.time)}</Text>
+                  {nextAction.goalTitle && (
+                    <>
+                      <Text style={styles.nextTimeText}>•</Text>
+                      <Text style={styles.nextTimeText}>{nextAction.goalTitle}</Text>
+                    </>
+                  )}
+                </View>
+              </View>
+            </Animated.View>
+          )}
+
+          <Animated.View
+            entering={FadeInDown.delay(200).springify()}
+            style={styles.section}
+          >
+            <Text style={styles.sectionHeader}>Today's Schedule</Text>
+
+            {actions.length > 0 ? (
+              <>
+                {renderPeriodSection('morning', groupedActions.morning)}
+                {renderPeriodSection('afternoon', groupedActions.afternoon)}
+                {renderPeriodSection('evening', groupedActions.evening)}
+              </>
+            ) : (
+              <View style={styles.emptyButtonContainer}>
+                <Pressable
+                  style={styles.startGoalButton}
+                  onPress={openOnboarding}
+                >
+                  <LinearGradient
+                    colors={['#FFD700', '#FFA500']}
+                    style={styles.startGoalGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                  />
+                  <Text style={styles.startGoalText}>Start Goal Setup</Text>
+                </Pressable>
               </View>
             )}
-          </View>
-
-          {actions.length > 0 ? (
-            <View style={styles.actionsList}>
-              {actions
-                .sort((a, b) => {
-                  if (!a.time && !b.time) return 0;
-                  if (!a.time) return 1;
-                  if (!b.time) return -1;
-
-                  const timeA = a.time.split(':').map(Number);
-                  const timeB = b.time.split(':').map(Number);
-                  const minutesA = timeA[0] * 60 + timeA[1];
-                  const minutesB = timeB[0] * 60 + timeB[1];
-
-                  return minutesA - minutesB;
-                })
-                .map((action, index) => (
-                <Animated.View
-                  key={action.id}
-                  entering={FadeInDown.delay(250 + index * 30).springify()}
-                >
-                  <Pressable
-                    style={[styles.taskPill, action.done && styles.taskPillDone]}
-                    onPress={() => handleTaskToggle(action)}
-                  >
-                    <View style={styles.taskCheckbox}>
-                      {action.done ? (
-                        <CheckCircle2 size={22} color="#FFD700" />
-                      ) : (
-                        <Circle size={22} color="rgba(255, 255, 255, 0.3)" />
-                      )}
-                    </View>
-
-                    <View style={styles.taskContent}>
-                      <Text style={[styles.taskTitle, action.done && styles.taskTitleDone]} numberOfLines={1}>
-                        {action.challengeIcon && <Text>{action.challengeIcon} </Text>}
-                        {action.title}
-                      </Text>
-                      {action.goalTitle && (
-                        <View style={styles.taskMetaRow}>
-                          {(() => {
-                            const parentGoal = goals.find(g => g.id === action.goalId);
-                            const isRoutine = parentGoal?.type === 'routine';
-                            return (
-                              <>
-                                {isRoutine && (
-                                  <View style={[styles.taskTypeBadge, { backgroundColor: 'rgba(100, 149, 237, 0.15)' }]}>
-                                    <Text style={[styles.taskTypeBadgeText, { color: '#6495ED' }]}>
-                                      🔄 Routine
-                                    </Text>
-                                  </View>
-                                )}
-                                <View style={styles.taskGoalPill}>
-                                  <Text style={styles.taskGoalText}>{action.goalTitle}</Text>
-                                </View>
-                              </>
-                            );
-                          })()}
-                        </View>
-                      )}
-                      {action.isFromChallenge && action.challengeName && (
-                        <View style={styles.challengeBadge}>
-                          <Text style={styles.challengeBadgeText}>⚡ {action.challengeName}</Text>
-                        </View>
-                      )}
-                    </View>
-
-                    {action.time && action.time !== 'undefined' && (
-                      <View style={styles.taskTimePill}>
-                        <Clock size={12} color="#FFD700" />
-                        <Text style={styles.taskTimeText}>{formatTime(action.time)}</Text>
-                      </View>
-                    )}
-                  </Pressable>
-                </Animated.View>
-              ))}
-            </View>
-          ) : (
-            <View style={styles.emptyButtonContainer}>
-              <Pressable
-                style={styles.startGoalButton}
-                onPress={openOnboarding}
-              >
-                <LinearGradient
-                  colors={['#FFD700', '#FFA500']}
-                  style={styles.startGoalGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                />
-                <Text style={styles.startGoalText}>Start Goal Setup</Text>
-              </Pressable>
-            </View>
-          )}
+          </Animated.View>
         </View>
-
       </ScrollView>
 
       <SocialSharePrompt
@@ -561,377 +461,308 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
-  glowOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    shadowColor: '#FFD700',
-  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 16,
+    paddingTop: 20,
   },
-  greetingContainer: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  todayLabel: {
-    fontSize: 11,
-    color: 'rgba(255, 215, 0, 0.7)',
-    fontWeight: '700',
-    letterSpacing: 2,
-    marginBottom: 4,
-  },
-  date: {
-    fontSize: 20,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  heroCard: {
+  dailyContainer: {
+    backgroundColor: '#0B0F12',
     borderRadius: 20,
-    padding: 12,
-    marginBottom: 12,
-    backgroundColor: 'rgba(10, 10, 12, 0.3)',
-    borderWidth: 1,
-    borderColor: '#D4AF37',
     overflow: 'hidden',
-    alignItems: 'center',
-    shadowColor: '#FFD700',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 40,
+    elevation: 10,
   },
-  heroLiquidFill: {
-    position: 'absolute',
-    bottom: -14,
-    left: -14,
-    right: -14,
-    overflow: 'hidden',
+  dailyHero: {
+    padding: 20,
+    paddingTop: 30,
+    paddingBottom: 25,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
-  heroLiquidEdge: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 12,
-  },
-  heroShimmer: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    width: 150,
-    zIndex: 10,
-  },
-  progressRing: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  statsRow: {
+  todayDate: {
     flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    paddingHorizontal: 20,
-    marginBottom: 10,
+    alignItems: 'baseline',
+    gap: 8,
+    marginBottom: 20,
+    overflow: 'hidden',
   },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
+  dayName: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: 'transparent',
+    letterSpacing: -0.5,
   },
-  streakItem: {
-    transform: [{ scale: 1.1 }],
-  },
-  statIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  statValue: {
+  dateNum: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 2,
+    color: 'rgba(255,255,255,0.7)',
   },
-  streakValue: {
-    color: '#FFFFFF',
-  },
-  statLabel: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.4)',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  messageContainer: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  completionMessage: {
+  dailyProgress: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 20,
+    padding: 20,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
-  completionText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#22C55E',
-    letterSpacing: 0.5,
+  progressRingWrapper: {
+    width: 80,
+    height: 80,
+    flexShrink: 0,
   },
-  completionCheck: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+  progressRingOuter: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#E7B43A',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+  },
+  progressRingInner: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#0B0F12',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkmark: {
-    fontSize: 12,
+  progressPercent: {
+    fontSize: 22,
     fontWeight: '700',
-    color: '#22C55E',
+    color: '#E7B43A',
+    lineHeight: 22,
   },
-  motivationText: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-  },
-  timePressureCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(96, 165, 250, 0.1)',
-  },
-  timePressureHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 8,
-  },
-  timePressureTitle: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+  progressLabel: {
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.4)',
+    marginTop: 2,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  timeRemaining: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#60A5FA',
-    marginBottom: 12,
+  progressStats: {
+    flex: 1,
+    gap: 10,
   },
-  timePressureBar: {
-    height: 4,
-    backgroundColor: 'rgba(96, 165, 250, 0.1)',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  timePressureFill: {
-    height: '100%',
-    backgroundColor: '#60A5FA',
-  },
-  goalsContainer: {
-    marginBottom: 8,
-  },
-  goalsList: {
-    marginTop: 8,
-  },
-  actionsContainer: {
-    marginBottom: 16,
-  },
-  sectionHeader: {
+  progressStat: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
   },
-  sectionTitle: {
+  statLabel: {
     fontSize: 12,
+    color: 'rgba(255,255,255,0.5)',
+  },
+  statValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  section: {
+    padding: 20,
+    paddingTop: 25,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  sectionHeader: {
+    fontSize: 14,
     fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.4)',
-    letterSpacing: 1.5,
+    color: '#E7B43A',
+    marginBottom: 15,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
-  sectionBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  sectionBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.6)',
-  },
-  actionsList: {
-    gap: 8,
-  },
-
-  taskPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 16,
-    padding: 12,
+  nextUpCard: {
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  taskPillDone: {
-    backgroundColor: 'rgba(255, 215, 0, 0.05)',
-    borderColor: 'rgba(255, 215, 0, 0.1)',
-  },
-  taskCheckbox: {
-    marginRight: 12,
-  },
-  taskContent: {
-    flex: 1,
-    gap: 6,
-  },
-  taskTitle: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#FFFFFF',
-  },
-  taskTitleDone: {
-    color: 'rgba(255, 255, 255, 0.5)',
-    textDecorationLine: 'line-through',
-  },
-  taskMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 4,
-  },
-  taskTypeBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  taskTypeBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  taskGoalPill: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255, 215, 0, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  taskGoalText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#FFD700',
-  },
-  challengeBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(147, 51, 234, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    marginTop: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(147, 51, 234, 0.3)',
-  },
-  challengeBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#9333EA',
-  },
-  taskTimePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255, 215, 0, 0.05)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    borderColor: 'rgba(231,180,58,0.35)',
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 215, 0, 0.1)',
+    padding: 12,
+    paddingHorizontal: 14,
+    shadowColor: '#E7B43A',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
   },
-  taskTimeText: {
-    fontSize: 12,
+  nextLabel: {
+    fontSize: 9,
+    color: '#E7B43A',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    fontWeight: '700',
+    marginBottom: 5,
+  },
+  nextTitle: {
+    fontSize: 14,
     fontWeight: '600',
-    color: '#FFD700',
+    color: '#fff',
+    marginBottom: 4,
   },
-  reviewContainer: {
-    marginTop: 16,
-    marginBottom: 24,
-  },
-  reviewContainerPinned: {
-    position: 'absolute',
-    bottom: 85,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    backgroundColor: '#000000',
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 215, 0, 0.1)',
-    zIndex: 100,
-    elevation: 100,
-  },
-  reviewButton: {
-    height: 56,
-    borderRadius: 28,
-    overflow: 'hidden',
+  nextTime: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 6,
+  },
+  nextTimeText: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.6)',
+  },
+  periodHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 12,
+  },
+  periodHeaderText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.4)',
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginRight: 10,
+  },
+  timeline: {
     position: 'relative',
+    paddingLeft: 70,
+    borderLeftWidth: 2,
+    borderLeftColor: '#E7B43A',
+    marginLeft: 25,
   },
-  reviewButtonGlow: {
-    display: 'none',
+  timelineItem: {
+    position: 'relative',
+    marginBottom: 20,
   },
-  reviewButtonInnerShadow: {
-    display: 'none',
-  },
-  reviewButtonGloss: {
+  timelineTime: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '50%',
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
+    left: -70,
+    top: 14,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.5)',
+    fontWeight: '600',
+    width: 50,
+    textAlign: 'right',
   },
-  reviewButtonContent: {
-    alignItems: 'center',
+  timelineDot: {
+    position: 'absolute',
+    left: -51,
+    top: 16,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 2,
+    borderColor: '#0B0F12',
     zIndex: 2,
   },
-  reviewIconContainer: {
-    marginBottom: 6,
+  timelineDotCompleted: {
+    backgroundColor: '#E7B43A',
+    shadowColor: '#E7B43A',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+  },
+  timelineDotActive: {
+    backgroundColor: '#E7B43A',
+    shadowColor: '#E7B43A',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 16,
+  },
+  timelineCard: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  timelineCardCompleted: {
     opacity: 0.7,
+    backgroundColor: 'rgba(231,180,58,0.06)',
+    borderColor: 'rgba(231,180,58,0.25)',
   },
-  reviewText: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  cardContent: {
+    flex: 1,
+  },
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  cardTitleCompleted: {
+    textDecorationLine: 'line-through',
+    color: 'rgba(255,255,255,0.5)',
+  },
+  cardMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  cardMetaText: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.5)',
+  },
+  completionCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  completionCircleCompleted: {
+    backgroundColor: '#E7B43A',
+    borderColor: '#E7B43A',
+    shadowColor: '#E7B43A',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+  },
+  checkmark: {
     color: '#000',
+    fontSize: 14,
+    fontWeight: '700',
   },
-  reviewSubtext: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: 'rgba(0, 0, 0, 0.6)',
-    letterSpacing: 0.5,
+  emptyButtonContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
   },
-  reviewPulse: {
+  startGoalButton: {
+    position: 'relative',
+    borderRadius: 28,
+    overflow: 'hidden',
+    paddingHorizontal: 36,
+    paddingVertical: 14,
+  },
+  startGoalGradient: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#E7B43A',
-    borderRadius: 28,
+  },
+  startGoalText: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: '#000',
+    textAlign: 'center',
   },
   errorContainer: {
     flex: 1,
@@ -987,31 +818,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginTop: 16,
     fontWeight: '500',
-  },
-  emptyButtonContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  startGoalButton: {
-    position: 'relative',
-    borderRadius: 28,
-    overflow: 'hidden',
-    paddingHorizontal: 36,
-    paddingVertical: 14,
-  },
-  startGoalGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  startGoalText: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#000',
-    textAlign: 'center',
   },
 });
