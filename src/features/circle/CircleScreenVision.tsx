@@ -1313,6 +1313,7 @@ const styles = StyleSheet.create({
     color: '#E7B43A',
     textTransform: 'uppercase',
     letterSpacing: 1,
+    marginBottom: 15,
   },
 
   sectionLink: {

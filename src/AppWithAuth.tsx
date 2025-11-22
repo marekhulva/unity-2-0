@@ -10,7 +10,7 @@ import { CheckCircle2, House, Trophy, User2, Users } from 'lucide-react-native';
 import { useStore } from './state/rootStore';
 import { inspector } from './utils/componentInspector';
 import { LoginScreen } from './features/auth/LoginScreen';
-import { DailyScreenVision as DailyScreen } from './features/daily/DailyScreenVision';
+import { DailyScreenVisionTEST as DailyScreen } from './features/daily/DailyScreenVisionTEST';
 import { SocialScreen } from './features/social/SocialScreen';
 import { ChallengesScreenVision as ChallengesScreen } from './features/challenges/ChallengesScreenVision';
 import { ProfileScreen } from './features/profile/ProfileScreenVision';

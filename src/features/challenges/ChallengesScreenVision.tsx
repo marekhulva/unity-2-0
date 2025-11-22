@@ -749,10 +749,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   sectionTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: -0.5,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#E7B43A',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 15,
   },
   sectionLink: {
     fontSize: 14,
