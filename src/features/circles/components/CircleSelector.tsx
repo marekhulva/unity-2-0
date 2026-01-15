@@ -158,7 +158,7 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
           style={styles.bottomSheet}
         >
           <LinearGradient
-            colors={['#1a1a1a', '#0a0a0a']}
+            colors={['#1a1a1a', '#000']}
             style={StyleSheet.absoluteFillObject}
           />
 

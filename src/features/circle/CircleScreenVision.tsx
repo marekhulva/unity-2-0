@@ -1143,7 +1143,7 @@ export const CircleScreenVision = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B0F12',
+    backgroundColor: '#000',
   },
 
   stickyHeader: {
@@ -1243,7 +1243,7 @@ const styles = StyleSheet.create({
   },
 
   pageContent: {
-    backgroundColor: '#0B0F12',
+    backgroundColor: '#000',
     borderRadius: 20,
     overflow: 'hidden',
   },
@@ -1449,7 +1449,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    backgroundColor: '#0B0F12',
+    backgroundColor: '#000',
   },
 
   memberGridAvatarText: {
@@ -1493,7 +1493,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 10,
     overflow: 'hidden',
-    backgroundColor: '#0B0F12',
+    backgroundColor: '#000',
     borderWidth: 2,
     borderColor: 'rgba(231,180,58,0.3)',
     alignItems: 'center',
@@ -1742,7 +1742,7 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#0B0F12',
+    backgroundColor: '#000',
     borderWidth: 2,
     borderColor: 'rgba(231,180,58,0.3)',
     alignItems: 'center',
@@ -1857,7 +1857,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: 'rgba(231,180,58,0.3)',
     overflow: 'hidden',
-    backgroundColor: '#0B0F12',
+    backgroundColor: '#000',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2054,7 +2054,7 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: 20,
     borderRadius: 20,
-    backgroundColor: '#0B0F12',
+    backgroundColor: '#000',
     overflow: 'hidden',
   },
 

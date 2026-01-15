@@ -312,6 +312,16 @@ class BackendService {
     }
   }
 
+  async getUnifiedFeed(limit: number = 10, offset: number = 0, circleId?: string | null) {
+    if (isSupabaseBackend()) {
+      const result = await supabaseService.getUnifiedFeed(limit, offset, circleId);
+      return { success: true, data: result.posts, hasMore: result.hasMore };
+    } else {
+      // Fallback to circle feed for non-Supabase backends
+      return apiService.getFeed('circle');
+    }
+  }
+
   async createPost(post: any) {
     if (isSupabaseBackend()) {
       const newPost = await supabaseService.createPost(post);

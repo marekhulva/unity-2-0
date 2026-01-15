@@ -281,7 +281,7 @@ export const RoutineBuilderScreen: React.FC<Props> = ({ onSubmit, onBack }) => {
       <StatusBar barStyle="light-content" />
       
       <LinearGradient
-        colors={['#000000', '#0A0A0A', '#000000']}
+        colors={['#000000', '#000', '#000000']}
         style={StyleSheet.absoluteFillObject}
       />
       
@@ -529,7 +529,7 @@ export const RoutineBuilderScreen: React.FC<Props> = ({ onSubmit, onBack }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <LinearGradient
-              colors={['#1A1A1A', '#0A0A0A']}
+              colors={['#1A1A1A', '#000']}
               style={StyleSheet.absoluteFillObject}
             />
             <View style={styles.modalHeader}>

@@ -490,7 +490,7 @@ export const ChallengesScreen = () => {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#000000', '#0A0A0A', '#000000']}
+        colors={['#000000', '#000000', '#000000']}
         style={StyleSheet.absoluteFillObject}
       />
 
@@ -605,7 +605,7 @@ const CompletedChallengeCard = ({ challenge, onPress }: { challenge: ChallengeWi
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#000',
   },
   header: {
     paddingHorizontal: 20,
@@ -631,7 +631,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 16,
     gap: 8,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#000',
   },
   mainTab: {
     flex: 1,

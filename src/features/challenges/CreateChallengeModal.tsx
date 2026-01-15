@@ -167,7 +167,7 @@ export const CreateChallengeModal = ({
     <Modal visible={visible} animationType="slide" presentationStyle="formSheet">
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <LinearGradient
-          colors={['#000000', '#0A0A0A', '#000000']}
+          colors={['#000000', '#000', '#000000']}
           style={StyleSheet.absoluteFillObject}
         />
 

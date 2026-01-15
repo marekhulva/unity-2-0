@@ -102,7 +102,7 @@ export const ChallengeCompletionModal: React.FC<ChallengeCompletionModalProps> =
           style={[styles.modalContainer, { paddingBottom: insets.bottom + 20 }]}
         >
           <LinearGradient
-            colors={['#000000', '#0A0A0A']}
+            colors={['#000000', '#000']}
             style={StyleSheet.absoluteFillObject}
           />
 

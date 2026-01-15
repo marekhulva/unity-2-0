@@ -60,7 +60,7 @@ export const NotificationsModal = ({ visible, onClose }: NotificationsModalProps
     <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
       <View style={styles.container}>
         <LinearGradient
-          colors={['#000000', '#0A0A0A', '#000000']}
+          colors={['#000000', '#000', '#000000']}
           style={StyleSheet.absoluteFillObject}
         />
 

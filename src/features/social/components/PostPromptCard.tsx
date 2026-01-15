@@ -71,7 +71,7 @@ const CocaColors = {
   blue: '#42A5F5',
   red: '#EF5350',
   orange: LuxuryTheme.colors.primary.champagne,
-  dark: '#0A0A0A',
+  dark: '#000',
   charcoal: '#1A1A1A',
   glass: 'rgba(10, 10, 10, 0.95)',
   silver: LuxuryTheme.colors.primary.silver,

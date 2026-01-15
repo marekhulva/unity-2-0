@@ -260,7 +260,7 @@ export const DailyReviewModal: React.FC = () => {
             >
               {/* Background gradient */}
               <LinearGradient
-                colors={['#0A0A0A', '#1A1A1A', '#0A0A0A']}
+                colors={['#000', '#1A1A1A', '#000']}
                 style={StyleSheet.absoluteFillObject}
               />
               
@@ -594,7 +594,7 @@ const styles = StyleSheet.create({
   modalContainer: {
     width: Math.min(width - 40, 380),  // Max width 380px for iPhone
     maxHeight: height * 0.75,  // Max 75% of screen height
-    backgroundColor: '#0A0A0A',
+    backgroundColor: '#000',
     borderRadius: 24,
     overflow: 'hidden',
   },

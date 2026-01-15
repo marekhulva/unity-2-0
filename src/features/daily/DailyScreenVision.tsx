@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   dailyContainer: {
-    backgroundColor: '#0B0F12',
+    backgroundColor: '#000',
     borderRadius: 20,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -533,7 +533,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: '#0B0F12',
+    backgroundColor: '#000',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -661,7 +661,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderWidth: 2,
-    borderColor: '#0B0F12',
+    borderColor: '#000',
     zIndex: 2,
   },
   timelineDotCompleted: {

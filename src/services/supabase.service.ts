@@ -1255,6 +1255,128 @@ class SupabaseService {
     }
   }
 
+  // NEW: Unified feed combining circle members + following in fewer queries
+  async getUnifiedFeed(limit: number = 10, offset: number = 0, circleId?: string | null) {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    console.log('🔵 [UNIFIED FEED] getUnifiedFeed called:', { userId: user?.id, limit, offset, circleId });
+
+    if (!user) {
+      console.log('🔴 [UNIFIED FEED] No authenticated user');
+      return { posts: [], hasMore: false };
+    }
+
+    try {
+      // QUERY 1: Get circle member IDs
+      let circleMemberIds: string[] = [];
+
+      if (circleId) {
+        // Specific circle
+        const { data: members } = await supabase
+          .from('circle_members')
+          .select('user_id')
+          .eq('circle_id', circleId);
+        circleMemberIds = members?.map(m => m.user_id).filter(Boolean) || [];
+        console.log('🔵 [UNIFIED FEED] Circle members for', circleId, ':', circleMemberIds.length);
+      } else {
+        // All circles user belongs to
+        const { data: userMemberships } = await supabase
+          .from('circle_members')
+          .select('circle_id')
+          .eq('user_id', user.id);
+
+        if (userMemberships?.length) {
+          const circleIds = userMemberships.map(m => m.circle_id);
+          const { data: allMembers } = await supabase
+            .from('circle_members')
+            .select('user_id')
+            .in('circle_id', circleIds);
+          circleMemberIds = allMembers?.map(m => m.user_id).filter(Boolean) || [];
+          console.log('🔵 [UNIFIED FEED] All circle members:', circleMemberIds.length);
+        }
+      }
+
+      // QUERY 2: Get following IDs
+      const { data: following } = await supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', user.id);
+      const followingIds = following?.map(f => f.following_id).filter(Boolean) || [];
+      console.log('🔵 [UNIFIED FEED] Following:', followingIds.length);
+
+      // Combine into Set (auto-dedupes) + add self
+      const combinedUserIds = [...new Set([...circleMemberIds, ...followingIds, user.id])];
+      console.log('🔵 [UNIFIED FEED] Combined unique user IDs:', combinedUserIds.length);
+
+      if (combinedUserIds.length === 0) {
+        return { posts: [], hasMore: false };
+      }
+
+      // QUERY 3: Single posts query
+      const { data: posts, error } = await supabase
+        .from('posts')
+        .select(`
+          id, user_id, type, content, media_url, action_title, goal_title, goal_color,
+          streak, created_at, visibility, circle_id,
+          is_challenge, challenge_name, challenge_id, challenge_progress,
+          leaderboard_position, total_participants,
+          is_celebration, celebration_type, metadata,
+          post_reactions!left(user_id),
+          post_comments!left(id, content, user_id, created_at)
+        `)
+        .in('user_id', combinedUserIds)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (error) {
+        console.error('🔴 [UNIFIED FEED] Error fetching posts:', error);
+        throw error;
+      }
+
+      console.log('🔵 [UNIFIED FEED] Fetched posts:', posts?.length || 0);
+
+      // Get profiles for all post authors
+      const userIds = [...new Set(posts?.map(p => p.user_id) || [])];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url')
+        .in('id', userIds);
+
+      // Transform posts with profiles, reactions, comments
+      const postsWithProfiles = posts?.map(post => {
+        const reactionCount = post.post_reactions?.length || 0;
+        const userReacted = post.post_reactions?.some((r: any) => r.user_id === user.id) || false;
+        const commentCount = post.post_comments?.length || 0;
+        const comments = post.post_comments?.map((c: any) => ({
+          id: c.id,
+          content: c.content,
+          user: profiles?.find(p => p.id === c.user_id)?.name || 'Anonymous',
+          userAvatar: profiles?.find(p => p.id === c.user_id)?.avatar_url || '',
+          userId: c.user_id,
+          createdAt: c.created_at
+        })) || [];
+
+        return {
+          ...post,
+          profiles: profiles?.find(p => p.id === post.user_id) || null,
+          reactionCount,
+          userReacted,
+          commentCount,
+          comments,
+          post_reactions: undefined,
+          post_comments: undefined
+        };
+      }) || [];
+
+      const hasMore = postsWithProfiles.length === limit;
+      console.log(`📊 [UNIFIED FEED] Loaded: ${postsWithProfiles.length} posts, hasMore: ${hasMore}`);
+
+      return { posts: postsWithProfiles, hasMore };
+    } catch (error) {
+      console.error('🔴 [UNIFIED FEED] Error:', error);
+      throw error;
+    }
+  }
 
   // Image upload function for Phase 4 optimization
   async uploadImage(imageData: string, userId: string): Promise<string> {

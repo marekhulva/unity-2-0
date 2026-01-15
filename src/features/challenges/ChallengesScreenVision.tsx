@@ -313,7 +313,7 @@ export const ChallengesScreenVision = () => {
 
     return (
       <View style={styles.container}>
-        <LinearGradient colors={['#000000', '#0B0F12', '#000000']} style={StyleSheet.absoluteFillObject} />
+        <LinearGradient colors={['#000000', '#000', '#000000']} style={StyleSheet.absoluteFillObject} />
 
         <ScrollView
           style={styles.scrollView}
@@ -488,7 +488,7 @@ export const ChallengesScreenVision = () => {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#000000', '#0B0F12', '#000000']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={['#000000', '#000', '#000000']} style={StyleSheet.absoluteFillObject} />
 
       <ScrollView
         style={styles.scrollView}
@@ -830,7 +830,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#0B0F12',
+    backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1079,7 +1079,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#0B0F12',
+    borderColor: '#000',
     marginLeft: -8,
   },
   participantsCount: {
@@ -1092,7 +1092,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 20,
     right: 20,
-    backgroundColor: '#0B0F12',
+    backgroundColor: '#000',
     borderWidth: 1,
     borderColor: 'rgba(231,180,58,0.3)',
     borderRadius: 16,

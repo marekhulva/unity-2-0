@@ -888,6 +888,6 @@ const styles = StyleSheet.create({
   newChallengeText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0A0A0A',
+    color: '#000',
   },
 });

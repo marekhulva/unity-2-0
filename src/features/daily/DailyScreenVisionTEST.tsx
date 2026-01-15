@@ -18,7 +18,7 @@ import ChallengeDebugV2 from '../../utils/challengeDebugV2';
 const FEATURES = {
   LARGER_PROGRESS_RING: true,
   PULSE_ANIMATION: true,
-  TIME_BASED_MOTIVATION: true,
+  TIME_BASED_MOTIVATION: false,
   GLASSMORPHISM_NEXT_UP: true,
   COUNTDOWN_TIMER: true,
   QUICK_ACTIONS: true,
@@ -253,11 +253,13 @@ export const DailyScreenVisionTEST = () => {
   const getCurrentDate = () => {
     const now = new Date();
     const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
+    const dayShort = now.toLocaleDateString('en-US', { weekday: 'short' }); // "Wed"
     const monthDay = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    return { dayName, monthDay };
+    const fullDate = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    return { dayName, dayShort, monthDay, fullDate };
   };
 
-  const { dayName, monthDay } = getCurrentDate();
+  const { dayName, dayShort, monthDay, fullDate } = getCurrentDate();
 
   const handleTaskToggle = (action: any) => {
     if (!action.done) {
@@ -632,9 +634,16 @@ export const DailyScreenVisionTEST = () => {
             entering={FadeInDown.duration(400).springify()}
             style={styles.dailyHero}
           >
-            <View style={styles.todayDate}>
-              <Text style={styles.dayName}>{dayName}</Text>
-              <Text style={styles.dateNum}>{monthDay}</Text>
+            <View style={styles.dateBadgeContainer}>
+              <LinearGradient
+                colors={['#E7B43A', '#FFD700']}
+                style={styles.dayBadge}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Text style={styles.dayBadgeText}>{dayShort.toUpperCase()}</Text>
+              </LinearGradient>
+              <Text style={styles.fullDateText}>{fullDate}</Text>
             </View>
 
             <View style={styles.dailyProgress}>
@@ -726,32 +735,44 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   dailyContainer: {
-    backgroundColor: '#0B0F12',
+    backgroundColor: '#000',
     overflow: 'hidden',
   },
   dailyHero: {
     padding: 20,
     paddingTop: 30,
-    paddingBottom: 25,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.05)',
   },
-  todayDate: {
+  dateBadgeContainer: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 8,
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 100,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    alignSelf: 'center',
     marginBottom: 20,
   },
-  dayName: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 6,
+  dayBadge: {
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 100,
   },
-  dateNum: {
-    fontSize: 13,
+  dayBadgeText: {
+    color: '#000',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  fullDateText: {
+    fontSize: 12,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.6)',
+    color: 'rgba(255,255,255,0.9)',
   },
   dailyProgress: {
     flexDirection: 'row',
@@ -817,7 +838,7 @@ const styles = StyleSheet.create({
   },
   section: {
     padding: 20,
-    paddingTop: 25,
+    paddingTop: 12,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.05)',
   },
@@ -939,7 +960,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderWidth: 2,
-    borderColor: '#0B0F12',
+    borderColor: '#000',
     zIndex: 10,
   },
   timelineDotCompleted: {

@@ -731,7 +731,7 @@ const styles = StyleSheet.create({
     width: Math.min(width * 0.9, 360),
   },
   modal: {
-    backgroundColor: '#0A0A0A',
+    backgroundColor: '#000',
     borderRadius: 20,
     padding: 24,
     borderWidth: 1,

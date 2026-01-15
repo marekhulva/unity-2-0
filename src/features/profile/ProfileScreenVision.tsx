@@ -379,11 +379,11 @@ export const ProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B0F12',
+    backgroundColor: '#000',
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#0B0F12',
+    backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: '#0B0F12',
+    backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: '#0B0F12',
+    borderColor: '#000',
   },
   consistencyBadgeText: {
     fontSize: 11,
@@ -573,7 +573,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#0B0F12',
+    backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
   },

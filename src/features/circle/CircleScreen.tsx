@@ -596,7 +596,7 @@ export const CircleScreen = () => {
             style={styles.circleSwitcherSheet}
           >
             <LinearGradient
-              colors={['#1a1a1a', '#0a0a0a']}
+              colors={['#1a1a1a', '#000']}
               style={StyleSheet.absoluteFillObject}
             />
 
