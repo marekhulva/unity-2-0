@@ -386,11 +386,11 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   greeting: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FFD700',
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#fff',
     marginBottom: 8,
-    letterSpacing: 3,
+    letterSpacing: -0.5,
   },
   dateInfo: {
     fontSize: 14,
