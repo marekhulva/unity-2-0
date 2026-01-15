@@ -292,9 +292,9 @@ export const CircleScreenVision = () => {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.stickyHeader}>
-        <View style={styles.headerTop}>
+        <View style={styles.headerCard}>
           <Pressable
-            style={styles.circleSelectorButton}
+            style={styles.circleInfoSection}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setShowCircleSwitcher(true);
@@ -311,7 +311,7 @@ export const CircleScreenVision = () => {
               <Text style={styles.circleName}>{activeCircle?.name || 'Circle'}</Text>
               <Text style={styles.circleMemberCount}>{activeCircle?.member_count || 0} members</Text>
             </View>
-            <ChevronDown size={20} color="#E7B43A" />
+            <ChevronDown size={16} color="#E7B43A" />
           </Pressable>
           <View style={styles.headerActions}>
             <Pressable
@@ -1029,12 +1029,19 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(255,255,255,0.1)',
   },
 
-  headerTop: {
+  headerCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginHorizontal: 20,
+    marginTop: 15,
+    marginBottom: 15,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(231,180,58,0.3)',
+    borderRadius: 16,
   },
 
   circleTitle: {
@@ -1969,16 +1976,11 @@ const styles = StyleSheet.create({
     left: 22,
   },
 
-  circleSelectorButton: {
+  circleInfoSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    padding: 12,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(231,180,58,0.3)',
-    borderRadius: 16,
-    marginBottom: 16,
+    gap: 10,
+    flex: 1,
   },
 
   circleTitleInfo: {
