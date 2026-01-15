@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#fff',
+    color: '#FFD700',
     marginBottom: 8,
     letterSpacing: -0.5,
   },
