@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -111,9 +111,9 @@ export const CircleScreenVision = () => {
   const calculateMemberStats = useCallback(async () => {
     try {
       const userIds = circleMembers.map(m => m.user_id);
-      console.log('🔍 [LEADERBOARD] Circle members:', circleMembers.length, 'User IDs:', userIds);
+      if (__DEV__) console.log('🔍 [LEADERBOARD] Circle members:', circleMembers.length, 'User IDs:', userIds);
       const bulkStats = await supabaseService.getBulkOverallCompletionStats(userIds);
-      console.log('🔍 [LEADERBOARD] Bulk stats received:', Object.keys(bulkStats).length, bulkStats);
+      if (__DEV__) console.log('🔍 [LEADERBOARD] Bulk stats received:', Object.keys(bulkStats).length, bulkStats);
 
       const membersWithConsistency = circleMembers.map(member => {
         const stats = bulkStats[member.user_id] || { expected: 0, completed: 0, percentage: 0 };
@@ -124,7 +124,7 @@ export const CircleScreenVision = () => {
         };
       });
 
-      console.log('🔍 [LEADERBOARD] Members with stats:', membersWithConsistency.length, membersWithConsistency.map(m => ({ name: m.profiles?.username || m.profiles?.name, points: m.points })));
+      if (__DEV__) console.log('🔍 [LEADERBOARD] Members with stats:', membersWithConsistency.length, membersWithConsistency.map(m => ({ name: m.profiles?.username || m.profiles?.name, points: m.points })));
       setMembersWithStats(membersWithConsistency);
     } catch (error) {
       console.error('Error calculating member stats:', error);
@@ -145,13 +145,13 @@ export const CircleScreenVision = () => {
 
     setIsLoading(true);
     try {
-      console.log('🔍 [CIRCLE] Loading circle members for:', activeCircleId);
+      if (__DEV__) console.log('🔍 [CIRCLE] Loading circle members for:', activeCircleId);
       const response = await backendService.getCircleMembers(activeCircleId);
-      console.log('🔍 [CIRCLE] Backend response:', response.success, 'Members count:', response.data?.length);
+      if (__DEV__) console.log('🔍 [CIRCLE] Backend response:', response.success, 'Members count:', response.data?.length);
 
       if (currentRequestId.current === requestId) {
         if (response.success && response.data) {
-          console.log('🔍 [CIRCLE] Setting circle members:', response.data.length, response.data.map(m => m.profiles?.username || m.profiles?.name));
+          if (__DEV__) console.log('🔍 [CIRCLE] Setting circle members:', response.data.length, response.data.map(m => m.profiles?.username || m.profiles?.name));
           setCircleMembers(response.data);
         } else {
           setCircleMembers([]);
@@ -193,13 +193,18 @@ export const CircleScreenVision = () => {
     }
   }, [userCircles, activeCircleId]);
 
+  // Debounce circle data loading to prevent multiple rapid requests
   useEffect(() => {
-    if (activeCircleId) {
+    if (!activeCircleId) return;
+
+    const timeoutId = setTimeout(() => {
       loadCircleData();
       fetchCircleChallenges(activeCircleId);
       loadCirclePosts();
-    }
-  }, [activeCircleId, loadCircleData, loadCirclePosts]);
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [activeCircleId]);
 
   useEffect(() => {
     if (circleMembers && circleMembers.length > 0) {
@@ -302,7 +307,7 @@ export const CircleScreenVision = () => {
               style={styles.headerBtn}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                console.log('Invite members - show invite code:', activeCircle?.invite_code || activeCircle?.join_code);
+                if (__DEV__) console.log('Invite members - show invite code:', activeCircle?.invite_code || activeCircle?.join_code);
               }}
             >
               <UserPlus size={18} color="#E7B43A" />
@@ -791,7 +796,7 @@ export const CircleScreenVision = () => {
         )}
 
         {activeTab === 'leaderboard' && (() => {
-          console.log('🔍 [LEADERBOARD] Rendering leaderboard, sortedLeaderboard length:', sortedLeaderboard.length, sortedLeaderboard.map(m => ({ name: m.profiles?.username || m.profiles?.name, points: m.points })));
+          if (__DEV__) console.log('🔍 [LEADERBOARD] Rendering leaderboard, sortedLeaderboard length:', sortedLeaderboard.length, sortedLeaderboard.map(m => ({ name: m.profiles?.username || m.profiles?.name, points: m.points })));
           return null;
         })()}
         {activeTab === 'leaderboard' && (

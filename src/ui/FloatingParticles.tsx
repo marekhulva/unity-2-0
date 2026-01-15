@@ -9,6 +9,7 @@ import Animated, {
   withSequence,
   interpolate,
   Easing,
+  cancelAnimation,
 } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 
@@ -77,6 +78,13 @@ const AnimatedParticle: React.FC<{ particle: Particle }> = ({ particle }) => {
         -1
       )
     );
+
+    return () => {
+      cancelAnimation(translateY);
+      cancelAnimation(translateX);
+      cancelAnimation(opacity);
+      cancelAnimation(scale);
+    };
   }, []);
 
   const animatedStyle = useAnimatedStyle(() => ({

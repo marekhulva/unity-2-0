@@ -9,6 +9,7 @@ import Animated, {
   withSequence,
   interpolate,
   Easing,
+  cancelAnimation,
 } from 'react-native-reanimated';
 
 const { width, height } = Dimensions.get('window');
@@ -49,9 +50,17 @@ const ConfettiPiece: React.FC<ConfettiPieceProps> = ({ delay, color, startX }) =
       delay,
       withTiming(1, { duration: 200 })
     );
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       opacity.value = withDelay(1000, withTiming(0, { duration: 800 }));
     }, delay + 200);
+
+    return () => {
+      clearTimeout(timeoutId);
+      cancelAnimation(translateY);
+      cancelAnimation(translateX);
+      cancelAnimation(rotate);
+      cancelAnimation(opacity);
+    };
   }, []);
 
   const animatedStyle = useAnimatedStyle(() => ({

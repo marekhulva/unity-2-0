@@ -43,11 +43,11 @@ export const createUiSlice: StateCreator<UiSlice> = (set) => ({
 
   isDailyReviewOpen: false,
   openDailyReview: () => {
-    console.log('🔵 [UI SLICE] openDailyReview called');
+    if (__DEV__) console.log('🔵 [UI SLICE] openDailyReview called');
     set({ isDailyReviewOpen: true });
   },
   closeDailyReview: () => {
-    console.log('🔵 [UI SLICE] closeDailyReview called');
+    if (__DEV__) console.log('🔵 [UI SLICE] closeDailyReview called');
     set({ isDailyReviewOpen: false });
   },
   

@@ -44,14 +44,14 @@ export const createCirclesSlice: StateCreator<CirclesSlice> = (set, get) => ({
 
   // Fetch all circles the user belongs to
   fetchUserCircles: async () => {
-    console.log('🔵 [CIRCLES] Fetching user circles');
+    if (__DEV__) console.log('🔵 [CIRCLES] Fetching user circles');
     set({ circlesLoading: true, circlesError: null });
 
     try {
       const response = await backendService.getUserCircles();
 
       if (response.success && response.data) {
-        console.log('✅ [CIRCLES] Fetched', response.data.length, 'circles');
+        if (__DEV__) console.log('✅ [CIRCLES] Fetched', response.data.length, 'circles');
         set({
           userCircles: response.data,
           circlesLoading: false
@@ -70,7 +70,7 @@ export const createCirclesSlice: StateCreator<CirclesSlice> = (set, get) => ({
 
   // Set the active circle for filtering
   setActiveCircle: (circleId) => {
-    console.log('🔵 [CIRCLES] Setting active circle:', circleId || 'All Circles');
+    if (__DEV__) console.log('🔵 [CIRCLES] Setting active circle:', circleId || 'All Circles');
     set({ activeCircleId: circleId });
 
     // Persist selection to AsyncStorage for app restarts
@@ -85,14 +85,14 @@ export const createCirclesSlice: StateCreator<CirclesSlice> = (set, get) => ({
 
   // Join a new circle with invite code
   joinCircle: async (inviteCode) => {
-    console.log('🔵 [CIRCLES] Joining circle with code:', inviteCode);
+    if (__DEV__) console.log('🔵 [CIRCLES] Joining circle with code:', inviteCode);
     set({ circlesLoading: true, circlesError: null });
 
     try {
       const response = await backendService.joinCircleByCode(inviteCode);
 
       if (response.success && response.data) {
-        console.log('✅ [CIRCLES] Successfully joined circle:', response.data.name);
+        if (__DEV__) console.log('✅ [CIRCLES] Successfully joined circle:', response.data.name);
 
         // Add the new circle to the list
         set((state) => ({
@@ -130,14 +130,14 @@ export const createCirclesSlice: StateCreator<CirclesSlice> = (set, get) => ({
 
   // Leave a circle
   leaveCircle: async (circleId) => {
-    console.log('🔵 [CIRCLES] Leaving circle:', circleId);
+    if (__DEV__) console.log('🔵 [CIRCLES] Leaving circle:', circleId);
     set({ circlesLoading: true, circlesError: null });
 
     try {
       const response = await backendService.leaveCircle(circleId);
 
       if (response.success) {
-        console.log('✅ [CIRCLES] Successfully left circle');
+        if (__DEV__) console.log('✅ [CIRCLES] Successfully left circle');
 
         // Remove circle from list
         set((state) => ({
@@ -167,7 +167,7 @@ export const createCirclesSlice: StateCreator<CirclesSlice> = (set, get) => ({
 
   // Create a new circle
   createCircle: async (name, emoji, description) => {
-    console.log('🔵 [CIRCLES] Creating new circle:', name, 'with emoji:', emoji);
+    if (__DEV__) console.log('🔵 [CIRCLES] Creating new circle:', name, 'with emoji:', emoji);
     set({ circlesLoading: true, circlesError: null });
 
     try {
@@ -178,7 +178,7 @@ export const createCirclesSlice: StateCreator<CirclesSlice> = (set, get) => ({
       });
 
       if (response.success && response.data) {
-        console.log('✅ [CIRCLES] Circle created:', response.data.id);
+        if (__DEV__) console.log('✅ [CIRCLES] Circle created:', response.data.id);
 
         // Add new circle to list
         set((state) => ({

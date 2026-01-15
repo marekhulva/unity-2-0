@@ -53,7 +53,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
   challengeError: null,
 
   fetchGlobalChallenges: async () => {
-    console.log('🌍 [STORE] Fetching global challenges');
+    if (__DEV__) console.log('🌍 [STORE] Fetching global challenges');
     set({ challengesLoading: true, challengeError: null });
 
     try {
@@ -62,7 +62,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
         globalChallenges: challenges,
         challengesLoading: false
       });
-      console.log('🟢 [STORE] Loaded global challenges:', challenges.length);
+      if (__DEV__) console.log('🟢 [STORE] Loaded global challenges:', challenges.length);
     } catch (error: any) {
       console.error('🔴 [STORE] Error fetching global challenges:', error);
       set({
@@ -73,7 +73,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
   },
 
   fetchCircleChallenges: async (circleId: string) => {
-    console.log('👥 [STORE] Fetching circle challenges for:', circleId);
+    if (__DEV__) console.log('👥 [STORE] Fetching circle challenges for:', circleId);
     set({ challengesLoading: true, challengeError: null });
 
     try {
@@ -82,7 +82,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
         circleChallenges: challenges,
         challengesLoading: false
       });
-      console.log('🟢 [STORE] Loaded circle challenges:', challenges.length);
+      if (__DEV__) console.log('🟢 [STORE] Loaded circle challenges:', challenges.length);
     } catch (error: any) {
       console.error('🔴 [STORE] Error fetching circle challenges:', error);
       set({
@@ -93,7 +93,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
   },
 
   fetchAllUserCircleChallenges: async () => {
-    console.log('👥 [STORE] Fetching all user circle challenges');
+    if (__DEV__) console.log('👥 [STORE] Fetching all user circle challenges');
     set({ challengesLoading: true, challengeError: null });
 
     try {
@@ -102,7 +102,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
         circleChallenges: challenges,
         challengesLoading: false
       });
-      console.log('🟢 [STORE] Loaded all user circle challenges:', challenges.length);
+      if (__DEV__) console.log('🟢 [STORE] Loaded all user circle challenges:', challenges.length);
     } catch (error: any) {
       console.error('🔴 [STORE] Error fetching all user circle challenges:', error);
       set({
@@ -113,7 +113,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
   },
 
   fetchMyActiveChallenges: async () => {
-    console.log('📋 [STORE] Fetching my active challenges');
+    if (__DEV__) console.log('📋 [STORE] Fetching my active challenges');
     set({ challengesLoading: true });
 
     try {
@@ -122,7 +122,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
         activeChallenges: challenges,
         challengesLoading: false
       });
-      console.log('🟢 [STORE] Loaded active challenges:', challenges.length);
+      if (__DEV__) console.log('🟢 [STORE] Loaded active challenges:', challenges.length);
     } catch (error: any) {
       console.error('🔴 [STORE] Error fetching active challenges:', error);
       set({ challengesLoading: false });
@@ -130,7 +130,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
   },
 
   fetchMyCompletedChallenges: async () => {
-    console.log('✅ [STORE] Fetching my completed challenges');
+    if (__DEV__) console.log('✅ [STORE] Fetching my completed challenges');
     set({ challengesLoading: true });
 
     try {
@@ -139,7 +139,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
         completedChallenges: challenges,
         challengesLoading: false
       });
-      console.log('🟢 [STORE] Loaded completed challenges:', challenges.length);
+      if (__DEV__) console.log('🟢 [STORE] Loaded completed challenges:', challenges.length);
     } catch (error: any) {
       console.error('🔴 [STORE] Error fetching completed challenges:', error);
       set({ challengesLoading: false });
@@ -147,19 +147,19 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
   },
 
   fetchMyBadges: async () => {
-    console.log('🏆 [STORE] Fetching my badges');
+    if (__DEV__) console.log('🏆 [STORE] Fetching my badges');
 
     try {
       const badges = await supabaseChallengeService.getMyBadges();
       set({ myBadges: badges });
-      console.log('🟢 [STORE] Loaded badges:', badges.length);
+      if (__DEV__) console.log('🟢 [STORE] Loaded badges:', badges.length);
     } catch (error: any) {
       console.error('🔴 [STORE] Error fetching badges:', error);
     }
   },
 
   loadChallenge: async (challengeId: string) => {
-    console.log('🔍 [STORE] Loading challenge:', challengeId);
+    if (__DEV__) console.log('🔍 [STORE] Loading challenge:', challengeId);
     set({ challengesLoading: true });
 
     try {
@@ -168,7 +168,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
         currentChallenge: challenge,
         challengesLoading: false
       });
-      console.log('🟢 [STORE] Loaded challenge:', challenge?.name);
+      if (__DEV__) console.log('🟢 [STORE] Loaded challenge:', challenge?.name);
     } catch (error: any) {
       console.error('🔴 [STORE] Error loading challenge:', error);
       set({ challengesLoading: false });
@@ -176,12 +176,12 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
   },
 
   loadLeaderboard: async (challengeId: string) => {
-    console.log('🏆 [STORE] Loading leaderboard for:', challengeId);
+    if (__DEV__) console.log('🏆 [STORE] Loading leaderboard for:', challengeId);
 
     try {
       const leaderboard = await supabaseChallengeService.getLeaderboard(challengeId);
       set({ leaderboard });
-      console.log('🟢 [STORE] Loaded leaderboard:', leaderboard.length, 'participants');
+      if (__DEV__) console.log('🟢 [STORE] Loaded leaderboard:', leaderboard.length, 'participants');
     } catch (error: any) {
       console.error('🔴 [STORE] Error loading leaderboard:', error);
     }
@@ -192,7 +192,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
     selectedActivityIds: string[],
     activityTimes: ActivityTime[]
   ) => {
-    console.log('🏆 [STORE] Joining challenge:', challengeId);
+    if (__DEV__) console.log('🏆 [STORE] Joining challenge:', challengeId);
     set({ challengesLoading: true });
 
     try {
@@ -206,7 +206,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
         await get().loadChallenge(challengeId);
         await get().fetchMyActiveChallenges();
         set({ challengesLoading: false });
-        console.log('🟢 [STORE] Successfully joined challenge');
+        if (__DEV__) console.log('🟢 [STORE] Successfully joined challenge');
         return true;
       } else {
         set({
@@ -226,7 +226,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
   },
 
   leaveChallenge: async (participantId: string, keepActivities: boolean) => {
-    console.log('🚪 [STORE] Leaving challenge:', participantId);
+    if (__DEV__) console.log('🚪 [STORE] Leaving challenge:', participantId);
     set({ challengesLoading: true });
 
     try {
@@ -235,7 +235,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
       if (result.success) {
         await get().fetchMyActiveChallenges();
         set({ challengesLoading: false });
-        console.log('🟢 [STORE] Successfully left challenge');
+        if (__DEV__) console.log('🟢 [STORE] Successfully left challenge');
         return true;
       } else {
         set({
@@ -252,7 +252,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
   },
 
   recordCompletion: async (participantId: string, activityId: string, linkedActionId?: string, photoUrl?: string) => {
-    console.log('✅ [STORE] Recording completion:', {
+    if (__DEV__) console.log('✅ [STORE] Recording completion:', {
       participantId,
       activityId,
       linkedActionId,
@@ -284,15 +284,15 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
           }
 
           if (updatedParticipation.my_participation?.status === 'completed') {
-            console.log('🎉 [STORE] Challenge just completed! Showing completion modal');
+            if (__DEV__) console.log('🎉 [STORE] Challenge just completed! Showing completion modal');
             set({ newlyCompletedChallenge: updatedParticipation });
           }
         }
 
-        console.log('🟢 [STORE] Completion recorded successfully');
+        if (__DEV__) console.log('🟢 [STORE] Completion recorded successfully');
         return true;
       } else {
-        console.log('⚠️ [STORE]', result.error);
+        if (__DEV__) console.log('⚠️ [STORE]', result.error);
         return false;
       }
     } catch (error: any) {

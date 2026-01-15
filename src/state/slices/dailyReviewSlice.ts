@@ -55,7 +55,7 @@ export const createDailyReviewSlice: StateCreator<DailyReviewSlice> = (set, get)
   error: null,
 
   initializeTodayReview: async () => {
-    console.log('📝 [REVIEW] Initializing today\'s review');
+    if (__DEV__) console.log('📝 [REVIEW] Initializing today\'s review');
     set({ isLoading: true, error: null });
     
     try {
@@ -85,7 +85,7 @@ export const createDailyReviewSlice: StateCreator<DailyReviewSlice> = (set, get)
   },
 
   saveReviewProgress: async (answers, missedActions, metrics) => {
-    console.log('💾 [REVIEW] Saving review progress');
+    if (__DEV__) console.log('💾 [REVIEW] Saving review progress');
     const { currentReview } = get();
     
     if (!currentReview?.id) {
@@ -143,7 +143,7 @@ export const createDailyReviewSlice: StateCreator<DailyReviewSlice> = (set, get)
         }
       });
       
-      console.log('✅ [REVIEW] Review saved successfully');
+      if (__DEV__) console.log('✅ [REVIEW] Review saved successfully');
       return true;
     } catch (error: any) {
       console.error('❌ [REVIEW] Error saving review:', error);
@@ -152,7 +152,7 @@ export const createDailyReviewSlice: StateCreator<DailyReviewSlice> = (set, get)
   },
 
   loadReviewHistory: async () => {
-    console.log('📚 [REVIEW] Loading review history');
+    if (__DEV__) console.log('📚 [REVIEW] Loading review history');
     set({ isLoading: true, error: null });
     
     try {
@@ -164,7 +164,7 @@ export const createDailyReviewSlice: StateCreator<DailyReviewSlice> = (set, get)
       
       const history = await dailyReviewService.getReviewHistory(user.id, 30);
       set({ reviewHistory: history, isLoading: false });
-      console.log('✅ [REVIEW] Loaded', history.length, 'reviews');
+      if (__DEV__) console.log('✅ [REVIEW] Loaded', history.length, 'reviews');
     } catch (error: any) {
       console.error('❌ [REVIEW] Error loading history:', error);
       set({ isLoading: false, error: error.message });
@@ -172,7 +172,7 @@ export const createDailyReviewSlice: StateCreator<DailyReviewSlice> = (set, get)
   },
 
   getReview: async (reviewId: string) => {
-    console.log('📖 [REVIEW] Getting review:', reviewId);
+    if (__DEV__) console.log('📖 [REVIEW] Getting review:', reviewId);
     set({ isLoading: true, error: null });
     
     try {
@@ -190,7 +190,7 @@ export const createDailyReviewSlice: StateCreator<DailyReviewSlice> = (set, get)
   },
 
   calculateStreak: async () => {
-    console.log('🔥 [REVIEW] Calculating streak');
+    if (__DEV__) console.log('🔥 [REVIEW] Calculating streak');
     
     try {
       const { user } = (get() as any);
@@ -200,7 +200,7 @@ export const createDailyReviewSlice: StateCreator<DailyReviewSlice> = (set, get)
       }
       
       const streak = await dailyReviewService.updateStreak(user.id);
-      console.log('✅ [REVIEW] Streak calculated:', streak);
+      if (__DEV__) console.log('✅ [REVIEW] Streak calculated:', streak);
       return streak;
     } catch (error: any) {
       console.error('❌ [REVIEW] Error calculating streak:', error);

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
 import { Bell } from 'lucide-react-native';
-import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, cancelAnimation } from 'react-native-reanimated';
 import { useStore } from '../../state/rootStore';
 
 interface NotificationBellProps {
@@ -43,6 +43,10 @@ export const NotificationBell = ({ onPress, color = '#FFD700', size = 24 }: Noti
         true
       );
     }
+
+    return () => {
+      cancelAnimation(pulseAnimation);
+    };
   }, [unreadCount]);
 
   const pulseStyle = useAnimatedStyle(() => ({

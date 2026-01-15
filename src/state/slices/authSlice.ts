@@ -82,7 +82,7 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
           }
         }
         
-        console.log('🔐 [LOGIN] User onboarding status:', { 
+        if (__DEV__) console.log('🔐 [LOGIN] User onboarding status:', { 
           isNewUser: isNewUserFlag === 'true',
           hasCompletedProfileSetup: hasProfileSetup === 'true',
           hasCompletedOnboarding: actuallyCompletedOnboarding
@@ -117,14 +117,14 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
   },
 
   register: async (email: string, password: string, name: string) => {
-    console.log('🚀 [REGISTER] Starting registration for:', email);
+    if (__DEV__) console.log('🚀 [REGISTER] Starting registration for:', email);
     set({ loading: true, error: null });
     try {
       const response = await backendService.signUp(email, password, name);
       
       if (response.success && response.data) {
         const { user, token } = response.data;
-        console.log('✅ [REGISTER] Registration successful for user:', user.id);
+        if (__DEV__) console.log('✅ [REGISTER] Registration successful for user:', user.id);
         
         // Save to storage (only if we have valid values)
         if (token) {
@@ -135,12 +135,12 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
         }
         
         // Mark as new user who needs onboarding
-        console.log('🎯 [REGISTER] Setting new user flags for onboarding');
+        if (__DEV__) console.log('🎯 [REGISTER] Setting new user flags for onboarding');
         await AsyncStorage.setItem('isNewUser', 'true');
         await AsyncStorage.setItem('hasCompletedProfileSetup', 'false');
         await AsyncStorage.setItem('hasCompletedOnboarding', 'false');
         
-        console.log('🟢 [REGISTER] Updating store with new user state');
+        if (__DEV__) console.log('🟢 [REGISTER] Updating store with new user state');
         set({
           isAuthenticated: true,
           user,
@@ -152,7 +152,7 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
           hasCompletedOnboarding: false
         });
         
-        console.log('🎉 [REGISTER] Registration complete - user should see profile setup');
+        if (__DEV__) console.log('🎉 [REGISTER] Registration complete - user should see profile setup');
         return true;
       } else {
         set({
@@ -189,16 +189,16 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
       const { data: { session } } = await supabase.auth.getSession();
       const { data: { user: supabaseUser } } = await supabase.auth.getUser();
       
-      console.log('🔐 [AUTH-CHECK] Checking authentication state');
-      console.log('  - Supabase session exists:', !!session);
-      console.log('  - Supabase user ID:', supabaseUser?.id || 'none');
+      if (__DEV__) console.log('🔐 [AUTH-CHECK] Checking authentication state');
+      if (__DEV__) console.log('  - Supabase session exists:', !!session);
+      if (__DEV__) console.log('  - Supabase user ID:', supabaseUser?.id || 'none');
       
       if (session && supabaseUser) {
         // Fetch profile data to get avatar
         let avatarUrl = null;
         let displayName = null;
         try {
-          console.log('🔵 [AUTH] Fetching profile from database for user:', supabaseUser.id);
+          if (__DEV__) console.log('🔵 [AUTH] Fetching profile from database for user:', supabaseUser.id);
           const { data: profile } = await supabase
             .from('profiles')
             .select('avatar_url, name')
@@ -208,18 +208,18 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
           if (profile) {
             avatarUrl = profile.avatar_url;
             displayName = profile.name;
-            console.log('🔵 [AUTH] Profile found:', {
+            if (__DEV__) console.log('🔵 [AUTH] Profile found:', {
               hasAvatar: !!avatarUrl,
               avatarType: avatarUrl?.startsWith('http') ? 'HTTP URL' : avatarUrl?.startsWith('data:') ? 'BASE64' : 'NONE',
               displayName: profile.name
             });
           } else {
-            console.log('🟡 [AUTH] No profile found in database');
+            if (__DEV__) console.log('🟡 [AUTH] No profile found in database');
             // Profile should exist from registration/onboarding
             // If not, user needs to complete onboarding
           }
         } catch (error) {
-          console.log('🔴 [AUTH] Error loading profile:', error);
+          if (__DEV__) console.log('🔴 [AUTH] Error loading profile:', error);
         }
         
         // Build user object from Supabase data
@@ -254,8 +254,8 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
           }
         }
         
-        console.log('  - Setting app user to Supabase user:', user.id, 'with avatar:', user.avatar ? 'yes' : 'no');
-        console.log('  - Onboarding status:', { isNewUser, hasCompletedProfileSetup, hasCompletedOnboarding: actuallyCompletedOnboarding });
+        if (__DEV__) console.log('  - Setting app user to Supabase user:', user.id, 'with avatar:', user.avatar ? 'yes' : 'no');
+        if (__DEV__) console.log('  - Onboarding status:', { isNewUser, hasCompletedProfileSetup, hasCompletedOnboarding: actuallyCompletedOnboarding });
         
         set({
           isAuthenticated: true,
@@ -272,7 +272,7 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
         
         if (token && userStr) {
           const cachedUser = JSON.parse(userStr);
-          console.log('  - Using cached user (offline):', cachedUser.id);
+          if (__DEV__) console.log('  - Using cached user (offline):', cachedUser.id);
           
           set({
             isAuthenticated: true,
@@ -280,7 +280,7 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
             token
           });
         } else {
-          console.log('  - No authentication found');
+          if (__DEV__) console.log('  - No authentication found');
           set({
             isAuthenticated: false,
             user: null,
@@ -300,7 +300,7 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
       const currentUser = get().user;
       if (!currentUser) return false;
       
-      console.log('🔵 [AUTH] Updating avatar for user:', currentUser.id);
+      if (__DEV__) console.log('🔵 [AUTH] Updating avatar for user:', currentUser.id);
       
       // Update backend first
       const response = await backendService.updateProfile({ avatar: avatarUri });
@@ -316,7 +316,7 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
         // Save to AsyncStorage
         await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
         
-        console.log('🟢 [AUTH] Avatar updated successfully');
+        if (__DEV__) console.log('🟢 [AUTH] Avatar updated successfully');
         return true;
       } else {
         console.error('🔴 [AUTH] Failed to update avatar:', response.error || 'No response data');
@@ -333,13 +333,13 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
       const currentUser = get().user;
       if (!currentUser) return false;
       
-      console.log('🔵 [AUTH] Updating bio for user:', currentUser.id);
+      if (__DEV__) console.log('🔵 [AUTH] Updating bio for user:', currentUser.id);
       
       // Update backend
       const response = await backendService.updateProfile({ bio });
       
       if (response.success) {
-        console.log('🟢 [AUTH] Bio updated successfully');
+        if (__DEV__) console.log('🟢 [AUTH] Bio updated successfully');
         // No need to update local state for bio as it's managed by ProfileV2
         return true;
       } else {
@@ -356,7 +356,7 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
     try {
       await AsyncStorage.setItem('hasCompletedProfileSetup', 'true');
       set({ hasCompletedProfileSetup: true });
-      console.log('✅ [AUTH] Profile setup marked as complete');
+      if (__DEV__) console.log('✅ [AUTH] Profile setup marked as complete');
     } catch (error) {
       console.error('🔴 [AUTH] Error marking profile setup complete:', error);
     }
@@ -370,7 +370,7 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
         hasCompletedOnboarding: true,
         isNewUser: false 
       });
-      console.log('✅ [AUTH] Full onboarding marked as complete');
+      if (__DEV__) console.log('✅ [AUTH] Full onboarding marked as complete');
     } catch (error) {
       console.error('🔴 [AUTH] Error marking onboarding complete:', error);
     }

@@ -45,18 +45,18 @@ export const createGoalsSlice: StateCreator<GoalsSlice> = (set, get) => ({
   goalsError: null,
   
   fetchGoals: async () => {
-    console.log('🟦 [GOALS] fetchGoals called');
+    if (__DEV__) console.log('🟦 [GOALS] fetchGoals called');
     set({ goalsLoading: true, goalsError: null });
     try {
       // ALWAYS fetch fresh data - cache causes sync issues
       memoryCache.clear('goals');
-      console.log('🟦 [GOALS] Cache cleared, fetching fresh data from backend')
+      if (__DEV__) console.log('🟦 [GOALS] Cache cleared, fetching fresh data from backend')
       
-      console.log('🟦 [GOALS] Fetching from backend...');
+      if (__DEV__) console.log('🟦 [GOALS] Fetching from backend...');
       const response = await backendService.getGoals();
       if (response.success) {
         const goals = response.data || [];
-        console.log('🟢 [GOALS] Fetched', goals.length, 'goals:', goals.map(g => g.title));
+        if (__DEV__) console.log('🟢 [GOALS] Fetched', goals.length, 'goals:', goals.map(g => g.title));
         memoryCache.set('goals', goals); // Save for next time
         set({ goals, goalsLoading: false });
       } else {
@@ -70,7 +70,7 @@ export const createGoalsSlice: StateCreator<GoalsSlice> = (set, get) => ({
   },
   
   addGoal: async (goalData) => {
-    console.log('🟦 [GOALS] addGoal called:', goalData.title, 'Type:', goalData.type || 'goal');
+    if (__DEV__) console.log('🟦 [GOALS] addGoal called:', goalData.title, 'Type:', goalData.type || 'goal');
     try {
       const response = await backendService.createGoal({
         title: goalData.title || '',
@@ -83,22 +83,22 @@ export const createGoalsSlice: StateCreator<GoalsSlice> = (set, get) => ({
       });
       
       if (response.success && response.data) {
-        console.log('🟢 [GOALS] Goal added to store:', response.data.title, 'ID:', response.data.id);
+        if (__DEV__) console.log('🟢 [GOALS] Goal added to store:', response.data.title, 'ID:', response.data.id);
         memoryCache.clear('goals'); // Clear cache when goals change
         
         // Prevent duplicates - check if goal already exists
         set((state) => {
           const existingGoal = state.goals.find(g => g.id === response.data.id);
           if (existingGoal) {
-            console.log('🟡 [GOALS] Goal already exists, not adding duplicate');
+            if (__DEV__) console.log('🟡 [GOALS] Goal already exists, not adding duplicate');
             return { goals: state.goals };
           }
           return { goals: [...state.goals, response.data] };
         });
         
         const currentGoals = get().goals;
-        console.log('🟦 [GOALS] Current goals in store:', currentGoals.map(g => g.title));
-        console.log('🟦 [GOALS] Goal IDs in store:', currentGoals.map(g => g.id));
+        if (__DEV__) console.log('🟦 [GOALS] Current goals in store:', currentGoals.map(g => g.title));
+        if (__DEV__) console.log('🟦 [GOALS] Goal IDs in store:', currentGoals.map(g => g.id));
       }
     } catch (error) {
       console.error('🔴 [GOALS] Failed to add goal:', error);

@@ -60,18 +60,18 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
   actionsError: null,
   
   fetchDailyActions: async () => {
-    console.log('🟦 [ACTIONS] fetchDailyActions called');
+    if (__DEV__) console.log('🟦 [ACTIONS] fetchDailyActions called');
     set({ actionsLoading: true, actionsError: null });
     try {
       // Clear any stale cache to ensure fresh data
-      console.log('🟦 [ACTIONS] Fetching fresh data from backend');
+      if (__DEV__) console.log('🟦 [ACTIONS] Fetching fresh data from backend');
       
       // Fetch regular daily actions
       const response = await backendService.getDailyActions();
       const regularActions: ActionItem[] = [];
       
       if (response.success) {
-        console.log('🟦 [ACTIONS] Response received:', response.data?.length || 0, 'regular actions');
+        if (__DEV__) console.log('🟦 [ACTIONS] Response received:', response.data?.length || 0, 'regular actions');
 
         // Map actions and filter based on frequency
         const mappedActions = (response.data || [])
@@ -104,33 +104,33 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
             });
 
             if (!shouldAppear) {
-              console.log(`🔽 [ACTIONS] Filtering out "${action.title}" - not scheduled for today (${action.frequency})`);
+              if (__DEV__) console.log(`🔽 [ACTIONS] Filtering out "${action.title}" - not scheduled for today (${action.frequency})`);
             }
 
             return shouldAppear;
           });
 
-        console.log(`🟦 [ACTIONS] After frequency filtering: ${mappedActions.length} actions for today`);
+        if (__DEV__) console.log(`🟦 [ACTIONS] After frequency filtering: ${mappedActions.length} actions for today`);
         regularActions.push(...mappedActions);
       }
       
       // Fetch challenge activities (already filtered - linked ones are excluded)
-      console.log('🏆 [ACTIONS] Fetching challenge activities...');
+      if (__DEV__) console.log('🏆 [ACTIONS] Fetching challenge activities...');
       const challengeResponse = await backendService.getUserChallengeActivities();
-      console.log('🏆 [ACTIONS] Challenge response:', challengeResponse);
-      console.log('🏆 [ACTIONS] Raw challenge data:', JSON.stringify(challengeResponse.data, null, 2));
+      if (__DEV__) console.log('🏆 [ACTIONS] Challenge response:', challengeResponse);
+      if (__DEV__) console.log('🏆 [ACTIONS] Raw challenge data:', JSON.stringify(challengeResponse.data, null, 2));
       const challengeActions: ActionItem[] = [];
       
       // Also get linked activities to merge with regular actions
       const linkedResponse = await backendService.getLinkedChallengeActivities();
-      console.log('🔗 [ACTIONS] Linked activities:', linkedResponse);
+      if (__DEV__) console.log('🔗 [ACTIONS] Linked activities:', linkedResponse);
       
       // Process linked activities - merge challenge info into regular actions
       if (linkedResponse.success && linkedResponse.data) {
         linkedResponse.data.forEach((link: any) => {
           const regularActionIndex = regularActions.findIndex(a => a.id === link.linkedActionId);
           if (regularActionIndex !== -1) {
-            console.log(`🔗 [ACTIONS] Merging challenge info into action ${link.linkedActionId}`);
+            if (__DEV__) console.log(`🔗 [ACTIONS] Merging challenge info into action ${link.linkedActionId}`);
             regularActions[regularActionIndex] = {
               ...regularActions[regularActionIndex],
               // Add challenge fields to the existing action
@@ -145,9 +145,9 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
       }
       
       if (challengeResponse.success && challengeResponse.data) {
-        console.log('🏆 [ACTIONS] Found', challengeResponse.data.length, 'non-linked challenge activities');
+        if (__DEV__) console.log('🏆 [ACTIONS] Found', challengeResponse.data.length, 'non-linked challenge activities');
         challengeResponse.data.forEach((activity: any, index: number) => {
-          console.log(`📍 [ACTIONS] Activity ${index}:`, {
+          if (__DEV__) console.log(`📍 [ACTIONS] Activity ${index}:`, {
             id: activity.id,
             title: activity.title || activity.display_name,
             scheduledTime: activity.scheduledTime,
@@ -160,7 +160,7 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
         const completedActivityIds = new Set(
           todayCompletions.data?.map((c: any) => c.challenge_activity_id) || []
         );
-        console.log('✅ [ACTIONS] Already completed today:', completedActivityIds);
+        if (__DEV__) console.log('✅ [ACTIONS] Already completed today:', completedActivityIds);
         
         // Get participant data for activity times
         const participations = await backendService.getUserChallengeParticipations();
@@ -169,33 +169,33 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
         if (participations.success && participations.data) {
           participations.data.forEach((participation: any) => {
             // Get activity times (skip link mappings)
-            console.log('⏰ [ACTIONS] Participation activity_times:', participation.activity_times);
+            if (__DEV__) console.log('⏰ [ACTIONS] Participation activity_times:', participation.activity_times);
             if (participation.activity_times && Array.isArray(participation.activity_times)) {
               participation.activity_times.forEach((timeEntry: any) => {
                 // Skip link mappings, only get actual times
                 if (!timeEntry.is_link && timeEntry.activity_id && timeEntry.scheduled_time) {
                   activityTimeMappings.set(timeEntry.activity_id, timeEntry.scheduled_time);
-                  console.log(`⏰ [ACTIONS] Mapped time for activity ${timeEntry.activity_id}: ${timeEntry.scheduled_time}`);
+                  if (__DEV__) console.log(`⏰ [ACTIONS] Mapped time for activity ${timeEntry.activity_id}: ${timeEntry.scheduled_time}`);
                 }
               });
             }
           });
         }
-        console.log('⏰ [ACTIONS] Activity time mappings:', activityTimeMappings);
+        if (__DEV__) console.log('⏰ [ACTIONS] Activity time mappings:', activityTimeMappings);
         
         const mappedChallengeActions = challengeResponse.data.map((activity: any) => {
-          console.log('🔍 [ACTIONS] Processing challenge activity:', {
+          if (__DEV__) console.log('🔍 [ACTIONS] Processing challenge activity:', {
             title: activity.display_name || activity.title,
             scheduledTime: activity.scheduledTime,
             id: activity.id
           });
           
           // All activities here are already non-linked (filtered by the service)
-          console.log('🎯 [ACTIONS] Creating challenge action from activity:', activity);
+          if (__DEV__) console.log('🎯 [ACTIONS] Creating challenge action from activity:', activity);
           
           // Get the scheduled time from our mappings
           const scheduledTime = activityTimeMappings.get(activity.id);
-          console.log('⏰ [ACTIONS] Scheduled time for this activity:', scheduledTime);
+          if (__DEV__) console.log('⏰ [ACTIONS] Scheduled time for this activity:', scheduledTime);
           
           const actionItem = {
             id: `challenge-${activity.challengeId}-${activity.id}`, // Make unique per challenge
@@ -214,7 +214,7 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
             challengeIcon: activity.emoji || activity.icon // Use emoji field
           };
           
-          console.log('📦 [ACTIONS] Final action item:', actionItem);
+          if (__DEV__) console.log('📦 [ACTIONS] Final action item:', actionItem);
           return actionItem;
         }).filter(Boolean); // Remove null entries (linked activities)
         
@@ -223,16 +223,16 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
       
       // Merge all actions (linked activities are already merged into regular actions)
       const allActions = [...regularActions, ...challengeActions];
-      console.log('🟢 [ACTIONS] Total actions:', allActions.length, '(', regularActions.length, 'regular +', challengeActions.length, 'challenge)');
+      if (__DEV__) console.log('🟢 [ACTIONS] Total actions:', allActions.length, '(', regularActions.length, 'regular +', challengeActions.length, 'challenge)');
       
       set({ actions: allActions, actionsLoading: false });
-      console.log('🟢 [ACTIONS] Daily actions loaded successfully');
+      if (__DEV__) console.log('🟢 [ACTIONS] Daily actions loaded successfully');
       
       // Also fetch today's completed actions
-      console.log('🟦 [ACTIONS] Fetching today\'s completed actions...');
+      if (__DEV__) console.log('🟦 [ACTIONS] Fetching today\'s completed actions...');
       const completedResponse = await backendService.getTodaysCompletedActions();
       if (completedResponse.success) {
-        console.log('🟢 [ACTIONS] Found', completedResponse.data?.length || 0, 'completed actions today');
+        if (__DEV__) console.log('🟢 [ACTIONS] Found', completedResponse.data?.length || 0, 'completed actions today');
         set({ completedActions: completedResponse.data || [] });
       }
     } catch (error: any) {
@@ -242,7 +242,7 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
   },
   
   toggleAction: async (id) => {
-    console.log('🟦 [ACTIONS] toggleAction called for ID:', id);
+    if (__DEV__) console.log('🟦 [ACTIONS] toggleAction called for ID:', id);
 
     // Find the action to check if it's from a challenge
     const action = get().actions.find(a => a.id === id);
@@ -252,12 +252,12 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
     }
 
     const isCurrentlyDone = action.done;
-    console.log(`🟦 [ACTIONS] Action "${action.title}" is currently ${isCurrentlyDone ? 'DONE' : 'NOT DONE'}`);
+    if (__DEV__) console.log(`🟦 [ACTIONS] Action "${action.title}" is currently ${isCurrentlyDone ? 'DONE' : 'NOT DONE'}`);
 
     try {
       // Handle unchecking (completing -> incomplete)
       if (isCurrentlyDone) {
-        console.log('🔄 [ACTIONS] Uncompleting action:', action.title);
+        if (__DEV__) console.log('🔄 [ACTIONS] Uncompleting action:', action.title);
         const response = await backendService.uncompleteAction(id);
 
         if (response.success) {
@@ -268,7 +268,7 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
                 : a
             )
           }));
-          console.log('🟢 [ACTIONS] Action uncompleted successfully');
+          if (__DEV__) console.log('🟢 [ACTIONS] Action uncompleted successfully');
         } else {
           console.error('🔴 [ACTIONS] Failed to uncomplete action:', response);
         }
@@ -278,7 +278,7 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
       // Handle checking (incomplete -> completing)
       // Handle challenge activities differently
       if (action.isFromChallenge && action.challengeParticipantId && action.challengeActivityId) {
-        console.log('🏆 [ACTIONS] Completing challenge activity:', action.title);
+        if (__DEV__) console.log('🏆 [ACTIONS] Completing challenge activity:', action.title);
 
         // Record challenge completion
         const response = await backendService.recordChallengeActivity(
@@ -295,14 +295,14 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
                 : a
             )
           }));
-          console.log('🟢 [ACTIONS] Challenge activity completed successfully');
+          if (__DEV__) console.log('🟢 [ACTIONS] Challenge activity completed successfully');
         } else {
           console.error('🔴 [ACTIONS] Challenge completion failed:', response.error);
         }
       } else {
         // Regular action completion
         const response = await backendService.completeAction(id);
-        console.log('🟦 [ACTIONS] Complete action response:', response);
+        if (__DEV__) console.log('🟦 [ACTIONS] Complete action response:', response);
 
         if (response.success) {
           set((s) => {
@@ -315,18 +315,18 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
             // Check if all actions are now complete
             const allComplete = updatedActions.every(a => a.done);
             if (allComplete && updatedActions.length > 0) {
-              console.log('🎉 [ACTIONS] ALL DAILY ACTIONS COMPLETE! Triggering celebration!');
+              if (__DEV__) console.log('🎉 [ACTIONS] ALL DAILY ACTIONS COMPLETE! Triggering celebration!');
               // Trigger celebration post
               get().createCelebrationPost();
             }
 
             return { actions: updatedActions };
           });
-          console.log('🟢 [ACTIONS] Action marked as done locally');
+          if (__DEV__) console.log('🟢 [ACTIONS] Action marked as done locally');
 
           // If this regular action is linked to a challenge activity, complete that too
           if (action.challengeParticipantId && action.challengeActivityId) {
-            console.log('🔗 [ACTIONS] This action is linked to challenge, completing challenge activity too');
+            if (__DEV__) console.log('🔗 [ACTIONS] This action is linked to challenge, completing challenge activity too');
             await backendService.recordChallengeActivity(
               action.challengeParticipantId,
               action.challengeActivityId
@@ -342,7 +342,7 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
   },
   
   addAction: async (actionData) => {
-    console.log('🟦 [ACTIONS] addAction called:', actionData.title);
+    if (__DEV__) console.log('🟦 [ACTIONS] addAction called:', actionData.title);
     try {
       const response = await backendService.createAction({
         title: actionData.title || '',
@@ -366,13 +366,13 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
           streak: 0,
           done: false
         };
-        console.log('🟢 [ACTIONS] Action added to store:', newAction.title, 'with goalId:', newAction.goalId);
+        if (__DEV__) console.log('🟢 [ACTIONS] Action added to store:', newAction.title, 'with goalId:', newAction.goalId);
         
         // Prevent duplicates - check if action already exists
         set((s) => {
           const existingAction = s.actions.find(a => a.id === newAction.id);
           if (existingAction) {
-            console.log('🟡 [ACTIONS] Action already exists, not adding duplicate');
+            if (__DEV__) console.log('🟡 [ACTIONS] Action already exists, not adding duplicate');
             return { actions: s.actions };
           }
           return { actions: [...s.actions, newAction] };
@@ -438,7 +438,7 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
   clearCompletedActions: () => set({ completedActions: [] }),
   
   createCelebrationPost: async () => {
-    console.log('🎊 [CELEBRATION] Creating celebration post for 100% completion!');
+    if (__DEV__) console.log('🎊 [CELEBRATION] Creating celebration post for 100% completion!');
     try {
       // Get user info from auth slice
       const user = (get() as any).user;
@@ -477,7 +477,7 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
       const response = await backendService.createPost(celebrationPost);
       
       if (response.success) {
-        console.log('🎉 [CELEBRATION] Celebration post created successfully!');
+        if (__DEV__) console.log('🎉 [CELEBRATION] Celebration post created successfully!');
         // Refresh the social feed to show the celebration
         const socialSlice = (get() as any);
         if (socialSlice.fetchFeeds) {

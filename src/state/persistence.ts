@@ -110,12 +110,22 @@ export const createPersist = <T extends object>(
       }
     };
 
+    // Debounced save - max 1 save per 2 seconds
+    let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+    const debouncedSave = () => {
+      if (saveTimeout) clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(() => {
+        saveState(get());
+        saveTimeout = null;
+      }, 2000);
+    };
+
     // Create state with persistence
     const state = stateCreator(
       (partial, replace) => {
         set(partial, replace);
-        // Save state after every update
-        setTimeout(() => saveState(get()), 0);
+        // Debounced save instead of immediate
+        debouncedSave();
       },
       get,
       api

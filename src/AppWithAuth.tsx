@@ -10,8 +10,8 @@ import { CheckCircle2, House, Trophy, User2, Users } from 'lucide-react-native';
 import { useStore } from './state/rootStore';
 import { inspector } from './utils/componentInspector';
 import { LoginScreen } from './features/auth/LoginScreen';
-import { DailyScreenVisionTEST as DailyScreen } from './features/daily/DailyScreenVisionTEST';
-import { SocialScreen } from './features/social/SocialScreen';
+import { DailyScreenOption2 as DailyScreen } from './features/daily/DailyScreenOption2';
+import { SocialScreenUnified as SocialScreen } from './features/social/SocialScreenUnified';
 import { ChallengesScreenVision as ChallengesScreen } from './features/challenges/ChallengesScreenVision';
 import { ProfileScreen } from './features/profile/ProfileScreenVision';
 import { CircleScreenVision as CircleScreen } from './features/circle/CircleScreenVision';
@@ -57,17 +57,17 @@ function MainTabs() {
   useEffect(() => {
     const loadAllData = async () => {
       console.time('⚡ Data loaded in');
-      console.log('🟦 [MAIN] MainTabs mounted, checking if data needs loading...');
+      if (__DEV__) console.log('🟦 [MAIN] MainTabs mounted, checking if data needs loading...');
 
       // Check if we already have data (from AppWithAuth initial load)
       const currentGoals = useStore.getState().goals;
       const currentActions = useStore.getState().actions;
 
       if (currentGoals.length > 0 || currentActions.length > 0) {
-        console.log('🟢 [MAIN] Data already loaded - Goals:', currentGoals.length, 'Actions:', currentActions.length);
+        if (__DEV__) console.log('🟢 [MAIN] Data already loaded - Goals:', currentGoals.length, 'Actions:', currentActions.length);
       } else {
-        console.log('🟦 [MAIN] No data found, fetching now...');
-        console.log('🚀 Starting optimized data load...');
+        if (__DEV__) console.log('🟦 [MAIN] No data found, fetching now...');
+        if (__DEV__) console.log('🚀 Starting optimized data load...');
 
         // Load critical data first (goals and actions), then feeds in background
         await Promise.all([
@@ -80,7 +80,7 @@ function MainTabs() {
       }
 
       console.timeEnd('⚡ Data loaded in');
-      console.log('✅ Initial load complete!');
+      if (__DEV__) console.log('✅ Initial load complete!');
     };
 
     loadAllData();
@@ -219,7 +219,7 @@ export function AppWithAuth() {
   
   // Watch for new user registration
   useEffect(() => {
-    console.log('🎯 [ONBOARDING-WATCHER] Auth state changed:', {
+    if (__DEV__) console.log('🎯 [ONBOARDING-WATCHER] Auth state changed:', {
       isAuthenticated,
       isNewUser,
       hasCompletedProfileSetup,
@@ -228,29 +228,29 @@ export function AppWithAuth() {
     });
     
     if (isAuthenticated && isNewUser && !hasCompletedProfileSetup) {
-      console.log('🟢 [ONBOARDING-WATCHER] New user detected! Showing profile setup');
+      if (__DEV__) console.log('🟢 [ONBOARDING-WATCHER] New user detected! Showing profile setup');
       setShowProfileSetup(true);
     } else if (isAuthenticated && isNewUser && !hasCompletedOnboarding) {
-      console.log('🟢 [ONBOARDING-WATCHER] New user needs onboarding');
+      if (__DEV__) console.log('🟢 [ONBOARDING-WATCHER] New user needs onboarding');
       setShowOnboarding(true);
     }
   }, [isAuthenticated, isNewUser, hasCompletedProfileSetup, hasCompletedOnboarding, user]);
 
   useEffect(() => {
     const initAuth = async () => {
-      console.log('🔐 [INIT] Checking authentication on app start...');
+      if (__DEV__) console.log('🔐 [INIT] Checking authentication on app start...');
       await checkAuth()
       const currentUser = useStore.getState().user;
       const isNew = useStore.getState().isNewUser;
       const hasProfile = useStore.getState().hasCompletedProfileSetup;
       const hasOnboarded = useStore.getState().hasCompletedOnboarding;
       
-      console.log('🔐 [INIT] User after auth check:', currentUser?.id, currentUser?.email);
-      console.log('🔐 [INIT] User status:', { isNew, hasProfile, hasOnboarded });
+      if (__DEV__) console.log('🔐 [INIT] User after auth check:', currentUser?.id, currentUser?.email);
+      if (__DEV__) console.log('🔐 [INIT] User status:', { isNew, hasProfile, hasOnboarded });
       
       // CRITICAL: If user is authenticated, fetch their data immediately
       if (currentUser && currentUser.id) {
-        console.log('🎯 [ONBOARDING-CHECK] User status check:', {
+        if (__DEV__) console.log('🎯 [ONBOARDING-CHECK] User status check:', {
           userId: currentUser.id,
           isNewUser: isNew,
           hasCompletedProfileSetup: hasProfile,
@@ -259,20 +259,20 @@ export function AppWithAuth() {
         
         // Determine what screens to show based on user status
         if (isNew && !hasProfile) {
-          console.log('🟡 [INIT] New user needs profile setup');
+          if (__DEV__) console.log('🟡 [INIT] New user needs profile setup');
           setShowProfileSetup(true);
         } else if (isNew && !hasOnboarded) {
-          console.log('🟡 [INIT] New user needs onboarding');
+          if (__DEV__) console.log('🟡 [INIT] New user needs onboarding');
           setShowOnboarding(true);
         } else {
-          console.log('🔐 [INIT] Existing user or completed onboarding, fetching initial data...');
+          if (__DEV__) console.log('🔐 [INIT] Existing user or completed onboarding, fetching initial data...');
           await Promise.all([
             fetchGoals(),
             fetchDailyActions()
           ]);
           const goals = useStore.getState().goals;
           const actions = useStore.getState().actions;
-          console.log('🟢 [INIT] Initial data loaded - Goals:', goals.length, 'Actions:', actions.length);
+          if (__DEV__) console.log('🟢 [INIT] Initial data loaded - Goals:', goals.length, 'Actions:', actions.length);
         }
       }
       
@@ -314,13 +314,13 @@ export function AppWithAuth() {
         }}>
           <ErrorBoundary>
             <ProfileSetupScreen onComplete={async () => {
-              console.log('🎉 [MAIN] Profile setup completed!');
+              if (__DEV__) console.log('🎉 [MAIN] Profile setup completed!');
               await completeProfileSetup();
               setShowProfileSetup(false);
               
               // Now show onboarding
               if (!hasCompletedOnboarding) {
-                console.log('🟦 [MAIN] Moving to onboarding...');
+                if (__DEV__) console.log('🟦 [MAIN] Moving to onboarding...');
                 setShowOnboarding(true);
               }
             }} />
@@ -341,7 +341,7 @@ export function AppWithAuth() {
         }}>
           <ErrorBoundary>
             <OnboardingFlow onComplete={async () => {
-              console.log('🎉 [MAIN] Onboarding completed! Refreshing data...');
+              if (__DEV__) console.log('🎉 [MAIN] Onboarding completed! Refreshing data...');
               closeOnboarding();
               setShowOnboarding(false);
               
@@ -351,21 +351,21 @@ export function AppWithAuth() {
               }
               // Refresh data after onboarding completes
               setTimeout(async () => {
-                console.log('🟦 [MAIN] Fetching updated goals and actions...');
+                if (__DEV__) console.log('🟦 [MAIN] Fetching updated goals and actions...');
                 
                 // CRITICAL: Re-check auth to ensure we have the right user
-                console.log('🔐 [MAIN] Re-checking authentication before data fetch...');
+                if (__DEV__) console.log('🔐 [MAIN] Re-checking authentication before data fetch...');
                 await checkAuth();
                 
                 // Log current user
                 const currentUser = useStore.getState().user;
-                console.log('🔐 [MAIN] Current user after auth check:', currentUser?.id, currentUser?.email);
+                if (__DEV__) console.log('🔐 [MAIN] Current user after auth check:', currentUser?.id, currentUser?.email);
                 
                 // Log current state before fetching
                 const currentGoals = useStore.getState().goals;
                 const currentActions = useStore.getState().actions;
-                console.log('🟦 [MAIN] Current goals before refresh:', currentGoals.map(g => g.title));
-                console.log('🟦 [MAIN] Current actions before refresh:', currentActions.map(a => a.title));
+                if (__DEV__) console.log('🟦 [MAIN] Current goals before refresh:', currentGoals.map(g => g.title));
+                if (__DEV__) console.log('🟦 [MAIN] Current actions before refresh:', currentActions.map(a => a.title));
                 
                 // Fetch updated data
                 await Promise.all([
@@ -376,8 +376,8 @@ export function AppWithAuth() {
                 // Log state after fetching
                 const newGoals = useStore.getState().goals;
                 const newActions = useStore.getState().actions;
-                console.log('🟢 [MAIN] Goals after refresh:', newGoals.map(g => g.title));
-                console.log('🟢 [MAIN] Actions after refresh:', newActions.map(a => a.title));
+                if (__DEV__) console.log('🟢 [MAIN] Goals after refresh:', newGoals.map(g => g.title));
+                if (__DEV__) console.log('🟢 [MAIN] Actions after refresh:', newActions.map(a => a.title));
               }, 500);
             }} />
           </ErrorBoundary>

@@ -164,7 +164,7 @@ export const createSocialSlice: StateCreator<
   followers: [],
   
   fetchFeeds: async (refresh = false) => {
-    console.log('🔄 [FEED] fetchFeeds called, refresh:', refresh);
+    if (__DEV__) console.log('🔄 [FEED] fetchFeeds called, refresh:', refresh);
     set({ feedLoading: true, feedError: null });
     try {
       // Get current user from auth slice
@@ -173,7 +173,7 @@ export const createSocialSlice: StateCreator<
 
       // Get activeCircleId from the store (accessing circlesSlice)
       const activeCircleId = (get() as any).activeCircleId;
-      console.log('🔵 [FEED] Using activeCircleId:', activeCircleId);
+      if (__DEV__) console.log('🔵 [FEED] Using activeCircleId:', activeCircleId);
 
       // Create unique cache keys based on circle
       const circleCacheKey = `feed:circle:${activeCircleId || 'default'}`;
@@ -196,7 +196,7 @@ export const createSocialSlice: StateCreator<
       const cachedCircle = !refresh ? memoryCache.get<{data: any[], hasMore: boolean}>(circleCacheKey) : null;
       const cachedFollow = !refresh ? memoryCache.get<{data: any[], hasMore: boolean}>('feed:follow') : null;
 
-      console.log('📊 [FEED] Cache status - Circle:', !!cachedCircle, 'Follow:', !!cachedFollow);
+      if (__DEV__) console.log('📊 [FEED] Cache status - Circle:', !!cachedCircle, 'Follow:', !!cachedFollow);
 
       // Fetch both feeds in parallel (use cache if available)
       const [circleResponse, followResponse] = await Promise.all([
@@ -242,7 +242,7 @@ export const createSocialSlice: StateCreator<
         
         // Debug audio posts
         if (post.type === 'audio') {
-          console.log('Audio post from backend:', {
+          if (__DEV__) console.log('Audio post from backend:', {
             id: post.id,
             type: post.type,
             mediaUrl: post.mediaUrl,
@@ -254,7 +254,7 @@ export const createSocialSlice: StateCreator<
         if (post.is_challenge || post.challenge_name) {
           ChallengeDebugV2.checkpoint('CP8-TRANSFORM', 'Challenge post from DB being transformed', post);
           
-          console.log('🎯 [TRANSFORM] Challenge post from DB:', {
+          if (__DEV__) console.log('🎯 [TRANSFORM] Challenge post from DB:', {
             id: post.id,
             is_challenge: post.is_challenge,
             challenge_name: post.challenge_name,
@@ -302,9 +302,9 @@ export const createSocialSlice: StateCreator<
       };
       
       if (circleResponse.success) {
-        console.log('🟢 [FEED] Circle feed response:', circleResponse.data?.length || 0, 'posts');
+        if (__DEV__) console.log('🟢 [FEED] Circle feed response:', circleResponse.data?.length || 0, 'posts');
         const circlePosts = (circleResponse.data || []).map(transformPost);
-        console.log('📝 [FEED] Transformed circle posts:', circlePosts.map(p => ({ 
+        if (__DEV__) console.log('📝 [FEED] Transformed circle posts:', circlePosts.map(p => ({ 
           id: p.id, 
           type: p.type, 
           content: p.content?.substring(0, 50),
@@ -316,11 +316,11 @@ export const createSocialSlice: StateCreator<
           circleHasMore: circleResponse.hasMore || false
         });
       } else {
-        console.log('🔴 [FEED] Circle feed failed:', circleResponse);
+        if (__DEV__) console.log('🔴 [FEED] Circle feed failed:', circleResponse);
       }
       
       if (followResponse.success) {
-        console.log('🟢 [FEED] Follow feed response:', followResponse.data?.length || 0, 'posts');
+        if (__DEV__) console.log('🟢 [FEED] Follow feed response:', followResponse.data?.length || 0, 'posts');
         const followPosts = (followResponse.data || []).map(transformPost);
         set({ 
           followFeed: followPosts,
@@ -328,11 +328,11 @@ export const createSocialSlice: StateCreator<
           followHasMore: followResponse.hasMore || false
         });
       } else {
-        console.log('🔴 [FEED] Follow feed failed:', followResponse);
+        if (__DEV__) console.log('🔴 [FEED] Follow feed failed:', followResponse);
       }
       
       set({ feedLoading: false });
-      console.log('✅ [FEED] Feed loading complete');
+      if (__DEV__) console.log('✅ [FEED] Feed loading complete');
     } catch (error: any) {
       console.error('🔴 [FEED] Error loading feeds:', error);
       set({ feedError: error.message, feedLoading: false });
@@ -357,7 +357,7 @@ export const createSocialSlice: StateCreator<
       // Get activeCircleId for circle feed pagination
       const activeCircleId = type === 'circle' ? (state as any).activeCircleId : undefined;
 
-      console.log(`Loading more ${type} posts from offset ${offset}, activeCircleId: ${activeCircleId}`);
+      if (__DEV__) console.log(`Loading more ${type} posts from offset ${offset}, activeCircleId: ${activeCircleId}`);
 
       const response = await backendService.getFeed(type, 5, offset, activeCircleId);
       
@@ -416,7 +416,7 @@ export const createSocialSlice: StateCreator<
             const existingIds = new Set(state.circleFeed.map(p => p.id));
             const uniqueNewPosts = newPosts.filter(p => !existingIds.has(p.id));
             
-            console.log(`🔍 Filtering duplicates: ${newPosts.length} fetched, ${uniqueNewPosts.length} unique`);
+            if (__DEV__) console.log(`🔍 Filtering duplicates: ${newPosts.length} fetched, ${uniqueNewPosts.length} unique`);
             
             return {
               circleFeed: [...state.circleFeed, ...uniqueNewPosts],
@@ -431,7 +431,7 @@ export const createSocialSlice: StateCreator<
             const existingIds = new Set(state.followFeed.map(p => p.id));
             const uniqueNewPosts = newPosts.filter(p => !existingIds.has(p.id));
             
-            console.log(`🔍 Filtering duplicates: ${newPosts.length} fetched, ${uniqueNewPosts.length} unique`);
+            if (__DEV__) console.log(`🔍 Filtering duplicates: ${newPosts.length} fetched, ${uniqueNewPosts.length} unique`);
             
             return {
               followFeed: [...state.followFeed, ...uniqueNewPosts],
@@ -450,7 +450,7 @@ export const createSocialSlice: StateCreator<
 
   // NEW: Unified feed (circle + following combined)
   fetchUnifiedFeed: async (refresh = false) => {
-    console.log('🔵 [STORE] fetchUnifiedFeed called, refresh:', refresh);
+    if (__DEV__) console.log('🔵 [STORE] fetchUnifiedFeed called, refresh:', refresh);
     set({ feedLoading: true, feedError: null });
 
     if (refresh) {
@@ -514,7 +514,7 @@ export const createSocialSlice: StateCreator<
         };
 
         const posts = (response.data || []).map(transformPost);
-        console.log('🔵 [STORE] Unified feed loaded:', posts.length, 'posts');
+        if (__DEV__) console.log('🔵 [STORE] Unified feed loaded:', posts.length, 'posts');
 
         set({
           unifiedFeed: posts,
@@ -543,7 +543,7 @@ export const createSocialSlice: StateCreator<
       const activeCircleId = (state as any).activeCircleId;
       const offset = state.unifiedOffset;
 
-      console.log('🔵 [STORE] Loading more unified feed from offset:', offset);
+      if (__DEV__) console.log('🔵 [STORE] Loading more unified feed from offset:', offset);
 
       const response = await backendService.getUnifiedFeed(10, offset, activeCircleId);
 
@@ -600,7 +600,7 @@ export const createSocialSlice: StateCreator<
         const existingIds = new Set(state.unifiedFeed.map(p => p.id));
         const uniquePosts = newPosts.filter(p => !existingIds.has(p.id));
 
-        console.log('🔵 [STORE] Loaded more:', uniquePosts.length, 'unique posts');
+        if (__DEV__) console.log('🔵 [STORE] Loaded more:', uniquePosts.length, 'unique posts');
 
         set(s => ({
           unifiedFeed: [...s.unifiedFeed, ...uniquePosts],
@@ -675,7 +675,7 @@ export const createSocialSlice: StateCreator<
     // CHECKPOINT 3: Post data received in socialSlice
     ChallengeDebugV2.checkpoint('CP3-SOCIAL-SLICE', 'Post data in socialSlice.addPost', postData);
     
-    console.log('📝 [FEED] addPost called with:', { 
+    if (__DEV__) console.log('📝 [FEED] addPost called with:', { 
       type: postData.type, 
       visibility: postData.visibility,
       content: postData.content?.substring(0, 50),
@@ -731,7 +731,7 @@ export const createSocialSlice: StateCreator<
       const activeCircleId = get().activeCircleId;
       const circleId = postData.visibility === 'circle' ? activeCircleId : null;
 
-      console.log('🎯 [POST] Creating post with visibility:', postData.visibility, 'to circle:', circleId);
+      if (__DEV__) console.log('🎯 [POST] Creating post with visibility:', postData.visibility, 'to circle:', circleId);
       
       // CHECKPOINT 4: Data being sent to backend
       const backendData = {
@@ -762,10 +762,10 @@ export const createSocialSlice: StateCreator<
       
       ChallengeDebugV2.checkpoint('CP4-BACKEND-CALL', 'Data sent to backendService.createPost', backendData);
       
-      console.log('📤 [FEED] Calling backendService.createPost with circleId:', circleId, 'isChallenge:', postData.isChallenge);
+      if (__DEV__) console.log('📤 [FEED] Calling backendService.createPost with circleId:', circleId, 'isChallenge:', postData.isChallenge);
       const response = await backendService.createPost(backendData);
       
-      console.log('📥 [FEED] Backend response:', { 
+      if (__DEV__) console.log('📥 [FEED] Backend response:', { 
         success: response.success, 
         dataId: response.data?.id,
         error: response.error 
@@ -794,13 +794,13 @@ export const createSocialSlice: StateCreator<
           goalColor: response.data.goalColor || response.data.goal_color
         };
         
-        console.log('🔄 [FEED] Replacing optimistic post', optimisticPost.id, 'with real post', realPost.id);
+        if (__DEV__) console.log('🔄 [FEED] Replacing optimistic post', optimisticPost.id, 'with real post', realPost.id);
         set((s) => {
           if (realPost.visibility === 'circle') {
             const updatedFeed = s.circleFeed.map(p => 
               p.id === optimisticPost.id ? realPost : p
             );
-            console.log('📊 [FEED] Circle feed after replacement:', updatedFeed.length, 'posts');
+            if (__DEV__) console.log('📊 [FEED] Circle feed after replacement:', updatedFeed.length, 'posts');
             // Clear cache for this feed so next refresh gets fresh data
             setTimeout(() => memoryCache.clear('feed:circle'), 100);
             return { 
@@ -810,7 +810,7 @@ export const createSocialSlice: StateCreator<
           const updatedFeed = s.followFeed.map(p => 
             p.id === optimisticPost.id ? realPost : p
           );
-          console.log('📊 [FEED] Follow feed after replacement:', updatedFeed.length, 'posts');
+          if (__DEV__) console.log('📊 [FEED] Follow feed after replacement:', updatedFeed.length, 'posts');
           // Clear cache for this feed so next refresh gets fresh data
           setTimeout(() => memoryCache.clear('feed:follow'), 100);
           return { 
@@ -880,7 +880,7 @@ export const createSocialSlice: StateCreator<
     
     try {
       // Send to backend
-      console.log('💬 Sending comment to backend:', { postId, content });
+      if (__DEV__) console.log('💬 Sending comment to backend:', { postId, content });
       const response = await backendService.addComment(postId, content);
       
       if (response.success && response.data) {
@@ -917,7 +917,7 @@ export const createSocialSlice: StateCreator<
           )
         }));
         
-        console.log('✅ Comment saved successfully');
+        if (__DEV__) console.log('✅ Comment saved successfully');
         
         // Update in-memory cache
         const cacheKey = `comments:${postId}`;
@@ -983,7 +983,7 @@ export const createSocialSlice: StateCreator<
     
     try {
       // Call backend
-      console.log('🔥 Toggling like for post:', postId);
+      if (__DEV__) console.log('🔥 Toggling like for post:', postId);
       const response = await backendService.toggleLike(postId);
       
       if (response.success && response.data) {
@@ -1004,7 +1004,7 @@ export const createSocialSlice: StateCreator<
         const cacheKey = `likes:${postId}`;
         memoryCache.set(cacheKey, response.data, 60); // Cache for 1 minute
         
-        console.log(`✅ Like ${response.data.action} successfully`);
+        if (__DEV__) console.log(`✅ Like ${response.data.action} successfully`);
       } else {
         throw new Error(response.error || 'Failed to toggle like');
       }
@@ -1047,7 +1047,7 @@ export const createSocialSlice: StateCreator<
       // Check cache first
       const cached = memoryCache.get<Comment[]>(cacheKey);
       if (cached) {
-        console.log('💾 Using cached comments for post:', postId);
+        if (__DEV__) console.log('💾 Using cached comments for post:', postId);
         set((s) => ({
           [currentFeed]: s[currentFeed].map(p => 
             p.id === postId 
@@ -1059,7 +1059,7 @@ export const createSocialSlice: StateCreator<
       }
       
       // Fetch from backend
-      console.log('📥 Loading comments from backend for post:', postId);
+      if (__DEV__) console.log('📥 Loading comments from backend for post:', postId);
       const response = await backendService.getComments(postId);
       
       if (response.success && response.data) {
@@ -1086,7 +1086,7 @@ export const createSocialSlice: StateCreator<
         // Cache the comments
         memoryCache.set(cacheKey, comments, 300); // Cache for 5 minutes
         
-        console.log(`✅ Loaded ${comments.length} comments for post ${postId}`);
+        if (__DEV__) console.log(`✅ Loaded ${comments.length} comments for post ${postId}`);
       }
     } catch (error) {
       console.error('❌ Failed to load comments:', error);
@@ -1095,13 +1095,13 @@ export const createSocialSlice: StateCreator<
   
   // Circle actions
   joinCircle: async (inviteCode) => {
-    console.log('Store: Joining circle with code:', inviteCode);
+    if (__DEV__) console.log('Store: Joining circle with code:', inviteCode);
     try {
       const result = await backendService.joinCircleWithCode(inviteCode);
-      console.log('Store: Join circle result:', result);
+      if (__DEV__) console.log('Store: Join circle result:', result);
       
       if (result.success) {
-        console.log('Successfully joined circle, loading data...');
+        if (__DEV__) console.log('Successfully joined circle, loading data...');
         
         // CRITICAL: Clear feed cache when joining a new circle
         memoryCache.clear('feed:circle');
@@ -1128,7 +1128,7 @@ export const createSocialSlice: StateCreator<
         await get().fetchFeeds();
         return true;
       }
-      console.log('Join circle failed:', result.error);
+      if (__DEV__) console.log('Join circle failed:', result.error);
       return false;
     } catch (error) {
       console.error('Failed to join circle:', error);
