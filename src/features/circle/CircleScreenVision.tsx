@@ -292,14 +292,14 @@ export const CircleScreenVision = () => {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.stickyHeader}>
-        <View style={styles.headerCard}>
-          <Pressable
-            style={styles.circleInfoSection}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setShowCircleSwitcher(true);
-            }}
-          >
+        <Pressable
+          style={styles.headerCard}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setShowCircleSwitcher(true);
+          }}
+        >
+          <View style={styles.circleInfoSection}>
             <View style={[styles.circleIconSmall, { backgroundColor: 'transparent' }]}>
               <LinearGradient
                 colors={['#E7B43A', '#FFD700']}
@@ -312,11 +312,12 @@ export const CircleScreenVision = () => {
               <Text style={styles.circleMemberCount}>{activeCircle?.member_count || 0} members</Text>
             </View>
             <ChevronDown size={16} color="#E7B43A" />
-          </Pressable>
+          </View>
           <View style={styles.headerActions}>
             <Pressable
               style={styles.headerBtn}
-              onPress={() => {
+              onPress={(e) => {
+                e.stopPropagation();
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
                 if (__DEV__) console.log('Invite members - show invite code:', activeCircle?.invite_code || activeCircle?.join_code);
                 alert('🚧 Coming Soon\n\nInvite functionality is being built. Stay tuned!');
@@ -326,7 +327,8 @@ export const CircleScreenVision = () => {
             </Pressable>
             <Pressable
               style={styles.headerBtn}
-              onPress={() => {
+              onPress={(e) => {
+                e.stopPropagation();
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setShowSettings(true);
               }}
@@ -334,7 +336,7 @@ export const CircleScreenVision = () => {
               <Settings size={18} color="#fff" />
             </Pressable>
           </View>
-        </View>
+        </Pressable>
 
         <View style={styles.tabBar}>
           <Pressable
@@ -1033,15 +1035,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginHorizontal: 20,
-    marginTop: 15,
-    marginBottom: 15,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(231,180,58,0.3)',
-    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
   },
 
   circleTitle: {
