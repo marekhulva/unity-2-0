@@ -15,6 +15,23 @@ import type {
 class SupabaseChallengeService {
   supabase = supabase;
 
+  // Ensure activities have IDs (generate from title hash if missing)
+  private ensureActivityIds(activities: any[]): any[] {
+    if (!activities || !Array.isArray(activities)) return [];
+    return activities.map((activity, index) => ({
+      ...activity,
+      id: activity.id || `activity-${index}-${activity.title?.replace(/\s+/g, '-').toLowerCase() || index}`,
+    }));
+  }
+
+  // Add IDs to challenge activities
+  private enrichChallengeWithActivityIds(challenge: any): any {
+    return {
+      ...challenge,
+      predetermined_activities: this.ensureActivityIds(challenge.predetermined_activities),
+    };
+  }
+
   async getGlobalChallenges(): Promise<Challenge[]> {
     console.log('🌍 [CHALLENGES] Fetching global challenges');
 
@@ -33,10 +50,10 @@ class SupabaseChallengeService {
     const challengesWithCounts = await Promise.all(
       (data || []).map(async (challenge) => {
         const participantCount = await this.getParticipantCount(challenge.id);
-        return {
+        return this.enrichChallengeWithActivityIds({
           ...challenge,
           participant_count: participantCount,
-        };
+        });
       })
     );
 
@@ -63,10 +80,10 @@ class SupabaseChallengeService {
     const challengesWithCounts = await Promise.all(
       (data || []).map(async (challenge) => {
         const participantCount = await this.getParticipantCount(challenge.id);
-        return {
+        return this.enrichChallengeWithActivityIds({
           ...challenge,
           participant_count: participantCount,
-        };
+        });
       })
     );
 
@@ -117,10 +134,10 @@ class SupabaseChallengeService {
     const challengesWithCounts = await Promise.all(
       (data || []).map(async (challenge) => {
         const participantCount = await this.getParticipantCount(challenge.id);
-        return {
+        return this.enrichChallengeWithActivityIds({
           ...challenge,
           participant_count: participantCount,
-        };
+        });
       })
     );
 
@@ -150,11 +167,11 @@ class SupabaseChallengeService {
     const myParticipation = await this.getMyParticipation(challengeId);
     console.log('🟢 [CHALLENGES] My participation:', myParticipation ? 'Found' : 'Not found', myParticipation);
 
-    return {
+    return this.enrichChallengeWithActivityIds({
       ...data,
       participant_count: participantCount,
       my_participation: myParticipation || undefined,
-    };
+    });
   }
 
   async getParticipantCount(challengeId: string): Promise<number> {
@@ -837,21 +854,49 @@ class SupabaseChallengeService {
     const activities = [];
     for (const participation of participations) {
       const challenge = participation.challenges;
-      const predeterminedActivities = challenge.predetermined_activities || [];
+      // Ensure activities have IDs using the same logic as when fetching challenges
+      const predeterminedActivities = this.ensureActivityIds(challenge.predetermined_activities || []);
       const selectedIds = participation.selected_activity_ids || [];
       const linkedIds = participation.linked_action_ids || [];
 
-      for (const activityId of selectedIds) {
-        if (linkedIds.includes(activityId)) continue;
+      // If selectedIds contains undefined/null, it means the user joined before IDs were added
+      // In that case, include ALL activities from the challenge
+      const hasValidSelectedIds = selectedIds.length > 0 && selectedIds.every((id: any) => id && id !== 'undefined');
 
-        const activity = predeterminedActivities.find((a: any) => a.id === activityId);
-        if (activity) {
+      if (hasValidSelectedIds) {
+        // Normal case: user has valid selected activity IDs
+        for (const activityId of selectedIds) {
+          if (linkedIds.includes(activityId)) continue;
+
+          const activity = predeterminedActivities.find((a: any) => a.id === activityId);
+          if (activity) {
+            const activityTime = (participation.activity_times || []).find(
+              (t: any) => t.activity_id === activityId && !t.is_link
+            );
+
+            activities.push({
+              id: activityId,
+              title: activity.title,
+              emoji: activity.emoji,
+              challengeId: challenge.id,
+              challengeName: challenge.name,
+              participantId: participation.id,
+              scheduledTime: activityTime?.scheduled_time,
+            });
+          }
+        }
+      } else {
+        // Fallback: include all activities from the challenge (for legacy participations)
+        console.log('🟡 [CHALLENGES] Using fallback: including all activities for participation', participation.id);
+        for (const activity of predeterminedActivities) {
+          if (linkedIds.includes(activity.id)) continue;
+
           const activityTime = (participation.activity_times || []).find(
-            (t: any) => t.activity_id === activityId && !t.is_link
+            (t: any) => t.activity_id === activity.id && !t.is_link
           );
 
           activities.push({
-            id: activityId,
+            id: activity.id,
             title: activity.title,
             emoji: activity.emoji,
             challengeId: challenge.id,
