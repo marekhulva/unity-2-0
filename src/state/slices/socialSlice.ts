@@ -91,7 +91,7 @@ export type Post = {
 };
 
 export type SocialSlice = {
-  circleFeed: Post[]; 
+  circleFeed: Post[];
   followFeed: Post[];
   feedLoading: boolean;
   feedError: string | null;
@@ -101,6 +101,10 @@ export type SocialSlice = {
   followOffset: number;
   followHasMore: boolean;
   loadingMore: boolean;
+  // NEW: Unified feed state (circle + following combined)
+  unifiedFeed: Post[];
+  unifiedOffset: number;
+  unifiedHasMore: boolean;
   // Circle data
   circleId: string | null;
   circleName: string | null;
@@ -112,6 +116,9 @@ export type SocialSlice = {
   // Actions
   fetchFeeds: (refresh?: boolean) => Promise<void>;
   loadMoreFeeds: (type: 'circle' | 'follow') => Promise<void>;
+  // NEW: Unified feed actions
+  fetchUnifiedFeed: (refresh?: boolean) => Promise<void>;
+  loadMoreUnifiedFeed: () => Promise<void>;
   react: (id:string, emoji:string, which:Visibility) => Promise<void>;
   toggleLike: (postId: string, which: Visibility) => Promise<void>;
   addPost: (p:Partial<Post>) => Promise<void>;
@@ -143,6 +150,10 @@ export const createSocialSlice: StateCreator<
   followOffset: 0,
   followHasMore: true,
   loadingMore: false,
+  // NEW: Unified feed state
+  unifiedFeed: [],
+  unifiedOffset: 0,
+  unifiedHasMore: true,
   // Circle data
   circleId: null,
   circleName: null,
@@ -436,27 +447,200 @@ export const createSocialSlice: StateCreator<
       set({ loadingMore: false });
     }
   },
-  
+
+  // NEW: Unified feed (circle + following combined)
+  fetchUnifiedFeed: async (refresh = false) => {
+    console.log('🔵 [STORE] fetchUnifiedFeed called, refresh:', refresh);
+    set({ feedLoading: true, feedError: null });
+
+    if (refresh) {
+      set({ unifiedFeed: [], unifiedOffset: 0, unifiedHasMore: true });
+    }
+
+    try {
+      const currentUser = get().user;
+      const currentUserId = currentUser?.id;
+      const activeCircleId = (get() as any).activeCircleId;
+
+      const response = await backendService.getUnifiedFeed(10, 0, activeCircleId);
+
+      if (response.success) {
+        const transformPost = (post: any): Post => {
+          const timeAgo = (date: string) => {
+            const diff = Date.now() - new Date(date).getTime();
+            const minutes = Math.floor(diff / (1000 * 60));
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const days = Math.floor(hours / 24);
+            if (minutes < 1) return 'now';
+            if (minutes < 60) return `${minutes}m`;
+            if (hours < 24) return `${hours}h`;
+            return `${days}d`;
+          };
+
+          const isCurrentUser = post.user_id === currentUserId;
+
+          return {
+            id: post.id,
+            user: isCurrentUser ? 'You' : (post.profiles?.name || 'Anonymous'),
+            userId: post.user_id,
+            avatar: isCurrentUser ? (currentUser?.avatar || '👤') : (post.profiles?.avatar_url || '👤'),
+            type: post.type as PostType,
+            visibility: post.visibility as Visibility,
+            content: post.content,
+            time: timeAgo(post.created_at),
+            timestamp: post.created_at,
+            reactions: post.userReacted ? { '🔥': post.reactionCount } : {},
+            reactionCount: post.reactionCount || 0,
+            userReacted: post.userReacted || false,
+            commentCount: post.commentCount || 0,
+            comments: post.comments || [],
+            photoUri: post.type === 'photo' ? post.media_url : undefined,
+            audioUri: post.type === 'audio' ? post.media_url : undefined,
+            mediaUrl: post.media_url,
+            actionTitle: post.action_title,
+            goal: post.goal_title,
+            streak: post.streak,
+            goalColor: post.goal_color,
+            isChallenge: post.is_challenge,
+            challengeName: post.challenge_name,
+            challengeId: post.challenge_id,
+            challengeProgress: post.challenge_progress,
+            leaderboardPosition: post.leaderboard_position,
+            totalParticipants: post.total_participants,
+            is_celebration: post.is_celebration,
+            celebration_type: post.celebration_type,
+            metadata: post.metadata
+          };
+        };
+
+        const posts = (response.data || []).map(transformPost);
+        console.log('🔵 [STORE] Unified feed loaded:', posts.length, 'posts');
+
+        set({
+          unifiedFeed: posts,
+          unifiedOffset: posts.length,
+          unifiedHasMore: response.hasMore || false,
+          feedLoading: false
+        });
+      } else {
+        set({ feedLoading: false, feedError: 'Failed to load feed' });
+      }
+    } catch (error: any) {
+      console.error('🔴 [STORE] Error fetching unified feed:', error);
+      set({ feedLoading: false, feedError: error.message });
+    }
+  },
+
+  loadMoreUnifiedFeed: async () => {
+    const state = get();
+    if (state.loadingMore || !state.unifiedHasMore) return;
+
+    set({ loadingMore: true });
+
+    try {
+      const currentUser = state.user;
+      const currentUserId = currentUser?.id;
+      const activeCircleId = (state as any).activeCircleId;
+      const offset = state.unifiedOffset;
+
+      console.log('🔵 [STORE] Loading more unified feed from offset:', offset);
+
+      const response = await backendService.getUnifiedFeed(10, offset, activeCircleId);
+
+      if (response.success) {
+        const transformPost = (post: any): Post => {
+          const timeAgo = (date: string) => {
+            const diff = Date.now() - new Date(date).getTime();
+            const minutes = Math.floor(diff / (1000 * 60));
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const days = Math.floor(hours / 24);
+            if (minutes < 1) return 'now';
+            if (minutes < 60) return `${minutes}m`;
+            if (hours < 24) return `${hours}h`;
+            return `${days}d`;
+          };
+
+          const isCurrentUser = post.user_id === currentUserId;
+
+          return {
+            id: post.id,
+            user: isCurrentUser ? 'You' : (post.profiles?.name || 'Anonymous'),
+            userId: post.user_id,
+            avatar: isCurrentUser ? (currentUser?.avatar || '👤') : (post.profiles?.avatar_url || '👤'),
+            type: post.type as PostType,
+            visibility: post.visibility as Visibility,
+            content: post.content,
+            time: timeAgo(post.created_at),
+            timestamp: post.created_at,
+            reactions: post.userReacted ? { '🔥': post.reactionCount } : {},
+            reactionCount: post.reactionCount || 0,
+            userReacted: post.userReacted || false,
+            commentCount: post.commentCount || 0,
+            comments: post.comments || [],
+            photoUri: post.type === 'photo' ? post.media_url : undefined,
+            audioUri: post.type === 'audio' ? post.media_url : undefined,
+            mediaUrl: post.media_url,
+            actionTitle: post.action_title,
+            goal: post.goal_title,
+            streak: post.streak,
+            goalColor: post.goal_color,
+            isChallenge: post.is_challenge,
+            challengeName: post.challenge_name,
+            challengeId: post.challenge_id,
+            challengeProgress: post.challenge_progress,
+            leaderboardPosition: post.leaderboard_position,
+            totalParticipants: post.total_participants,
+            is_celebration: post.is_celebration,
+            celebration_type: post.celebration_type,
+            metadata: post.metadata
+          };
+        };
+
+        const newPosts = (response.data || []).map(transformPost);
+        const existingIds = new Set(state.unifiedFeed.map(p => p.id));
+        const uniquePosts = newPosts.filter(p => !existingIds.has(p.id));
+
+        console.log('🔵 [STORE] Loaded more:', uniquePosts.length, 'unique posts');
+
+        set(s => ({
+          unifiedFeed: [...s.unifiedFeed, ...uniquePosts],
+          unifiedOffset: s.unifiedFeed.length + uniquePosts.length,
+          unifiedHasMore: uniquePosts.length > 0 ? (response.hasMore || false) : false,
+          loadingMore: false
+        }));
+      } else {
+        set({ loadingMore: false });
+      }
+    } catch (error) {
+      console.error('🔴 [STORE] Error loading more unified feed:', error);
+      set({ loadingMore: false });
+    }
+  },
+
   react: async (id, emoji, which) => {
     // Toggle reaction - if user already reacted, remove it, otherwise add it
     const currentFeed = which === 'circle' ? 'circleFeed' : 'followFeed';
-    const currentPost = get()[currentFeed].find(p => p.id === id);
+    const currentPost = get()[currentFeed].find(p => p.id === id) || get().unifiedFeed.find(p => p.id === id);
     const hasReacted = currentPost?.userReacted || false;
 
-    // Optimistically update UI first
+    // Helper to update a post in any feed
+    const updatePost = (posts: Post[], add: boolean) =>
+      posts.map(p =>
+        p.id === id
+          ? {
+              ...p,
+              reactionCount: add
+                ? (p.reactionCount || 0) + 1
+                : Math.max(0, (p.reactionCount || 0) - 1),
+              userReacted: add
+            }
+          : p
+      );
+
+    // Optimistically update UI first (both legacy feeds AND unified feed)
     set((s) => ({
-      [currentFeed]:
-        s[currentFeed].map(p =>
-          p.id === id
-            ? {
-                ...p,
-                reactionCount: hasReacted
-                  ? Math.max(0, (p.reactionCount || 0) - 1)
-                  : (p.reactionCount || 0) + 1,
-                userReacted: !hasReacted
-              }
-            : p
-        )
+      [currentFeed]: updatePost(s[currentFeed], !hasReacted),
+      unifiedFeed: updatePost(s.unifiedFeed, !hasReacted)
     }));
 
     try {
@@ -464,41 +648,21 @@ export const createSocialSlice: StateCreator<
       if (!response.success) {
         // Revert optimistic update on failure
         set((s) => ({
-          [currentFeed]:
-            s[currentFeed].map(p =>
-              p.id === id
-                ? {
-                    ...p,
-                    reactionCount: hasReacted
-                      ? (p.reactionCount || 0) + 1  // Revert removal
-                      : Math.max(0, (p.reactionCount || 0) - 1),  // Revert addition
-                    userReacted: hasReacted
-                  }
-                : p
-            )
+          [currentFeed]: updatePost(s[currentFeed], hasReacted),
+          unifiedFeed: updatePost(s.unifiedFeed, hasReacted)
         }));
         console.error('Failed to react to post:', response.error);
       }
     } catch (error) {
       // Revert optimistic update on error
       set((s) => ({
-        [currentFeed]:
-          s[currentFeed].map(p =>
-            p.id === id
-              ? {
-                  ...p,
-                  reactionCount: hasReacted
-                    ? (p.reactionCount || 0) + 1  // Revert removal
-                    : Math.max(0, (p.reactionCount || 0) - 1),  // Revert addition
-                  userReacted: hasReacted
-                }
-              : p
-          )
+        [currentFeed]: updatePost(s[currentFeed], hasReacted),
+        unifiedFeed: updatePost(s.unifiedFeed, hasReacted)
       }));
       console.error('Failed to react to post:', error);
     }
   },
-  
+
   clearCheckinPosts: () => {
     // Filter out all check-in posts from both feeds
     set((state) => ({
