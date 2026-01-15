@@ -440,15 +440,6 @@ export const CircleScreen = () => {
               </View>
             ) : (
               <View>
-                {/* Create Challenge Button (when challenges exist) */}
-                <Pressable
-                  style={styles.createChallengeButtonSmall}
-                  onPress={() => setShowCreateChallenge(true)}
-                >
-                  <Plus size={18} color="#FFD700" />
-                  <Text style={styles.createChallengeButtonSmallText}>New Challenge</Text>
-                </Pressable>
-
                 {/* Challenge Cards */}
                 {circleChallenges.map((challenge, index) => (
                   <Animated.View

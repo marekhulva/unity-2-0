@@ -129,7 +129,6 @@ export const ProfileScreen: React.FC = () => {
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [challenges, setChallenges] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [overallConsistency, setOverallConsistency] = useState(87);
 
   // Fetch user circles, posts, and challenges
   useEffect(() => {
@@ -210,9 +209,6 @@ export const ProfileScreen: React.FC = () => {
                 )}
               </View>
             </View>
-            <View style={styles.consistencyBadge}>
-              <Text style={styles.consistencyBadgeText}>{overallConsistency}%</Text>
-            </View>
           </View>
 
           {/* Username */}
@@ -220,11 +216,6 @@ export const ProfileScreen: React.FC = () => {
 
           {/* Bio */}
           <Text style={styles.bio}>Currently mastering discipline & consistency</Text>
-
-          {/* Focus Badge */}
-          <View style={styles.focusBadge}>
-            <Text style={styles.focusBadgeText}>🎯 Phase 2: Building Momentum</Text>
-          </View>
 
           {/* Social Stats */}
           <View style={styles.socialStats}>
@@ -430,24 +421,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#E7B43A',
   },
-  consistencyBadge: {
-    position: 'absolute',
-    bottom: -5,
-    right: -5,
-    backgroundColor: '#E7B43A',
-    borderRadius: 16,
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#000',
-  },
-  consistencyBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#000',
-  },
   username: {
     fontSize: 22,
     fontWeight: '700',
@@ -459,20 +432,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
     fontStyle: 'italic',
     marginBottom: 8,
-  },
-  focusBadge: {
-    backgroundColor: 'rgba(231,180,58,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(231,180,58,0.3)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 15,
-  },
-  focusBadgeText: {
-    fontSize: 12,
-    color: '#E7B43A',
-    fontWeight: '600',
   },
   socialStats: {
     flexDirection: 'row',

@@ -37,7 +37,7 @@ import { JoinCircleModal } from './JoinCircleModal';
 import { DiscoverUsersModal } from './DiscoverUsersModal';
 import { UnifiedPostCard } from './UnifiedPostCard';
 import { ProfileScreen } from '../profile/ProfileScreen';
-import { CircleSelector } from '../circles/components/CircleSelector';
+import { CircleSelector, FEED_ALL, FEED_FOLLOWING } from '../circles/components/CircleSelector';
 import { ChallengeCard } from '../challenges/ChallengeCard';
 import { JoinChallengeModal } from '../challenges/JoinChallengeModal';
 
@@ -85,20 +85,37 @@ export const SocialScreenUnified = () => {
   const [postAudio, setPostAudio] = useState<string | null>(null);
   const [isPosting, setIsPosting] = useState(false);
 
-  // Load feed on mount and when circle changes
+  // Local feed type state (null = All, FEED_FOLLOWING, or circle ID)
+  const [feedType, setFeedType] = useState<string | null>(FEED_ALL);
+
+  // Handle feed type selection
+  const handleFeedTypeChange = (type: string | null) => {
+    // Map FEED_ALL to null for the selector
+    const normalizedType = type === FEED_ALL ? null : type;
+    setFeedType(type);
+
+    // Only set activeCircle for actual circles
+    if (type && type !== FEED_ALL && type !== FEED_FOLLOWING) {
+      setActiveCircle(type);
+    } else {
+      setActiveCircle(null);
+    }
+  };
+
+  // Load feed on mount and when feed type changes
   useEffect(() => {
-    fetchUnifiedFeed(true);
+    // Pass the filter directly - FEED_ALL, FEED_FOLLOWING, or a specific circleId
+    fetchUnifiedFeed(true, feedType || FEED_ALL);
     fetchUserCircles();
   }, []);
 
   useEffect(() => {
-    if (activeCircleId !== undefined) {
-      fetchUnifiedFeed(true);
-      if (activeCircleId) {
-        fetchCircleChallenges(activeCircleId);
-      }
+    // Pass the filter directly - FEED_ALL, FEED_FOLLOWING, or a specific circleId
+    fetchUnifiedFeed(true, feedType || FEED_ALL);
+    if (feedType && feedType !== FEED_ALL && feedType !== FEED_FOLLOWING) {
+      fetchCircleChallenges(feedType);
     }
-  }, [activeCircleId]);
+  }, [feedType]);
 
   // Handle post creation
   const handlePost = async () => {
@@ -121,8 +138,8 @@ export const SocialScreenUnified = () => {
       setPostAudio(null);
       setComposerExpanded(false);
 
-      // Refresh feed
-      await fetchUnifiedFeed(true);
+      // Refresh feed with current filter
+      await fetchUnifiedFeed(true, feedType || FEED_ALL);
     } catch (error) {
       console.error('Failed to create post:', error);
     } finally {
@@ -207,7 +224,7 @@ export const SocialScreenUnified = () => {
             refreshControl={
               <RefreshControl
                 refreshing={feedLoading}
-                onRefresh={() => fetchUnifiedFeed(true)}
+                onRefresh={() => fetchUnifiedFeed(true, feedType || FEED_ALL)}
                 tintColor="#FFD700"
                 colors={['#FFD700']}
               />
@@ -216,16 +233,14 @@ export const SocialScreenUnified = () => {
             scrollEventThrottle={400}
           >
             {/* Circle Selector */}
-            {userCircles && userCircles.length > 0 && (
-              <View style={styles.circleSelectorContainer}>
-                <CircleSelector
-                  circles={userCircles}
-                  activeCircleId={activeCircleId}
-                  onCircleSelect={setActiveCircle}
-                  onJoinCircle={() => setShowJoinCircleModal(true)}
-                />
-              </View>
-            )}
+            <View style={styles.circleSelectorContainer}>
+              <CircleSelector
+                circles={userCircles || []}
+                activeCircleId={feedType}
+                onCircleSelect={handleFeedTypeChange}
+                onJoinCircle={() => setShowJoinCircleModal(true)}
+              />
+            </View>
 
             {/* Composer */}
             <View style={styles.composer}>
@@ -281,8 +296,8 @@ export const SocialScreenUnified = () => {
               )}
             </View>
 
-            {/* Active Challenges */}
-            {circleChallenges && circleChallenges.length > 0 && (
+            {/* Active Challenges - only show when viewing a specific circle */}
+            {feedType && feedType !== FEED_ALL && feedType !== FEED_FOLLOWING && circleChallenges && circleChallenges.length > 0 && (
               <View style={styles.challengesSection}>
                 <Text style={styles.sectionTitle}>Active Challenges</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -358,7 +373,7 @@ export const SocialScreenUnified = () => {
             onSuccess={() => {
               setShowJoinChallengeModal(false);
               setSelectedChallenge(null);
-              fetchUnifiedFeed(true);
+              fetchUnifiedFeed(true, feedType || FEED_ALL);
             }}
           />
         )}

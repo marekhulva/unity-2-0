@@ -1256,29 +1256,118 @@ class SupabaseService {
   }
 
   // NEW: Unified feed combining circle members + following in fewer queries
-  async getUnifiedFeed(limit: number = 10, offset: number = 0, circleId?: string | null) {
+  // filter can be: '__ALL__' (default), '__FOLLOWING__' (only followed users), or a specific circleId
+  async getUnifiedFeed(limit: number = 10, offset: number = 0, circleId?: string | null, filter?: string) {
     const { data: { user } } = await supabase.auth.getUser();
 
-    console.log('🔵 [UNIFIED FEED] getUnifiedFeed called:', { userId: user?.id, limit, offset, circleId });
+    if (__DEV__) console.log('🔵 [UNIFIED FEED] getUnifiedFeed called:', { userId: user?.id, limit, offset, circleId, filter });
 
     if (!user) {
-      console.log('🔴 [UNIFIED FEED] No authenticated user');
+      if (__DEV__) console.log('🔴 [UNIFIED FEED] No authenticated user');
       return { posts: [], hasMore: false };
     }
 
     try {
-      // QUERY 1: Get circle member IDs
-      let circleMemberIds: string[] = [];
+      // Handle special filter types
+      const isFollowingOnly = filter === '__FOLLOWING__';
+      const isAllFeed = filter === '__ALL__' || (!filter && !circleId);
+      const isSpecificCircle = circleId && circleId !== '__ALL__' && circleId !== '__FOLLOWING__';
 
-      if (circleId) {
+      let circleMemberIds: string[] = [];
+      let followingIds: string[] = [];
+
+      // QUERY 1: Get following IDs (needed for Following feed or All feed)
+      if (isFollowingOnly || isAllFeed) {
+        const { data: following } = await supabase
+          .from('follows')
+          .select('following_id')
+          .eq('follower_id', user.id);
+        followingIds = following?.map(f => f.following_id).filter(Boolean) || [];
+        if (__DEV__) console.log('🔵 [UNIFIED FEED] Following:', followingIds.length);
+      }
+
+      // If Following-only feed, just use followingIds
+      if (isFollowingOnly) {
+        if (followingIds.length === 0) {
+          if (__DEV__) console.log('🔵 [UNIFIED FEED] Not following anyone - empty feed');
+          return { posts: [], hasMore: false };
+        }
+        // For following feed, only include self + followed users
+        const followingUserIds = [...new Set([...followingIds, user.id])];
+        if (__DEV__) console.log('🔵 [UNIFIED FEED] Following-only feed user IDs:', followingUserIds.length);
+
+        // Fetch posts from followed users only
+        const { data: posts, error } = await supabase
+          .from('posts')
+          .select(`
+            id, user_id, type, content, media_url, action_title, goal_title, goal_color,
+            streak, created_at, visibility, circle_id,
+            is_challenge, challenge_name, challenge_id, challenge_progress,
+            leaderboard_position, total_participants,
+            is_celebration, celebration_type, metadata,
+            post_reactions!left(user_id),
+            post_comments!left(id, content, user_id, created_at)
+          `)
+          .in('user_id', followingUserIds)
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1);
+
+        if (error) {
+          console.error('🔴 [UNIFIED FEED] Error fetching following posts:', error);
+          throw error;
+        }
+
+        if (__DEV__) console.log('🔵 [UNIFIED FEED] Following feed posts:', posts?.length || 0);
+
+        // Get profiles for all post authors
+        const postUserIds = [...new Set(posts?.map(p => p.user_id) || [])];
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, name, avatar_url')
+          .in('id', postUserIds);
+
+        // Transform posts
+        const postsWithProfiles = posts?.map(post => {
+          const reactionCount = post.post_reactions?.length || 0;
+          const userReacted = post.post_reactions?.some((r: any) => r.user_id === user.id) || false;
+          const commentCount = post.post_comments?.length || 0;
+          const comments = post.post_comments?.map((c: any) => ({
+            id: c.id,
+            content: c.content,
+            user: profiles?.find(p => p.id === c.user_id)?.name || 'Anonymous',
+            userAvatar: profiles?.find(p => p.id === c.user_id)?.avatar_url || '',
+            userId: c.user_id,
+            createdAt: c.created_at
+          })) || [];
+
+          return {
+            ...post,
+            profiles: profiles?.find(p => p.id === post.user_id) || null,
+            reactionCount,
+            userReacted,
+            commentCount,
+            comments,
+            post_reactions: undefined,
+            post_comments: undefined
+          };
+        }) || [];
+
+        const hasMore = postsWithProfiles.length === limit;
+        if (__DEV__) console.log(`📊 [UNIFIED FEED] Following feed loaded: ${postsWithProfiles.length} posts, hasMore: ${hasMore}`);
+
+        return { posts: postsWithProfiles, hasMore };
+      }
+
+      // QUERY 2: Get circle member IDs (for specific circle or All feed)
+      if (isSpecificCircle) {
         // Specific circle
         const { data: members } = await supabase
           .from('circle_members')
           .select('user_id')
           .eq('circle_id', circleId);
         circleMemberIds = members?.map(m => m.user_id).filter(Boolean) || [];
-        console.log('🔵 [UNIFIED FEED] Circle members for', circleId, ':', circleMemberIds.length);
-      } else {
+        if (__DEV__) console.log('🔵 [UNIFIED FEED] Circle members for', circleId, ':', circleMemberIds.length);
+      } else if (isAllFeed) {
         // All circles user belongs to
         const { data: userMemberships } = await supabase
           .from('circle_members')
@@ -1292,21 +1381,13 @@ class SupabaseService {
             .select('user_id')
             .in('circle_id', circleIds);
           circleMemberIds = allMembers?.map(m => m.user_id).filter(Boolean) || [];
-          console.log('🔵 [UNIFIED FEED] All circle members:', circleMemberIds.length);
+          if (__DEV__) console.log('🔵 [UNIFIED FEED] All circle members:', circleMemberIds.length);
         }
       }
 
-      // QUERY 2: Get following IDs
-      const { data: following } = await supabase
-        .from('follows')
-        .select('following_id')
-        .eq('follower_id', user.id);
-      const followingIds = following?.map(f => f.following_id).filter(Boolean) || [];
-      console.log('🔵 [UNIFIED FEED] Following:', followingIds.length);
-
       // Combine into Set (auto-dedupes) + add self
       const combinedUserIds = [...new Set([...circleMemberIds, ...followingIds, user.id])];
-      console.log('🔵 [UNIFIED FEED] Combined unique user IDs:', combinedUserIds.length);
+      if (__DEV__) console.log('🔵 [UNIFIED FEED] Combined unique user IDs:', combinedUserIds.length);
 
       if (combinedUserIds.length === 0) {
         return { posts: [], hasMore: false };
@@ -1333,7 +1414,7 @@ class SupabaseService {
         throw error;
       }
 
-      console.log('🔵 [UNIFIED FEED] Fetched posts:', posts?.length || 0);
+      if (__DEV__) console.log('🔵 [UNIFIED FEED] Fetched posts:', posts?.length || 0);
 
       // Get profiles for all post authors
       const userIds = [...new Set(posts?.map(p => p.user_id) || [])];
@@ -1369,7 +1450,7 @@ class SupabaseService {
       }) || [];
 
       const hasMore = postsWithProfiles.length === limit;
-      console.log(`📊 [UNIFIED FEED] Loaded: ${postsWithProfiles.length} posts, hasMore: ${hasMore}`);
+      if (__DEV__) console.log(`📊 [UNIFIED FEED] Loaded: ${postsWithProfiles.length} posts, hasMore: ${hasMore}`);
 
       return { posts: postsWithProfiles, hasMore };
     } catch (error) {

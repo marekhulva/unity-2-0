@@ -24,10 +24,14 @@ interface Circle {
   member_count?: number;
 }
 
+// Special feed type IDs
+export const FEED_ALL = '__ALL__';
+export const FEED_FOLLOWING = '__FOLLOWING__';
+
 interface CircleSelectorProps {
   circles: Circle[];
   activeCircleId: string | null;
-  onCircleSelect: (circleId: string) => void;
+  onCircleSelect: (circleId: string | null) => void;
   onJoinCircle: () => void;
   loading?: boolean;
   error?: string | null;
@@ -48,6 +52,19 @@ export const CircleSelector: React.FC<CircleSelectorProps> = ({
   const [showBottomSheet, setShowBottomSheet] = useState(false);
 
   const activeCircle = circles.find(c => c.id === activeCircleId);
+
+  // Get display name for current selection
+  const getDisplayName = () => {
+    if (activeCircleId === FEED_ALL || activeCircleId === null) return 'All';
+    if (activeCircleId === FEED_FOLLOWING) return 'Following';
+    return activeCircle?.name || 'Select Feed';
+  };
+
+  const getDisplayEmoji = () => {
+    if (activeCircleId === FEED_ALL || activeCircleId === null) return '🌐';
+    if (activeCircleId === FEED_FOLLOWING) return '👥';
+    return activeCircle?.emoji || '👥';
+  };
 
   const handleCircleSelect = (circleId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -72,7 +89,7 @@ export const CircleSelector: React.FC<CircleSelectorProps> = ({
           }}
         >
           <Text style={styles.compactText} numberOfLines={1}>
-            {activeCircle?.emoji || '👥'} {activeCircle?.name || 'Select Circle'}
+            {getDisplayEmoji()} {getDisplayName()}
           </Text>
           <ChevronDown size={16} color="#FFD700" />
         </Pressable>
@@ -101,7 +118,7 @@ export const CircleSelector: React.FC<CircleSelectorProps> = ({
         }}
       >
         <Text style={styles.triggerName} numberOfLines={1}>
-          {activeCircle?.name || 'Select Circle'}
+          {getDisplayName()}
         </Text>
         <ChevronDown size={14} color="rgba(255,255,255,0.4)" />
       </Pressable>
@@ -176,6 +193,68 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
             contentContainerStyle={styles.sheetContentContainer}
             showsVerticalScrollIndicator={false}
           >
+            {/* All and Following options */}
+            <Animated.View entering={FadeIn.delay(0)}>
+              <Pressable
+                style={[styles.circleItem, (activeCircleId === FEED_ALL || activeCircleId === null) && styles.circleItemActive]}
+                onPress={() => onCircleSelect(FEED_ALL)}
+              >
+                {(activeCircleId === FEED_ALL || activeCircleId === null) && (
+                  <LinearGradient
+                    colors={['rgba(255,215,0,0.15)', 'rgba(255,215,0,0.05)']}
+                    style={StyleSheet.absoluteFillObject}
+                  />
+                )}
+                <View style={styles.circleItemContent}>
+                  <View style={styles.circleItemLeft}>
+                    <Text style={styles.circleEmoji}>🌐</Text>
+                    <View style={styles.circleInfo}>
+                      <Text style={styles.circleName}>All</Text>
+                      <Text style={styles.circleMeta}>Posts from all circles & following</Text>
+                    </View>
+                  </View>
+                  {(activeCircleId === FEED_ALL || activeCircleId === null) && (
+                    <View style={styles.checkContainer}>
+                      <Check size={20} color="#FFD700" strokeWidth={3} />
+                    </View>
+                  )}
+                </View>
+              </Pressable>
+            </Animated.View>
+
+            <Animated.View entering={FadeIn.delay(50)}>
+              <Pressable
+                style={[styles.circleItem, activeCircleId === FEED_FOLLOWING && styles.circleItemActive]}
+                onPress={() => onCircleSelect(FEED_FOLLOWING)}
+              >
+                {activeCircleId === FEED_FOLLOWING && (
+                  <LinearGradient
+                    colors={['rgba(255,215,0,0.15)', 'rgba(255,215,0,0.05)']}
+                    style={StyleSheet.absoluteFillObject}
+                  />
+                )}
+                <View style={styles.circleItemContent}>
+                  <View style={styles.circleItemLeft}>
+                    <Text style={styles.circleEmoji}>👥</Text>
+                    <View style={styles.circleInfo}>
+                      <Text style={styles.circleName}>Following</Text>
+                      <Text style={styles.circleMeta}>Posts from people you follow</Text>
+                    </View>
+                  </View>
+                  {activeCircleId === FEED_FOLLOWING && (
+                    <View style={styles.checkContainer}>
+                      <Check size={20} color="#FFD700" strokeWidth={3} />
+                    </View>
+                  )}
+                </View>
+              </Pressable>
+            </Animated.View>
+
+            {/* Divider */}
+            <View style={styles.sectionDivider}>
+              <Text style={styles.sectionLabel}>YOUR CIRCLES</Text>
+            </View>
+
             {loading ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#FFD700" />
@@ -199,7 +278,7 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
                 return (
                   <Animated.View
                     key={circle.id}
-                    entering={FadeIn.delay(index * 50)}
+                    entering={FadeIn.delay((index + 2) * 50)}
                   >
                     <Pressable
                       style={[styles.circleItem, isActive && styles.circleItemActive]}
@@ -450,5 +529,18 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.5)',
+  },
+  sectionDivider: {
+    marginTop: 16,
+    marginBottom: 12,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.4)',
+    letterSpacing: 1.5,
   },
 });

@@ -117,7 +117,7 @@ export type SocialSlice = {
   fetchFeeds: (refresh?: boolean) => Promise<void>;
   loadMoreFeeds: (type: 'circle' | 'follow') => Promise<void>;
   // NEW: Unified feed actions
-  fetchUnifiedFeed: (refresh?: boolean) => Promise<void>;
+  fetchUnifiedFeed: (refresh?: boolean, filter?: string) => Promise<void>;
   loadMoreUnifiedFeed: () => Promise<void>;
   react: (id:string, emoji:string, which:Visibility) => Promise<void>;
   toggleLike: (postId: string, which: Visibility) => Promise<void>;
@@ -449,8 +449,8 @@ export const createSocialSlice: StateCreator<
   },
 
   // NEW: Unified feed (circle + following combined)
-  fetchUnifiedFeed: async (refresh = false) => {
-    if (__DEV__) console.log('🔵 [STORE] fetchUnifiedFeed called, refresh:', refresh);
+  fetchUnifiedFeed: async (refresh = false, filter?: string) => {
+    if (__DEV__) console.log('🔵 [STORE] fetchUnifiedFeed called, refresh:', refresh, 'filter:', filter);
     set({ feedLoading: true, feedError: null });
 
     if (refresh) {
@@ -460,9 +460,10 @@ export const createSocialSlice: StateCreator<
     try {
       const currentUser = get().user;
       const currentUserId = currentUser?.id;
-      const activeCircleId = (get() as any).activeCircleId;
+      // Use provided filter, or fall back to activeCircleId for backward compatibility
+      const feedFilter = filter !== undefined ? filter : (get() as any).activeCircleId;
 
-      const response = await backendService.getUnifiedFeed(10, 0, activeCircleId);
+      const response = await backendService.getUnifiedFeed(10, 0, feedFilter);
 
       if (response.success) {
         const transformPost = (post: any): Post => {

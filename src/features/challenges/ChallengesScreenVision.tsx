@@ -614,21 +614,6 @@ export const ChallengesScreenVision = () => {
           )}
         </View>
       </ScrollView>
-
-      {/* Bottom CTA */}
-      <View style={[styles.bottomCTA, { bottom: insets.bottom + 20 }]}>
-        <Text style={styles.ctaText}>Can't find the perfect challenge?</Text>
-        <Pressable
-          style={styles.ctaButton}
-          onPress={() => {
-            console.log('Create custom challenge - Coming soon!');
-            // TODO: Navigate to create challenge screen
-          }}
-        >
-          <LinearGradient colors={['#FFD700', '#FFA500']} style={StyleSheet.absoluteFillObject} />
-          <Text style={styles.ctaButtonText}>Create Your Own Challenge ✨</Text>
-        </Pressable>
-      </View>
     </View>
   );
 };
@@ -1085,40 +1070,6 @@ const styles = StyleSheet.create({
   participantsCount: {
     fontSize: 11,
     color: 'rgba(255,255,255,0.6)',
-  },
-
-  // Bottom CTA
-  bottomCTA: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    backgroundColor: '#000',
-    borderWidth: 1,
-    borderColor: 'rgba(231,180,58,0.3)',
-    borderRadius: 16,
-    padding: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowRadius: 24,
-    shadowOpacity: 0.5,
-  },
-  ctaText: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  ctaButton: {
-    height: 40,
-    borderRadius: 10,
-    overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  ctaButtonText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#000',
   },
 
   // Detail View Styles

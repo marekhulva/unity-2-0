@@ -312,9 +312,13 @@ class BackendService {
     }
   }
 
-  async getUnifiedFeed(limit: number = 10, offset: number = 0, circleId?: string | null) {
+  async getUnifiedFeed(limit: number = 10, offset: number = 0, filter?: string | null) {
     if (isSupabaseBackend()) {
-      const result = await supabaseService.getUnifiedFeed(limit, offset, circleId);
+      // filter can be: '__ALL__', '__FOLLOWING__', or a specific circleId
+      const isSpecialFilter = filter === '__ALL__' || filter === '__FOLLOWING__';
+      const circleId = isSpecialFilter ? null : filter;
+      const filterParam = isSpecialFilter ? filter : undefined;
+      const result = await supabaseService.getUnifiedFeed(limit, offset, circleId, filterParam);
       return { success: true, data: result.posts, hasMore: result.hasMore };
     } else {
       // Fallback to circle feed for non-Supabase backends
