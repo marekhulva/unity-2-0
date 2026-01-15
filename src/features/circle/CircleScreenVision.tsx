@@ -45,7 +45,7 @@ import { ChallengeDetailModal } from '../challenges/ChallengeDetailModal';
 import { CreateChallengeModal } from '../challenges/CreateChallengeModal';
 import { CreateCircleModal } from '../social/CreateCircleModal';
 
-type TabType = 'home' | 'challenges' | 'members' | 'leaderboard';
+type TabType = 'overview' | 'community';
 type ChallengeFilter = 'all' | 'active' | 'upcoming' | 'completed';
 type MemberFilter = 'all' | 'admins' | 'mostActive';
 type LeaderboardPeriod = 'today' | 'week' | 'month' | 'allTime';
@@ -86,7 +86,8 @@ export const CircleScreenVision = () => {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [showJoinCircleModal, setShowJoinCircleModal] = useState(false);
   const [showCreateCircleModal, setShowCreateCircleModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>('home');
+  const [showCircleSwitcher, setShowCircleSwitcher] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(null);
   const [showCreateChallenge, setShowCreateChallenge] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -292,7 +293,13 @@ export const CircleScreenVision = () => {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.stickyHeader}>
         <View style={styles.headerTop}>
-          <View style={styles.circleTitle}>
+          <Pressable
+            style={styles.circleSelectorButton}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setShowCircleSwitcher(true);
+            }}
+          >
             <View style={[styles.circleIconSmall, { backgroundColor: 'transparent' }]}>
               <LinearGradient
                 colors={['#E7B43A', '#FFD700']}
@@ -300,14 +307,19 @@ export const CircleScreenVision = () => {
               />
               <Text style={styles.circleIconSmallText}>{activeCircle?.emoji || '💪'}</Text>
             </View>
-            <Text style={styles.circleName}>{activeCircle?.name || 'Circle'}</Text>
-          </View>
+            <View style={styles.circleTitleInfo}>
+              <Text style={styles.circleName}>{activeCircle?.name || 'Circle'}</Text>
+              <Text style={styles.circleMemberCount}>{activeCircle?.member_count || 0} members</Text>
+            </View>
+            <ChevronDown size={20} color="#E7B43A" />
+          </Pressable>
           <View style={styles.headerActions}>
             <Pressable
               style={styles.headerBtn}
               onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
                 if (__DEV__) console.log('Invite members - show invite code:', activeCircle?.invite_code || activeCircle?.join_code);
+                alert('🚧 Coming Soon\n\nInvite functionality is being built. Stay tuned!');
               }}
             >
               <UserPlus size={18} color="#E7B43A" />
@@ -324,57 +336,30 @@ export const CircleScreenVision = () => {
           </View>
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.tabNav}
-          contentContainerStyle={styles.tabNavContent}
-        >
+        <View style={styles.tabBar}>
           <Pressable
-            style={[styles.tabItem, activeTab === 'home' && styles.tabItemActive]}
+            style={[styles.tab, activeTab === 'overview' && styles.tabActive]}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setActiveTab('home');
+              setActiveTab('overview');
             }}
           >
-            <Text style={[styles.tabItemText, activeTab === 'home' && styles.tabItemTextActive]}>
-              Home
+            <Text style={[styles.tabText, activeTab === 'overview' && styles.tabTextActive]}>
+              Overview
             </Text>
           </Pressable>
           <Pressable
-            style={[styles.tabItem, activeTab === 'challenges' && styles.tabItemActive]}
+            style={[styles.tab, activeTab === 'community' && styles.tabActive]}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setActiveTab('challenges');
+              setActiveTab('community');
             }}
           >
-            <Text style={[styles.tabItemText, activeTab === 'challenges' && styles.tabItemTextActive]}>
-              Challenges
+            <Text style={[styles.tabText, activeTab === 'community' && styles.tabTextActive]}>
+              Community
             </Text>
           </Pressable>
-          <Pressable
-            style={[styles.tabItem, activeTab === 'members' && styles.tabItemActive]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setActiveTab('members');
-            }}
-          >
-            <Text style={[styles.tabItemText, activeTab === 'members' && styles.tabItemTextActive]}>
-              Members
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[styles.tabItem, activeTab === 'leaderboard' && styles.tabItemActive]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setActiveTab('leaderboard');
-            }}
-          >
-            <Text style={[styles.tabItemText, activeTab === 'leaderboard' && styles.tabItemTextActive]}>
-              Leaderboard
-            </Text>
-          </Pressable>
-        </ScrollView>
+        </View>
       </View>
 
       <ScrollView
@@ -382,7 +367,7 @@ export const CircleScreenVision = () => {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
         showsVerticalScrollIndicator={false}
       >
-        {activeTab === 'home' && (
+        {activeTab === 'overview' && (
           <View style={styles.pageContent}>
             <LinearGradient
               colors={['rgba(231,180,58,0.05)', 'transparent']}
@@ -471,12 +456,45 @@ export const CircleScreenVision = () => {
               )}
             </View>
 
+            {membersWithStats.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>🏆 Top Contributors</Text>
+                  <Pressable onPress={() => setActiveTab('community')}>
+                    <Text style={styles.sectionLink}>View Full Leaderboard →</Text>
+                  </Pressable>
+                </View>
+                <View style={styles.podium}>
+                  {sortedLeaderboard.slice(0, 3).map((member, index) => {
+                    const displayName = member.profiles?.username || member.profiles?.name || 'User';
+                    const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+                    return (
+                      <Pressable
+                        key={member.user_id}
+                        style={[styles.podiumPlace, index === 0 && styles.podiumFirst]}
+                        onPress={() => handleMemberPress(member.user_id)}
+                      >
+                        <Text style={styles.podiumMedal}>{medal}</Text>
+                        <View style={[styles.podiumAvatar, index === 0 && styles.podiumAvatarFirst]}>
+                          <Text style={styles.podiumAvatarText}>
+                            {displayName.substring(0, 2).toUpperCase()}
+                          </Text>
+                        </View>
+                        <Text style={styles.podiumName} numberOfLines={1}>{displayName}</Text>
+                        <Text style={styles.podiumPoints}>{member.points} pts</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
             {circleChallenges.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Active Challenges</Text>
-                  <Pressable onPress={() => setActiveTab('challenges')}>
-                    <Text style={styles.sectionLink}>View All →</Text>
+                  <Text style={styles.sectionTitle}>🎯 Active Challenges</Text>
+                  <Pressable onPress={() => setActiveTab('community')}>
+                    <Text style={styles.sectionLink}>See All →</Text>
                   </Pressable>
                 </View>
                 {circleChallenges.slice(0, 3).map((challenge, index) => (
@@ -510,8 +528,8 @@ export const CircleScreenVision = () => {
             {membersWithStats.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Members</Text>
-                  <Pressable onPress={() => setActiveTab('members')}>
+                  <Text style={styles.sectionTitle}>👥 Members</Text>
+                  <Pressable onPress={() => setActiveTab('community')}>
                     <Text style={styles.sectionLink}>View All ({membersWithStats.length}) →</Text>
                   </Pressable>
                 </View>
@@ -545,72 +563,113 @@ export const CircleScreenVision = () => {
           </View>
         )}
 
-        {activeTab === 'challenges' && (
+        {activeTab === 'community' && (
           <View style={styles.pageContent}>
+            {/* Full Leaderboard Section */}
             <View style={styles.section}>
+              <Text style={styles.sectionTitle}>🏆 Leaderboard</Text>
+
+              {/* Period Filter Pills */}
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 style={styles.filterPills}
                 contentContainerStyle={styles.filterPillsContent}
               >
-                <Pressable
-                  style={[styles.filterPill, challengeFilter === 'all' && styles.filterPillActive]}
-                  onPress={() => setChallengeFilter('all')}
-                >
-                  <Text style={[styles.filterPillText, challengeFilter === 'all' && styles.filterPillTextActive]}>
-                    All
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.filterPill, challengeFilter === 'active' && styles.filterPillActive]}
-                  onPress={() => setChallengeFilter('active')}
-                >
-                  <Text style={[styles.filterPillText, challengeFilter === 'active' && styles.filterPillTextActive]}>
-                    Active
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.filterPill, challengeFilter === 'upcoming' && styles.filterPillActive]}
-                  onPress={() => setChallengeFilter('upcoming')}
-                >
-                  <Text style={[styles.filterPillText, challengeFilter === 'upcoming' && styles.filterPillTextActive]}>
-                    Upcoming
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.filterPill, challengeFilter === 'completed' && styles.filterPillActive]}
-                  onPress={() => setChallengeFilter('completed')}
-                >
-                  <Text style={[styles.filterPillText, challengeFilter === 'completed' && styles.filterPillTextActive]}>
-                    Completed
-                  </Text>
-                </Pressable>
+                {(['today', 'week', 'month', 'allTime'] as LeaderboardPeriod[]).map(period => (
+                  <Pressable
+                    key={period}
+                    style={[styles.filterPill, leaderboardPeriod === period && styles.filterPillActive]}
+                    onPress={() => setLeaderboardPeriod(period)}
+                  >
+                    <Text style={[styles.filterPillText, leaderboardPeriod === period && styles.filterPillTextActive]}>
+                      {period === 'today' ? 'Today' : period === 'week' ? 'This Week' : period === 'month' ? 'This Month' : 'All Time'}
+                    </Text>
+                  </Pressable>
+                ))}
               </ScrollView>
+
+              {/* Coming Soon Banner for period filtering */}
+              {leaderboardPeriod !== 'allTime' && (
+                <View style={styles.comingSoonBanner}>
+                  <Text style={styles.comingSoonText}>
+                    🚧 {leaderboardPeriod === 'today' ? 'Today' : leaderboardPeriod === 'week' ? 'Weekly' : 'Monthly'} filtering coming soon - showing all time for now
+                  </Text>
+                </View>
+              )}
+
+              {/* Full Rankings */}
+              {isLoading ? (
+                <ActivityIndicator size="large" color="#E7B43A" style={{ marginVertical: 40 }} />
+              ) : sortedLeaderboard.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Trophy size={48} color="rgba(231,180,58,0.3)" />
+                  <Text style={styles.emptyText}>No rankings yet</Text>
+                </View>
+              ) : (
+                sortedLeaderboard.map((member, index) => {
+                  const displayName = member.profiles?.username || member.profiles?.name || 'User';
+                  const isCurrentUser = member.user_id === user?.id;
+                  return (
+                    <Pressable
+                      key={member.user_id}
+                      style={[styles.rankingItem, isCurrentUser && styles.rankingItemHighlight]}
+                      onPress={() => handleMemberPress(member.user_id)}
+                    >
+                      <View style={styles.rankNumber}>
+                        <Text style={styles.rankNumberText}>{index + 1}</Text>
+                      </View>
+                      <View style={styles.rankingAvatar}>
+                        <Text style={styles.rankingAvatarText}>
+                          {displayName.substring(0, 2).toUpperCase()}
+                        </Text>
+                      </View>
+                      <View style={styles.rankingInfo}>
+                        <Text style={[styles.memberName, isCurrentUser && styles.memberNameHighlight]}>
+                          {isCurrentUser ? `You (${displayName})` : displayName}
+                        </Text>
+                        <Text style={styles.memberStats}>
+                          {member.consistencyPercentage}% consistency
+                        </Text>
+                      </View>
+                      <Text style={styles.rankingPoints}>{member.points}</Text>
+                    </Pressable>
+                  );
+                })
+              )}
             </View>
 
+            {/* All Challenges Section */}
             <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Active Now</Text>
-                <Text style={styles.sectionCount}>{filteredChallenges.length} challenges</Text>
-              </View>
+              <Text style={styles.sectionTitle}>🎯 All Challenges</Text>
+
+              {/* Challenge Filter Pills */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.filterPills}
+                contentContainerStyle={styles.filterPillsContent}
+              >
+                {(['all', 'active', 'upcoming', 'completed'] as ChallengeFilter[]).map(filter => (
+                  <Pressable
+                    key={filter}
+                    style={[styles.filterPill, challengeFilter === filter && styles.filterPillActive]}
+                    onPress={() => setChallengeFilter(filter)}
+                  >
+                    <Text style={[styles.filterPillText, challengeFilter === filter && styles.filterPillTextActive]}>
+                      {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+
+              {/* Challenge Cards */}
               {challengesLoading ? (
                 <ActivityIndicator size="large" color="#E7B43A" style={{ marginVertical: 40 }} />
               ) : filteredChallenges.length === 0 ? (
-                <View style={styles.emptyActivity}>
-                  <Trophy size={48} color="rgba(231,180,58,0.3)" />
-                  <Text style={styles.emptyActivityText}>No challenges found</Text>
-                  <Pressable
-                    style={styles.createChallengeButton}
-                    onPress={() => setShowCreateChallenge(true)}
-                  >
-                    <LinearGradient
-                      colors={['#E7B43A', '#FFD700']}
-                      style={StyleSheet.absoluteFillObject}
-                    />
-                    <Plus size={20} color="#000" />
-                    <Text style={styles.btnText}>Create Challenge</Text>
-                  </Pressable>
+                <View style={styles.emptyState}>
+                  <Target size={48} color="rgba(231,180,58,0.3)" />
+                  <Text style={styles.emptyText}>No challenges found</Text>
                 </View>
               ) : (
                 filteredChallenges.map((challenge, index) => (
@@ -620,45 +679,24 @@ export const CircleScreenVision = () => {
                   >
                     <Pressable
                       style={styles.challengeCard}
-                      onPress={() => setSelectedChallengeId(challenge.id)}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setSelectedChallengeId(challenge.id);
+                      }}
                     >
-                      <View style={[styles.challengeImage, { backgroundColor: 'transparent' }]}>
-                        <LinearGradient
-                          colors={['#667eea', '#764ba2']}
-                          style={StyleSheet.absoluteFillObject}
-                        />
-                        <View style={styles.challengeBadge}>
-                          <Text style={styles.challengeBadgeText}>
-                            🔥 {challenge.duration_days} days left
-                          </Text>
+                      <View style={styles.challengeCardContent}>
+                        <View style={[styles.challengeIcon, { backgroundColor: 'transparent' }]}>
+                          <LinearGradient
+                            colors={['#4facfe', '#00f2fe']}
+                            style={StyleSheet.absoluteFillObject}
+                          />
+                          <Text style={styles.challengeIconText}>{challenge.emoji || '🎯'}</Text>
                         </View>
-                        <LinearGradient
-                          colors={['transparent', 'rgba(0,0,0,0.9)']}
-                          style={styles.challengeOverlay}
-                        >
+                        <View style={styles.challengeContent}>
                           <Text style={styles.challengeTitle}>{challenge.name}</Text>
-                          <Text style={styles.challengeCreator}>
-                            Created by {challenge.created_by_name || 'Circle'}
+                          <Text style={styles.challengeMeta}>
+                            {challenge.duration_days} days • {challenge.participant_count || 0} participants
                           </Text>
-                        </LinearGradient>
-                      </View>
-                      <View style={styles.challengeInfo}>
-                        <Text style={styles.challengeDescription}>
-                          {challenge.description || 'No description provided'}
-                        </Text>
-                        <View style={styles.challengeStats}>
-                          <View style={styles.statItem}>
-                            <Users size={14} color="#E7B43A" />
-                            <Text style={styles.statItemText}>
-                              <Text style={styles.statItemValue}>{challenge.participant_count || 0}</Text> joined
-                            </Text>
-                          </View>
-                          <View style={styles.statItem}>
-                            <Trophy size={14} color="#E7B43A" />
-                            <Text style={styles.statItemText}>
-                              <Text style={styles.statItemValue}>500</Text> pts
-                            </Text>
-                          </View>
                         </View>
                       </View>
                     </Pressable>
@@ -666,294 +704,86 @@ export const CircleScreenVision = () => {
                 ))
               )}
             </View>
-          </View>
-        )}
 
-        {activeTab === 'members' && (
-          <View style={styles.pageContent}>
+            {/* All Members Section */}
             <View style={styles.section}>
+              <Text style={styles.sectionTitle}>👥 Members ({circleMembers.length})</Text>
+
+              {/* Search Bar */}
               <View style={styles.searchContainer}>
-                <Search size={16} color="rgba(255,255,255,0.4)" style={styles.searchIcon} />
+                <Search size={18} color="rgba(255,255,255,0.4)" />
                 <TextInput
-                  style={styles.searchBar}
+                  style={styles.searchInput}
                   placeholder="Search members..."
                   placeholderTextColor="rgba(255,255,255,0.4)"
                   value={memberSearch}
                   onChangeText={setMemberSearch}
                 />
               </View>
+
+              {/* Member Filter Pills */}
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 style={styles.filterPills}
                 contentContainerStyle={styles.filterPillsContent}
               >
-                <Pressable
-                  style={[styles.filterPill, memberFilter === 'all' && styles.filterPillActive]}
-                  onPress={() => setMemberFilter('all')}
-                >
-                  <Text style={[styles.filterPillText, memberFilter === 'all' && styles.filterPillTextActive]}>
-                    All
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.filterPill, memberFilter === 'admins' && styles.filterPillActive]}
-                  onPress={() => setMemberFilter('admins')}
-                >
-                  <Text style={[styles.filterPillText, memberFilter === 'admins' && styles.filterPillTextActive]}>
-                    Admins
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.filterPill, memberFilter === 'mostActive' && styles.filterPillActive]}
-                  onPress={() => setMemberFilter('mostActive')}
-                >
-                  <Text style={[styles.filterPillText, memberFilter === 'mostActive' && styles.filterPillTextActive]}>
-                    Most Active
-                  </Text>
-                </Pressable>
-              </ScrollView>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Top Contributors</Text>
-              {sortedLeaderboard.slice(0, 3).map((member, index) => {
-                const displayName = member.profiles?.username || member.profiles?.name || 'User';
-                const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
-                return (
+                {(['all', 'admins', 'mostActive'] as MemberFilter[]).map(filter => (
                   <Pressable
-                    key={member.user_id}
-                    style={styles.leaderboardItem}
-                    onPress={() => handleMemberPress(member.user_id)}
+                    key={filter}
+                    style={[styles.filterPill, memberFilter === filter && styles.filterPillActive]}
+                    onPress={() => setMemberFilter(filter)}
                   >
-                    <View style={[styles.rankBadgeTop, { backgroundColor: 'transparent' }]}>
-                      <LinearGradient
-                        colors={index === 0 ? ['#FFD700', '#FFA500'] : ['rgba(231,180,58,0.3)', 'rgba(231,180,58,0.1)']}
-                        style={StyleSheet.absoluteFillObject}
-                      />
-                      <Text style={styles.rankBadgeTopText}>{rankEmoji}</Text>
-                    </View>
-                    <View style={styles.memberAvatar}>
-                      <Text style={styles.memberAvatarText}>
-                        {displayName.substring(0, 2).toUpperCase()}
-                      </Text>
-                    </View>
-                    <View style={styles.memberInfo}>
-                      <Text style={styles.memberName}>{displayName}</Text>
-                      <Text style={styles.memberStats}>
-                        {member.consistencyPercentage}% consistency
-                      </Text>
-                    </View>
-                    <View style={styles.pointsBadge}>
-                      <Text style={styles.pointsBadgeText}>{member.points} pts</Text>
-                    </View>
+                    <Text style={[styles.filterPillText, memberFilter === filter && styles.filterPillTextActive]}>
+                      {filter === 'all' ? 'All' : filter === 'admins' ? 'Admins' : 'Most Active'}
+                    </Text>
                   </Pressable>
-                );
-              })}
-            </View>
+                ))}
+              </ScrollView>
 
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>All Members</Text>
-                <Text style={styles.sectionCount}>{filteredMembers.length} total</Text>
-              </View>
-              {filteredMembers.map((member, index) => {
-                const displayName = member.profiles?.username || member.profiles?.name || 'User';
-                const isAdmin = member.role === 'admin';
-                const isCurrentUser = member.user_id === user?.id;
-                return (
-                  <Pressable
-                    key={member.user_id}
-                    style={styles.memberItem}
-                    onPress={() => handleMemberPress(member.user_id)}
-                  >
-                    <View style={styles.memberAvatar}>
-                      <Text style={styles.memberAvatarText}>
-                        {displayName.substring(0, 2).toUpperCase()}
-                      </Text>
-                    </View>
-                    <View style={styles.memberInfo}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        {isAdmin && (
-                          <View style={styles.memberRoleBadge}>
-                            <Text style={styles.memberRoleBadgeText}>Admin</Text>
-                          </View>
-                        )}
-                        <Text style={styles.memberName}>
-                          {displayName} {isCurrentUser && '(You)'}
+              {/* Member List */}
+              {isLoading ? (
+                <ActivityIndicator size="large" color="#E7B43A" style={{ marginVertical: 40 }} />
+              ) : filteredMembers.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Users size={48} color="rgba(231,180,58,0.3)" />
+                  <Text style={styles.emptyText}>No members found</Text>
+                </View>
+              ) : (
+                filteredMembers.map((member, index) => {
+                  const displayName = member.profiles?.username || member.profiles?.name || 'Unknown';
+                  const isAdmin = member.role === 'admin';
+                  const isCurrentUser = member.user_id === user?.id;
+                  return (
+                    <Pressable
+                      key={member.user_id}
+                      style={styles.memberItem}
+                      onPress={() => handleMemberPress(member.user_id)}
+                    >
+                      <View style={styles.memberAvatar}>
+                        <Text style={styles.memberAvatarText}>
+                          {displayName.substring(0, 2).toUpperCase()}
                         </Text>
                       </View>
-                      <Text style={styles.memberStats}>
-                        Joined {new Date(member.joined_at || member.created_at).toLocaleDateString()} • {member.points} points
-                      </Text>
-                    </View>
-                    <Text style={styles.memberAction}>›</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        )}
-
-        {activeTab === 'leaderboard' && (() => {
-          if (__DEV__) console.log('🔍 [LEADERBOARD] Rendering leaderboard, sortedLeaderboard length:', sortedLeaderboard.length, sortedLeaderboard.map(m => ({ name: m.profiles?.username || m.profiles?.name, points: m.points })));
-          return null;
-        })()}
-        {activeTab === 'leaderboard' && (
-          <View style={styles.pageContent}>
-            <View style={styles.section}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.filterPills}
-                contentContainerStyle={styles.filterPillsContent}
-              >
-                <Pressable
-                  style={[styles.filterPill, leaderboardPeriod === 'today' && styles.filterPillActive]}
-                  onPress={() => setLeaderboardPeriod('today')}
-                >
-                  <Text style={[styles.filterPillText, leaderboardPeriod === 'today' && styles.filterPillTextActive]}>
-                    Today
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.filterPill, leaderboardPeriod === 'week' && styles.filterPillActive]}
-                  onPress={() => setLeaderboardPeriod('week')}
-                >
-                  <Text style={[styles.filterPillText, leaderboardPeriod === 'week' && styles.filterPillTextActive]}>
-                    This Week
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.filterPill, leaderboardPeriod === 'month' && styles.filterPillActive]}
-                  onPress={() => setLeaderboardPeriod('month')}
-                >
-                  <Text style={[styles.filterPillText, leaderboardPeriod === 'month' && styles.filterPillTextActive]}>
-                    This Month
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.filterPill, leaderboardPeriod === 'allTime' && styles.filterPillActive]}
-                  onPress={() => setLeaderboardPeriod('allTime')}
-                >
-                  <Text style={[styles.filterPillText, leaderboardPeriod === 'allTime' && styles.filterPillTextActive]}>
-                    All Time
-                  </Text>
-                </Pressable>
-              </ScrollView>
-            </View>
-
-            <LinearGradient
-              colors={['rgba(231,180,58,0.03)', 'transparent']}
-              style={styles.podiumSection}
-            >
-              <View style={styles.podium}>
-                {sortedLeaderboard[1] && (
-                  <Pressable
-                    style={[styles.podiumPlace, styles.podiumSecond]}
-                    onPress={() => handleMemberPress(sortedLeaderboard[1].user_id)}
-                  >
-                    <View style={styles.podiumAvatar}>
-                      <Text style={styles.podiumAvatarText}>
-                        {(sortedLeaderboard[1].profiles?.username || sortedLeaderboard[1].profiles?.name || 'U').substring(0, 2).toUpperCase()}
-                      </Text>
-                    </View>
-                    <Text style={styles.podiumRank}>🥈</Text>
-                    <Text style={styles.podiumName}>
-                      {(sortedLeaderboard[1].profiles?.username || sortedLeaderboard[1].profiles?.name || 'User').split(' ')[0]}
-                    </Text>
-                    <Text style={styles.podiumPoints}>{sortedLeaderboard[1].points} pts</Text>
-                  </Pressable>
-                )}
-                {sortedLeaderboard[0] && (
-                  <Pressable
-                    style={[styles.podiumPlace, styles.podiumFirst]}
-                    onPress={() => handleMemberPress(sortedLeaderboard[0].user_id)}
-                  >
-                    <Text style={styles.crown}>👑</Text>
-                    <View style={[styles.podiumAvatar, styles.podiumAvatarFirst]}>
-                      <Text style={styles.podiumAvatarText}>
-                        {(sortedLeaderboard[0].profiles?.username || sortedLeaderboard[0].profiles?.name || 'U').substring(0, 2).toUpperCase()}
-                      </Text>
-                    </View>
-                    <Text style={styles.podiumRank}>🥇</Text>
-                    <Text style={styles.podiumName}>
-                      {(sortedLeaderboard[0].profiles?.username || sortedLeaderboard[0].profiles?.name || 'User').split(' ')[0]}
-                    </Text>
-                    <Text style={styles.podiumPoints}>{sortedLeaderboard[0].points} pts</Text>
-                  </Pressable>
-                )}
-                {sortedLeaderboard[2] && (
-                  <Pressable
-                    style={[styles.podiumPlace, styles.podiumThird]}
-                    onPress={() => handleMemberPress(sortedLeaderboard[2].user_id)}
-                  >
-                    <View style={styles.podiumAvatar}>
-                      <Text style={styles.podiumAvatarText}>
-                        {(sortedLeaderboard[2].profiles?.username || sortedLeaderboard[2].profiles?.name || 'U').substring(0, 2).toUpperCase()}
-                      </Text>
-                    </View>
-                    <Text style={styles.podiumRank}>🥉</Text>
-                    <Text style={styles.podiumName}>
-                      {(sortedLeaderboard[2].profiles?.username || sortedLeaderboard[2].profiles?.name || 'User').split(' ')[0]}
-                    </Text>
-                    <Text style={styles.podiumPoints}>{sortedLeaderboard[2].points} pts</Text>
-                  </Pressable>
-                )}
-              </View>
-
-              <View style={styles.statsGrid}>
-                <View style={styles.statCard}>
-                  <Text style={styles.statCardValue}>
-                    #{sortedLeaderboard.findIndex(m => m.user_id === user?.id) + 1}
-                  </Text>
-                  <Text style={styles.statLabel}>Your Rank</Text>
-                </View>
-                <View style={styles.statCard}>
-                  <Text style={styles.statCardValue}>
-                    {sortedLeaderboard.find(m => m.user_id === user?.id)?.points || 0}
-                  </Text>
-                  <Text style={styles.statLabel}>Points</Text>
-                </View>
-                <View style={styles.statCard}>
-                  <Text style={styles.statCardValue}>+142</Text>
-                  <Text style={styles.statLabel}>This Week</Text>
-                </View>
-              </View>
-            </LinearGradient>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Full Rankings</Text>
-              {sortedLeaderboard.slice(3).map((member, index) => {
-                const actualIndex = index + 4;
-                const displayName = member.profiles?.username || member.profiles?.name || 'User';
-                const isCurrentUser = member.user_id === user?.id;
-                return (
-                  <Pressable
-                    key={member.user_id}
-                    style={[styles.rankingItem, isCurrentUser && styles.rankingItemCurrent]}
-                    onPress={() => handleMemberPress(member.user_id)}
-                  >
-                    <View style={styles.rankNumber}>
-                      <Text style={styles.rankNumberText}>{actualIndex}</Text>
-                    </View>
-                    <View style={styles.memberAvatar}>
-                      <Text style={styles.memberAvatarText}>
-                        {displayName.substring(0, 2).toUpperCase()}
-                      </Text>
-                    </View>
-                    <View style={styles.memberInfo}>
-                      <Text style={styles.memberName}>
-                        {isCurrentUser ? `You (${displayName})` : displayName}
-                      </Text>
-                      <Text style={styles.memberStats}>
-                        {member.consistencyPercentage}% consistency
-                      </Text>
-                    </View>
-                    <Text style={styles.rankingPoints}>{member.points}</Text>
-                  </Pressable>
-                );
-              })}
+                      <View style={styles.memberInfo}>
+                        <View style={styles.memberNameRow}>
+                          <Text style={styles.memberName}>
+                            {isCurrentUser ? `You (${displayName})` : displayName}
+                          </Text>
+                          {isAdmin && (
+                            <View style={styles.adminBadge}>
+                              <Text style={styles.adminBadgeText}>Admin</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={styles.memberStats}>
+                          Joined {new Date(member.joined_at || member.created_at).toLocaleDateString()} • {member.points || 0} pts
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                })
+              )}
             </View>
           </View>
         )}
@@ -998,6 +828,49 @@ export const CircleScreenVision = () => {
           </View>
         </Modal>
       )}
+
+      {/* Circle Switcher Dropdown */}
+      <Modal
+        visible={showCircleSwitcher}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCircleSwitcher(false)}
+      >
+        <Pressable
+          style={styles.dropdownOverlay}
+          onPress={() => setShowCircleSwitcher(false)}
+        >
+          <View style={styles.dropdownMenu}>
+            {userCircles.map(circle => (
+              <Pressable
+                key={circle.id}
+                style={[
+                  styles.dropdownItem,
+                  circle.id === activeCircleId && styles.dropdownItemActive
+                ]}
+                onPress={() => {
+                  if (circle.id !== activeCircleId) {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    setActiveCircle(circle.id);
+                  }
+                  setShowCircleSwitcher(false);
+                }}
+              >
+                <Text style={styles.dropdownEmoji}>{circle.emoji}</Text>
+                <View style={styles.dropdownInfo}>
+                  <Text style={styles.dropdownName}>{circle.name}</Text>
+                  <Text style={styles.dropdownMeta}>
+                    {circle.member_count || 0} members • {circle.active_challenges || 0} challenges
+                  </Text>
+                </View>
+                {circle.id === activeCircleId && (
+                  <Text style={styles.dropdownCheck}>✓</Text>
+                )}
+              </Pressable>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
 
       <ChallengeDetailModal
         visible={!!selectedChallengeId}
@@ -1110,7 +983,11 @@ export const CircleScreenVision = () => {
               <View style={styles.settingsSection}>
                 <Pressable
                   style={[styles.btn, { marginBottom: 12 }]}
-                  onPress={() => setShowSettings(false)}
+                  onPress={() => {
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                    alert('🚧 Coming Soon\n\nSettings save functionality is being implemented. Stay tuned!');
+                    setShowSettings(false);
+                  }}
                 >
                   <LinearGradient
                     colors={['#E7B43A', '#FFD700']}
@@ -1824,80 +1701,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
 
-  podium: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    gap: 15,
-    marginBottom: 20,
-  },
-
-  podiumPlace: {
-    flex: 1,
-    alignItems: 'center',
-  },
-
-  podiumFirst: {
-    order: 2,
-  },
-
-  podiumSecond: {
-    order: 1,
-  },
-
-  podiumThird: {
-    order: 3,
-  },
-
-  podiumAvatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    marginBottom: 10,
-    borderWidth: 3,
-    borderColor: 'rgba(231,180,58,0.3)',
-    overflow: 'hidden',
-    backgroundColor: '#000',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  podiumAvatarFirst: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderColor: '#FFD700',
-  },
-
-  podiumAvatarText: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#E7B43A',
-  },
-
-  crown: {
-    fontSize: 24,
-    marginBottom: 4,
-  },
-
-  podiumRank: {
-    fontSize: 32,
-    marginBottom: 5,
-  },
-
-  podiumName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 4,
-  },
-
-  podiumPoints: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#E7B43A',
-  },
-
   statsGrid: {
     flexDirection: 'row',
     gap: 10,
@@ -2164,5 +1967,188 @@ const styles = StyleSheet.create({
 
   toggleKnobActive: {
     left: 22,
+  },
+
+  circleSelectorButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(231,180,58,0.3)',
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+
+  circleTitleInfo: {
+    flex: 1,
+  },
+
+  circleMemberCount: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 2,
+  },
+
+  dropdownOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-start',
+    paddingTop: 120,
+    paddingHorizontal: 20,
+  },
+
+  dropdownMenu: {
+    backgroundColor: 'rgba(20,20,20,0.98)',
+    borderWidth: 1,
+    borderColor: 'rgba(231,180,58,0.3)',
+    borderRadius: 16,
+    padding: 8,
+    maxHeight: '60%',
+  },
+
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 4,
+  },
+
+  dropdownItemActive: {
+    backgroundColor: 'rgba(231,180,58,0.15)',
+  },
+
+  dropdownEmoji: {
+    fontSize: 28,
+  },
+
+  dropdownInfo: {
+    flex: 1,
+  },
+
+  dropdownName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 2,
+  },
+
+  dropdownMeta: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.6)',
+  },
+
+  dropdownCheck: {
+    fontSize: 20,
+    color: '#E7B43A',
+  },
+
+  tabBar: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+
+  tab: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
+  },
+
+  tabActive: {
+    backgroundColor: 'rgba(231,180,58,0.2)',
+  },
+
+  tabText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.5)',
+  },
+
+  tabTextActive: {
+    color: '#E7B43A',
+  },
+
+  podium: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    gap: 12,
+    paddingVertical: 20,
+  },
+
+  podiumPlace: {
+    alignItems: 'center',
+    flex: 1,
+    maxWidth: 100,
+  },
+
+  podiumFirst: {
+    transform: [{ scale: 1.1 }],
+  },
+
+  podiumMedal: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+
+  podiumAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(231,180,58,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+
+  podiumAvatarFirst: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+
+  podiumAvatarText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#E7B43A',
+  },
+
+  podiumName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+
+  podiumPoints: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+  },
+
+  comingSoonBanner: {
+    backgroundColor: 'rgba(231,180,58,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(231,180,58,0.3)',
+    borderRadius: 12,
+    padding: 12,
+    marginVertical: 8,
+    alignItems: 'center',
+  },
+
+  comingSoonText: {
+    fontSize: 13,
+    color: '#E7B43A',
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
