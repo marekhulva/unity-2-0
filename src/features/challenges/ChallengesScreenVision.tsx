@@ -401,7 +401,7 @@ export const ChallengesScreenVision = () => {
           {(challenge.participant_count || 0) > 0 && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>🏆 Leaderboard</Text>
+                <Text style={styles.sectionTitle}>Leaderboard</Text>
               </View>
               <View style={styles.leaderboardContainer}>
                 <ChallengeLeaderboard
@@ -497,8 +497,7 @@ export const ChallengesScreenVision = () => {
       >
         {/* Header */}
         <View style={[styles.header, { paddingTop: insets.top + 30 }]}>
-          <Text style={styles.title}>🏆 Global Challenges</Text>
-          <Text style={styles.headerSubtitle}>Join thousands pushing their limits</Text>
+          <Text style={styles.title}>GLOBAL CHALLENGES</Text>
 
           {/* Search Bar */}
           <View style={styles.searchContainer}>
@@ -640,15 +639,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#fff',
+    color: '#FFD700',
+    letterSpacing: 3,
     textAlign: 'center',
-    marginBottom: 8,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.6)',
     marginBottom: 20,
-    textAlign: 'center',
   },
 
   // Search Bar
