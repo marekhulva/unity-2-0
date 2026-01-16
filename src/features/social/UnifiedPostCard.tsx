@@ -256,12 +256,12 @@ export const UnifiedPostCard: React.FC<UnifiedPostCardProps> = ({
 };
 
 const styles = StyleSheet.create({
-  // Card container with background and border
+  // Card container with background and border (matches Profile activity cards)
   item: {
-    backgroundColor: 'rgba(255,255,255,0.02)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 8,
+    borderRadius: 24,
     padding: 16,
     marginHorizontal: 8,
     marginBottom: 12,
