@@ -539,7 +539,7 @@ export const ChallengesScreenVision = () => {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>My Active Challenges</Text>
               {activeChallenges.length > 2 && (
-                if (__DEV__) <Pressable onPress={() => console.log('View all active challenges')}>
+                <Pressable onPress={() => { if (__DEV__) console.log('View all active challenges'); }}>
                   <Text style={styles.sectionLink}>View All →</Text>
                 </Pressable>
               )}
@@ -572,7 +572,7 @@ export const ChallengesScreenVision = () => {
               {searchQuery || selectedFilter !== 'All' ? 'Search Results' : 'Most Popular'}
             </Text>
             {!searchQuery && selectedFilter === 'All' && (
-              if (__DEV__) <Pressable onPress={() => console.log('View all challenges')}>
+              <Pressable onPress={() => { if (__DEV__) console.log('View all challenges'); }}>
                 <Text style={styles.sectionLink}>See All →</Text>
               </Pressable>
             )}
