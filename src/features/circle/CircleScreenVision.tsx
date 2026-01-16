@@ -46,7 +46,6 @@ import { CreateChallengeModal } from '../challenges/CreateChallengeModal';
 import { CreateCircleModal } from '../social/CreateCircleModal';
 
 type TabType = 'overview' | 'community';
-type ChallengeFilter = 'all' | 'active' | 'upcoming' | 'completed';
 type MemberFilter = 'all' | 'admins' | 'mostActive';
 type LeaderboardPeriod = 'today' | 'month' | 'allTime';
 
@@ -92,7 +91,6 @@ export const CircleScreenVision = () => {
   const [showCreateChallenge, setShowCreateChallenge] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
-  const [challengeFilter, setChallengeFilter] = useState<ChallengeFilter>('all');
   const [memberFilter, setMemberFilter] = useState<MemberFilter>('all');
   const [memberSearch, setMemberSearch] = useState('');
   const [leaderboardPeriod, setLeaderboardPeriod] = useState<LeaderboardPeriod>('allTime');
@@ -217,14 +215,6 @@ export const CircleScreenVision = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedUserId(userId);
   };
-
-  const filteredChallenges = circleChallenges.filter(challenge => {
-    if (challengeFilter === 'all') return true;
-    if (challengeFilter === 'active') return challenge.status === 'active';
-    if (challengeFilter === 'upcoming') return challenge.status === 'upcoming';
-    if (challengeFilter === 'completed') return challenge.status === 'completed';
-    return true;
-  });
 
   const filteredMembers = membersWithStats.filter(member => {
     const displayName = member.profiles?.username || member.profiles?.name || 'Unknown User';
@@ -645,36 +635,16 @@ export const CircleScreenVision = () => {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>🎯 All Challenges</Text>
 
-              {/* Challenge Filter Pills */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.filterPills}
-                contentContainerStyle={styles.filterPillsContent}
-              >
-                {(['all', 'active', 'upcoming', 'completed'] as ChallengeFilter[]).map(filter => (
-                  <Pressable
-                    key={filter}
-                    style={[styles.filterPill, challengeFilter === filter && styles.filterPillActive]}
-                    onPress={() => setChallengeFilter(filter)}
-                  >
-                    <Text style={[styles.filterPillText, challengeFilter === filter && styles.filterPillTextActive]}>
-                      {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-
               {/* Challenge Cards */}
               {challengesLoading ? (
                 <ActivityIndicator size="large" color="#E7B43A" style={{ marginVertical: 40 }} />
-              ) : filteredChallenges.length === 0 ? (
+              ) : circleChallenges.length === 0 ? (
                 <View style={styles.emptyState}>
                   <Target size={48} color="rgba(231,180,58,0.3)" />
                   <Text style={styles.emptyText}>No challenges found</Text>
                 </View>
               ) : (
-                filteredChallenges.map((challenge, index) => (
+                circleChallenges.map((challenge, index) => (
                   <Animated.View
                     key={challenge.id}
                     entering={FadeInDown.delay(index * 100).springify()}
