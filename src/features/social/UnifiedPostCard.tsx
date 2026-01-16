@@ -256,9 +256,15 @@ export const UnifiedPostCard: React.FC<UnifiedPostCardProps> = ({
 };
 
 const styles = StyleSheet.create({
-  // Flat item - no card container
+  // Card container with background and border
   item: {
-    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 12,
     position: 'relative',
   },
 
@@ -267,7 +273,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 4,
     top: 12,
-    bottom: 28,
+    bottom: 12,
     width: 4,
     shadowColor: '#D4AF37',
     shadowOffset: { width: 0, height: 0 },
@@ -283,11 +289,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
 
-  // Divider line
+  // Divider line (hidden now that we have card borders)
   divider: {
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    marginTop: 16,
+    height: 0,
   },
 
   // Header
