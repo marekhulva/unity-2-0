@@ -48,7 +48,7 @@ import { CreateCircleModal } from '../social/CreateCircleModal';
 type TabType = 'overview' | 'community';
 type ChallengeFilter = 'all' | 'active' | 'upcoming' | 'completed';
 type MemberFilter = 'all' | 'admins' | 'mostActive';
-type LeaderboardPeriod = 'today' | 'week' | 'month' | 'allTime';
+type LeaderboardPeriod = 'today' | 'month' | 'allTime';
 
 interface Post {
   id: string;
@@ -95,7 +95,7 @@ export const CircleScreenVision = () => {
   const [challengeFilter, setChallengeFilter] = useState<ChallengeFilter>('all');
   const [memberFilter, setMemberFilter] = useState<MemberFilter>('all');
   const [memberSearch, setMemberSearch] = useState('');
-  const [leaderboardPeriod, setLeaderboardPeriod] = useState<LeaderboardPeriod>('week');
+  const [leaderboardPeriod, setLeaderboardPeriod] = useState<LeaderboardPeriod>('allTime');
 
   const [circlePosts, setCirclePosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
@@ -578,14 +578,14 @@ export const CircleScreenVision = () => {
                 style={styles.filterPills}
                 contentContainerStyle={styles.filterPillsContent}
               >
-                {(['today', 'week', 'month', 'allTime'] as LeaderboardPeriod[]).map(period => (
+                {(['today', 'month', 'allTime'] as LeaderboardPeriod[]).map(period => (
                   <Pressable
                     key={period}
                     style={[styles.filterPill, leaderboardPeriod === period && styles.filterPillActive]}
                     onPress={() => setLeaderboardPeriod(period)}
                   >
                     <Text style={[styles.filterPillText, leaderboardPeriod === period && styles.filterPillTextActive]}>
-                      {period === 'today' ? 'Today' : period === 'week' ? 'This Week' : period === 'month' ? 'This Month' : 'All Time'}
+                      {period === 'today' ? 'Today' : period === 'month' ? 'This Month' : 'All Time'}
                     </Text>
                   </Pressable>
                 ))}
@@ -595,7 +595,7 @@ export const CircleScreenVision = () => {
               {leaderboardPeriod !== 'allTime' && (
                 <View style={styles.comingSoonBanner}>
                   <Text style={styles.comingSoonText}>
-                    🚧 {leaderboardPeriod === 'today' ? 'Today' : leaderboardPeriod === 'week' ? 'Weekly' : 'Monthly'} filtering coming soon - showing all time for now
+                    🚧 {leaderboardPeriod === 'today' ? 'Today' : 'Monthly'} filtering coming soon - showing all time for now
                   </Text>
                 </View>
               )}
