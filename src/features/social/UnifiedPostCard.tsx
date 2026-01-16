@@ -27,7 +27,7 @@ interface UnifiedPostCardProps {
   onProfilePress?: (userId: string) => void;
 }
 
-export const UnifiedPostCard: React.FC<UnifiedPostCardProps> = ({
+export const UnifiedPostCard: React.FC<UnifiedPostCardProps> = React.memo(({
   post,
   onReact,
   onComment,
@@ -253,7 +253,7 @@ export const UnifiedPostCard: React.FC<UnifiedPostCardProps> = ({
       <View style={styles.divider} />
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   // Card container with background and border (matches Profile activity cards)

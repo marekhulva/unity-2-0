@@ -3,6 +3,7 @@ import {
   View,
   Text,
   ScrollView,
+  FlatList,
   StyleSheet,
   Pressable,
   TextInput,
@@ -172,17 +173,139 @@ export const SocialScreenUnified = () => {
   };
 
   // Render post card - unified design for all post types
-  const renderPost = (post: Post, index: number) => {
+  const renderPost = useCallback(({ item }: { item: Post }) => {
     return (
       <UnifiedPostCard
-        key={post.id}
-        post={post}
+        post={item}
         onReact={(id, emoji) => react(id, emoji, 'circle')}
         onComment={(id, text) => addComment(id, text, 'circle')}
         onProfilePress={(userId) => setSelectedUserId(userId)}
       />
     );
-  };
+  }, [react, addComment]);
+
+  // Render list header with composer and challenges
+  const renderListHeader = useCallback(() => {
+    return (
+      <>
+        {/* Circle Selector */}
+        <View style={styles.circleSelectorContainer}>
+          <CircleSelector
+            circles={userCircles || []}
+            activeCircleId={feedType}
+            onCircleSelect={handleFeedTypeChange}
+            onJoinCircle={() => setShowJoinCircleModal(true)}
+          />
+        </View>
+
+        {/* Composer */}
+        <View style={styles.composer}>
+          <View style={styles.composerHeader}>
+            <View style={styles.composerAvatar}>
+              <Text style={styles.avatarEmoji}>{user?.avatar || '👤'}</Text>
+            </View>
+            <TextInput
+              style={styles.composerInput}
+              placeholder="What did you complete today?"
+              placeholderTextColor="rgba(255,255,255,0.35)"
+              value={postText}
+              onChangeText={setPostText}
+              onFocus={() => setComposerExpanded(true)}
+              multiline
+            />
+          </View>
+
+          {composerExpanded && (
+            <View style={styles.composerActions}>
+              <View style={styles.mediaButtons}>
+                <Pressable style={styles.mediaButton} onPress={pickImage}>
+                  <ImageIcon size={20} color="rgba(255,255,255,0.6)" />
+                </Pressable>
+                <Pressable style={styles.mediaButton}>
+                  <Mic size={20} color="rgba(255,255,255,0.6)" />
+                </Pressable>
+              </View>
+
+              <Pressable
+                style={[styles.postButton, (!postText.trim() && !postPhoto) && styles.postButtonDisabled]}
+                onPress={handlePost}
+                disabled={isPosting || (!postText.trim() && !postPhoto)}
+              >
+                {isPosting ? (
+                  <ActivityIndicator size="small" color="#000" />
+                ) : (
+                  <Send size={18} color="#000" />
+                )}
+              </Pressable>
+            </View>
+          )}
+
+          {postPhoto && (
+            <View style={styles.photoPreview}>
+              <Pressable
+                style={styles.removePhoto}
+                onPress={() => setPostPhoto(null)}
+              >
+                <X size={16} color="#fff" />
+              </Pressable>
+            </View>
+          )}
+        </View>
+
+        {/* Active Challenges - only show when viewing a specific circle */}
+        {feedType && feedType !== FEED_ALL && feedType !== FEED_FOLLOWING && circleChallenges && circleChallenges.length > 0 && (
+          <View style={styles.challengesSection}>
+            <Text style={styles.sectionTitle}>Active Challenges</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {circleChallenges.slice(0, 3).map((challenge: any) => (
+                <Pressable
+                  key={challenge.id}
+                  style={styles.challengeChip}
+                  onPress={() => {
+                    setSelectedChallenge(challenge);
+                    setShowJoinChallengeModal(true);
+                  }}
+                >
+                  <Text style={styles.challengeChipText}>🏆 {challenge.name}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+      </>
+    );
+  }, [userCircles, feedType, user, postText, composerExpanded, postPhoto, isPosting, circleChallenges]);
+
+  // Render list footer with loading states
+  const renderListFooter = useCallback(() => {
+    if (loadingMore) {
+      return (
+        <View style={styles.loadingMore}>
+          <ActivityIndicator color="#FFD700" />
+        </View>
+      );
+    }
+    if (!unifiedHasMore && unifiedFeed.length > 0) {
+      return <Text style={styles.endOfFeed}>You're all caught up!</Text>;
+    }
+    return null;
+  }, [loadingMore, unifiedHasMore, unifiedFeed.length]);
+
+  // Render empty state
+  const renderListEmpty = useCallback(() => {
+    if (feedLoading) {
+      return <FeedSkeleton />;
+    }
+    return (
+      <View style={styles.emptyState}>
+        <Text style={styles.emptyIcon}>📝</Text>
+        <Text style={styles.emptyTitle}>No posts yet</Text>
+        <Text style={styles.emptySubtitle}>
+          Be the first to share your progress!
+        </Text>
+      </View>
+    );
+  }, [feedLoading]);
 
   return (
     <View style={styles.container}>
@@ -218,9 +341,13 @@ export const SocialScreenUnified = () => {
           style={styles.keyboardView}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
+          <FlatList
+            data={unifiedFeed}
+            renderItem={renderPost}
+            keyExtractor={(item) => item.id}
+            ListHeaderComponent={renderListHeader}
+            ListFooterComponent={renderListFooter}
+            ListEmptyComponent={renderListEmpty}
             refreshControl={
               <RefreshControl
                 refreshing={feedLoading}
@@ -229,121 +356,18 @@ export const SocialScreenUnified = () => {
                 colors={['#FFD700']}
               />
             }
-            onScroll={handleScroll}
-            scrollEventThrottle={400}
-          >
-            {/* Circle Selector */}
-            <View style={styles.circleSelectorContainer}>
-              <CircleSelector
-                circles={userCircles || []}
-                activeCircleId={feedType}
-                onCircleSelect={handleFeedTypeChange}
-                onJoinCircle={() => setShowJoinCircleModal(true)}
-              />
-            </View>
-
-            {/* Composer */}
-            <View style={styles.composer}>
-              <View style={styles.composerHeader}>
-                <View style={styles.composerAvatar}>
-                  <Text style={styles.avatarEmoji}>{user?.avatar || '👤'}</Text>
-                </View>
-                <TextInput
-                  style={styles.composerInput}
-                  placeholder="What did you complete today?"
-                  placeholderTextColor="rgba(255,255,255,0.35)"
-                  value={postText}
-                  onChangeText={setPostText}
-                  onFocus={() => setComposerExpanded(true)}
-                  multiline
-                />
-              </View>
-
-              {composerExpanded && (
-                <View style={styles.composerActions}>
-                  <View style={styles.mediaButtons}>
-                    <Pressable style={styles.mediaButton} onPress={pickImage}>
-                      <ImageIcon size={20} color="rgba(255,255,255,0.6)" />
-                    </Pressable>
-                    <Pressable style={styles.mediaButton}>
-                      <Mic size={20} color="rgba(255,255,255,0.6)" />
-                    </Pressable>
-                  </View>
-
-                  <Pressable
-                    style={[styles.postButton, (!postText.trim() && !postPhoto) && styles.postButtonDisabled]}
-                    onPress={handlePost}
-                    disabled={isPosting || (!postText.trim() && !postPhoto)}
-                  >
-                    {isPosting ? (
-                      <ActivityIndicator size="small" color="#000" />
-                    ) : (
-                      <Send size={18} color="#000" />
-                    )}
-                  </Pressable>
-                </View>
-              )}
-
-              {postPhoto && (
-                <View style={styles.photoPreview}>
-                  <Pressable
-                    style={styles.removePhoto}
-                    onPress={() => setPostPhoto(null)}
-                  >
-                    <X size={16} color="#fff" />
-                  </Pressable>
-                </View>
-              )}
-            </View>
-
-            {/* Active Challenges - only show when viewing a specific circle */}
-            {feedType && feedType !== FEED_ALL && feedType !== FEED_FOLLOWING && circleChallenges && circleChallenges.length > 0 && (
-              <View style={styles.challengesSection}>
-                <Text style={styles.sectionTitle}>Active Challenges</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  {circleChallenges.slice(0, 3).map((challenge: any) => (
-                    <Pressable
-                      key={challenge.id}
-                      style={styles.challengeChip}
-                      onPress={() => {
-                        setSelectedChallenge(challenge);
-                        setShowJoinChallengeModal(true);
-                      }}
-                    >
-                      <Text style={styles.challengeChipText}>🏆 {challenge.name}</Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-
-            {/* Feed */}
-            {feedLoading && unifiedFeed.length === 0 ? (
-              <FeedSkeleton />
-            ) : unifiedFeed.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyIcon}>📝</Text>
-                <Text style={styles.emptyTitle}>No posts yet</Text>
-                <Text style={styles.emptySubtitle}>
-                  Be the first to share your progress!
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.feedContainer}>
-                {unifiedFeed.map((post, index) => renderPost(post, index))}
-
-                {loadingMore && (
-                  <View style={styles.loadingMore}>
-                    <ActivityIndicator color="#FFD700" />
-                  </View>
-                )}
-
-                {!unifiedHasMore && unifiedFeed.length > 0 && (
-                  <Text style={styles.endOfFeed}>You're all caught up!</Text>
-                )}
-              </View>
-            )}
-          </ScrollView>
+            onEndReached={() => {
+              if (!loadingMore && unifiedHasMore) {
+                loadMoreUnifiedFeed();
+              }
+            }}
+            onEndReachedThreshold={0.5}
+            contentContainerStyle={styles.scrollContent}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            windowSize={10}
+            initialNumToRender={10}
+          />
         </KeyboardAvoidingView>
 
         {/* Modals */}
