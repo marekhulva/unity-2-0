@@ -78,7 +78,7 @@ export const ProgressScreen = ({ navigation }: any) => {
   useEffect(() => {
     if (navigation) {
       const unsubscribe = navigation.addListener('focus', async () => {
-        console.log('🔄 [PROGRESS] Tab focused, refreshing stats only...');
+        if (__DEV__) console.log('🔄 [PROGRESS] Tab focused, refreshing stats only...');
         // Only refresh completion stats - goals and actions are already up to date from global state
         await fetchCompletionStats();
       });
@@ -146,7 +146,7 @@ export const ProgressScreen = ({ navigation }: any) => {
 
         const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-        console.log('📊 [Progress] Weekly Consistency Calculated:', {
+        if (__DEV__) console.log('📊 [Progress] Weekly Consistency Calculated:', {
           userId: user.id,
           userEmail: user.email,
           totalTasks,
@@ -167,7 +167,7 @@ export const ProgressScreen = ({ navigation }: any) => {
           percentage
         });
       } catch (error) {
-        console.error('Error fetching weekly consistency:', error);
+        if (__DEV__) console.error('Error fetching weekly consistency:', error);
         // Fallback to today's data
         setWeeklyStats({
           completed: completedToday,
@@ -332,17 +332,17 @@ export const ProgressScreen = ({ navigation }: any) => {
       const goalStatsResponse = await backendService.getGoalCompletionStats(user.id);
       if (goalStatsResponse.success && goalStatsResponse.data) {
         setGoalCompletionStats(goalStatsResponse.data);
-        console.log('📊 Goal completion stats loaded:', goalStatsResponse.data);
+        if (__DEV__) console.log('📊 Goal completion stats loaded:', goalStatsResponse.data);
       }
 
       // Fetch overall stats
       const overallStatsResponse = await backendService.getOverallCompletionStats(user.id);
       if (overallStatsResponse.success && overallStatsResponse.data) {
         setOverallStats(overallStatsResponse.data);
-        console.log('📊 Overall completion stats loaded:', overallStatsResponse.data);
+        if (__DEV__) console.log('📊 Overall completion stats loaded:', overallStatsResponse.data);
       }
     } catch (error) {
-      console.log('Could not fetch completion stats:', error);
+      if (__DEV__) console.log('Could not fetch completion stats:', error);
     }
   };
 
@@ -384,7 +384,7 @@ export const ProgressScreen = ({ navigation }: any) => {
             ...prev,
             [goalId]: actionsWithCompletion
           }));
-          console.log('📚 Fetched actions for goal:', goalId, actionsWithCompletion);
+          if (__DEV__) console.log('📚 Fetched actions for goal:', goalId, actionsWithCompletion);
         }
       } else if (goals.length) {
         // OPTIMIZED: Fetch ALL actions and completions in 2 queries instead of 2*N
@@ -398,7 +398,7 @@ export const ProgressScreen = ({ navigation }: any) => {
           .eq('user_id', user.id);
 
         if (actionsError || !allActionsData) {
-          console.error('Error fetching actions:', actionsError);
+          if (__DEV__) console.error('Error fetching actions:', actionsError);
           return;
         }
 
@@ -427,10 +427,10 @@ export const ProgressScreen = ({ navigation }: any) => {
         }
 
         setAllGoalActions(allActions);
-        console.log('📚 Fetched all actions for goals (optimized):', allActions);
+        if (__DEV__) console.log('📚 Fetched all actions for goals (optimized):', allActions);
       }
     } catch (error) {
-      console.log('Could not fetch all goal actions:', error);
+      if (__DEV__) console.log('Could not fetch all goal actions:', error);
     }
   };
 

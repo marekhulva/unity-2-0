@@ -42,7 +42,7 @@ export const DailyScreenVision = () => {
   const currentStreak = 7;
 
   useEffect(() => {
-    console.log('🟦 [DAILY-VISION] DailyScreenVision mounted');
+    if (__DEV__) console.log('🟦 [DAILY-VISION] DailyScreenVision mounted');
     fetchDailyActions();
   }, []);
 
@@ -202,7 +202,7 @@ export const DailyScreenVision = () => {
         ChallengeDebugV2.checkpoint('CP2-POST-DATA', 'Post data created in Daily', postData);
         await addPost(postData);
       } catch (error) {
-        console.error('❌ Failed to save post to database:', error);
+        if (__DEV__) console.error('❌ Failed to save post to database:', error);
       }
     }
 

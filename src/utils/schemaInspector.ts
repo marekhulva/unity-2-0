@@ -36,7 +36,7 @@ class SchemaInspector {
       .order('table_name');
 
     if (error) {
-      console.error('Error fetching schema:', error);
+      if (__DEV__) console.error('Error fetching schema:', error);
       throw error;
     }
 
@@ -54,7 +54,7 @@ class SchemaInspector {
       .single();
 
     if (error) {
-      console.error(`Error fetching schema for ${tableName}:`, error);
+      if (__DEV__) console.error(`Error fetching schema for ${tableName}:`, error);
       return null;
     }
 
@@ -71,7 +71,7 @@ class SchemaInspector {
       .order('source_table');
 
     if (error) {
-      console.error('Error fetching relationships:', error);
+      if (__DEV__) console.error('Error fetching relationships:', error);
       throw error;
     }
 
@@ -115,13 +115,13 @@ class SchemaInspector {
    */
   async logSchema(): Promise<void> {
     const schemaString = await this.getSchemaString();
-    console.log(schemaString);
+    if (__DEV__) console.log(schemaString);
 
     // Also log relationships
     const relationships = await this.getRelationships();
-    console.log('=== RELATIONSHIPS ===');
+    if (__DEV__) console.log('=== RELATIONSHIPS ===');
     relationships.forEach(rel => {
-      console.log(`${rel.source_table}.${rel.source_column} → ${rel.target_table}.${rel.target_column} (${rel.delete_rule})`);
+      if (__DEV__) console.log(`${rel.source_table}.${rel.source_column} → ${rel.target_table}.${rel.target_column} (${rel.delete_rule})`);
     });
   }
 }
@@ -132,5 +132,5 @@ export const schemaInspector = new SchemaInspector();
 // Make it available globally for debugging
 if (typeof window !== 'undefined') {
   (window as any).schemaInspector = schemaInspector;
-  console.log('💡 Schema Inspector available! Try: window.schemaInspector.logSchema()');
+  if (__DEV__) console.log('💡 Schema Inspector available! Try: window.schemaInspector.logSchema()');
 }

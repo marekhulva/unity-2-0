@@ -14,7 +14,7 @@ class ApiService {
     try {
       this.token = await AsyncStorage.getItem('authToken');
     } catch (error) {
-      console.error('Error loading token:', error);
+      if (__DEV__) console.error('Error loading token:', error);
     }
   }
 
@@ -241,7 +241,7 @@ class ApiService {
     goalColor?: string;
     streak?: number;
   }) {
-    console.log('📤 Sending post to API:', post);
+    if (__DEV__) console.log('📤 Sending post to API:', post);
     const response = await fetch(`${API_URL}/api/posts`, {
       method: 'POST',
       headers: await this.getHeaders(),

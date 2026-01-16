@@ -60,7 +60,7 @@ export const createCirclesSlice: StateCreator<CirclesSlice> = (set, get) => ({
         throw new Error(response.error || 'Failed to fetch circles');
       }
     } catch (error: any) {
-      console.error('🔴 [CIRCLES] Error fetching circles:', error);
+      if (__DEV__) console.error('🔴 [CIRCLES] Error fetching circles:', error);
       set({
         circlesError: error.message,
         circlesLoading: false
@@ -116,7 +116,7 @@ export const createCirclesSlice: StateCreator<CirclesSlice> = (set, get) => ({
         };
       }
     } catch (error: any) {
-      console.error('🔴 [CIRCLES] Error joining circle:', error);
+      if (__DEV__) console.error('🔴 [CIRCLES] Error joining circle:', error);
       set({
         circlesError: error.message,
         circlesLoading: false
@@ -156,7 +156,7 @@ export const createCirclesSlice: StateCreator<CirclesSlice> = (set, get) => ({
         return false;
       }
     } catch (error: any) {
-      console.error('🔴 [CIRCLES] Error leaving circle:', error);
+      if (__DEV__) console.error('🔴 [CIRCLES] Error leaving circle:', error);
       set({
         circlesError: error.message,
         circlesLoading: false
@@ -201,7 +201,7 @@ export const createCirclesSlice: StateCreator<CirclesSlice> = (set, get) => ({
         };
       }
     } catch (error: any) {
-      console.error('🔴 [CIRCLES] Error creating circle:', error);
+      if (__DEV__) console.error('🔴 [CIRCLES] Error creating circle:', error);
       set({
         circlesError: error.message,
         circlesLoading: false

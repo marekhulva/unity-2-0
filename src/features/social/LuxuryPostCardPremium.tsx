@@ -158,7 +158,7 @@ export const LuxuryPostCardPremium: React.FC<LuxuryPostCardPremiumProps> = ({
           style={styles.headerLeft}
           onPress={() => {
             const userId = post.userId || post.user_id || post.user;
-            console.log('🔴 [LuxuryPostCardPremium] Profile click - postData:', {
+            if (__DEV__) console.log('🔴 [LuxuryPostCardPremium] Profile click - postData:', {
               userId: post.userId,
               user_id: post.user_id,
               user: post.user,

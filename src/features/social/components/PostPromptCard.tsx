@@ -453,7 +453,7 @@ const AudioRecorderRow: React.FC<{
                     const { sound } = await Audio.Sound.createAsync({ uri: recordingUri });
                     await sound.playAsync();
                   } catch (err) {
-                    console.error('Playback failed:', err);
+                    if (__DEV__) console.error('Playback failed:', err);
                   }
                 }}
               >
@@ -707,7 +707,7 @@ export const PostPromptCard: React.FC<PostPromptCardProps> = ({ onOpenComposer }
       setIsRecording(true);
       setRecordingDuration(0);
     } catch (err) {
-      console.error('Failed to start recording', err);
+      if (__DEV__) console.error('Failed to start recording', err);
     }
   };
 
@@ -726,13 +726,13 @@ export const PostPromptCard: React.FC<PostPromptCardProps> = ({ onOpenComposer }
         const reader = new FileReader();
         reader.onloadend = () => {
           const base64 = reader.result as string;
-          console.log('Audio converted to base64, length:', base64.length);
+          if (__DEV__) console.log('Audio converted to base64, length:', base64.length);
           setRecordingUri(base64);
           setHasRecording(true);
         };
         reader.readAsDataURL(blob);
       } catch (error) {
-        console.error('Error converting audio to base64:', error);
+        if (__DEV__) console.error('Error converting audio to base64:', error);
         setRecordingUri(uri); // Fallback to blob URL
         setHasRecording(true);
       }
@@ -756,7 +756,7 @@ export const PostPromptCard: React.FC<PostPromptCardProps> = ({ onOpenComposer }
         audioUri: mode === 'audio' ? recordingUri : undefined,
       };
       
-      console.log('Posting directly from PostPromptCard:', post);
+      if (__DEV__) console.log('Posting directly from PostPromptCard:', post);
       
       // Call the API directly to create the post
       const { addPost } = useStore.getState();

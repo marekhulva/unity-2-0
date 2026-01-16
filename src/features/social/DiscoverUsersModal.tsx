@@ -77,7 +77,7 @@ export const DiscoverUsersModal: React.FC<DiscoverUsersModalProps> = ({
         setFollowingIds(ids);
       }
     } catch (error) {
-      console.error('Failed to load users:', error);
+      if (__DEV__) console.error('Failed to load users:', error);
     } finally {
       setLoading(false);
     }
@@ -101,7 +101,7 @@ export const DiscoverUsersModal: React.FC<DiscoverUsersModalProps> = ({
         setFollowingIds(prev => new Set([...prev, userId]));
       }
     } catch (error) {
-      console.error('Failed to toggle follow:', error);
+      if (__DEV__) console.error('Failed to toggle follow:', error);
     }
   };
 

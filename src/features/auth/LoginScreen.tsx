@@ -33,13 +33,13 @@ export function LoginScreen({ navigation }: any) {
 
     let success = false;
     if (isRegistering) {
-      console.log('🎯 [LOGIN-SCREEN] Calling register for new user:', email);
+      if (__DEV__) console.log('🎯 [LOGIN-SCREEN] Calling register for new user:', email);
       success = await register(email, password, name);
-      console.log('🎯 [LOGIN-SCREEN] Register result:', success);
+      if (__DEV__) console.log('🎯 [LOGIN-SCREEN] Register result:', success);
       
       // Force a small delay to ensure state updates propagate
       if (success) {
-        console.log('🎯 [LOGIN-SCREEN] Registration successful, waiting for state update...');
+        if (__DEV__) console.log('🎯 [LOGIN-SCREEN] Registration successful, waiting for state update...');
         await new Promise(resolve => setTimeout(resolve, 500));
       }
     } else {
@@ -48,7 +48,7 @@ export function LoginScreen({ navigation }: any) {
 
     if (success) {
       // Navigation will be handled by the app's auth state
-      console.log('🎯 [LOGIN-SCREEN] Auth successful, navigation should happen automatically');
+      if (__DEV__) console.log('🎯 [LOGIN-SCREEN] Auth successful, navigation should happen automatically');
       // Don't show alert for registration - let onboarding take over
       if (!isRegistering) {
         Alert.alert('Success', 'Welcome back!');

@@ -15,7 +15,7 @@ import ChallengeDebugV2 from '../../utils/challengeDebugV2';
  */
 export const PostCard: React.FC<{ post: Post; which:'circle'|'follow'}> = ({ post, which })=>{
   if (__DEV__) {
-    console.warn('⚠️ DEPRECATED: PostCard is not used. Active component: LuxuryPostCard in SocialScreenV6.tsx');
+    if (__DEV__) console.warn('⚠️ DEPRECATED: PostCard is not used. Active component: LuxuryPostCard in SocialScreenV6.tsx');
   }
   const react = useStore(s=>s.react);
   const scale = React.useRef(new Animated.Value(1)).current;
@@ -35,7 +35,7 @@ export const PostCard: React.FC<{ post: Post; which:'circle'|'follow'}> = ({ pos
     ChallengeDebug.checkFieldMapping(post);
     
     if (post.type === 'checkin') {
-      console.log('🔍 [CRITICAL DEBUG] Checkin post full data:', {
+      if (__DEV__) console.log('🔍 [CRITICAL DEBUG] Checkin post full data:', {
         id: post.id,
         type: post.type,
         // Check both naming conventions

@@ -59,7 +59,7 @@ export const CircleScreen = () => {
 
   const handleMemberPress = (userId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    console.log('[CircleScreen] Member pressed - userId:', userId, 'currentUserId:', user?.id);
+    if (__DEV__) console.log('[CircleScreen] Member pressed - userId:', userId, 'currentUserId:', user?.id);
     // Show profile in modal instead of navigating
     setSelectedUserId(userId);
   };
@@ -72,7 +72,7 @@ export const CircleScreen = () => {
 
       const membersWithConsistency = circleMembers.map(member => {
         const stats = bulkStats[member.user_id] || { expected: 0, completed: 0, percentage: 0 };
-        console.log(`📊 [Circle] Member ${member.display_name}: ${stats.completed}/${stats.expected} = ${stats.percentage}%`);
+        if (__DEV__) console.log(`📊 [Circle] Member ${member.display_name}: ${stats.completed}/${stats.expected} = ${stats.percentage}%`);
 
         return {
           ...member,
@@ -83,7 +83,7 @@ export const CircleScreen = () => {
 
       setMembersWithStats(membersWithConsistency);
     } catch (error) {
-      console.error('Error calculating member stats:', error);
+      if (__DEV__) console.error('Error calculating member stats:', error);
       // Set all to 0 if there's an error
       const membersWithConsistency = circleMembers.map(member => ({
         ...member,
@@ -103,26 +103,26 @@ export const CircleScreen = () => {
 
     setIsLoading(true);
     try {
-      console.log('[CircleScreen] Fetching members for circle:', activeCircleId, 'requestId:', requestId);
+      if (__DEV__) console.log('[CircleScreen] Fetching members for circle:', activeCircleId, 'requestId:', requestId);
       const response = await backendService.getCircleMembers(activeCircleId);
 
       // Only update state if this is still the current request
       if (currentRequestId.current === requestId) {
         if (response.success && response.data) {
-          console.log('[CircleScreen] Loaded', response.data.length, 'members (requestId:', requestId, ')');
+          if (__DEV__) console.log('[CircleScreen] Loaded', response.data.length, 'members (requestId:', requestId, ')');
           setCircleMembers(response.data);
         } else {
-          console.error('[CircleScreen] Failed to load members:', response);
+          if (__DEV__) console.error('[CircleScreen] Failed to load members:', response);
           setCircleMembers([]);
         }
         setIsLoading(false);
       } else {
-        console.log('[CircleScreen] Discarding stale response for requestId:', requestId);
+        if (__DEV__) console.log('[CircleScreen] Discarding stale response for requestId:', requestId);
       }
     } catch (error) {
       // Only update state if this is still the current request
       if (currentRequestId.current === requestId) {
-        console.error('[CircleScreen] Error loading members:', error);
+        if (__DEV__) console.error('[CircleScreen] Error loading members:', error);
         setCircleMembers([]);
         setIsLoading(false);
       }
@@ -130,14 +130,14 @@ export const CircleScreen = () => {
   }, [activeCircleId]);
 
   useEffect(() => {
-    console.log('[CircleScreen] Component mounted, fetching circles');
+    if (__DEV__) console.log('[CircleScreen] Component mounted, fetching circles');
     fetchUserCircles();
   }, []);
 
   // Set default activeCircleId when circles load
   useEffect(() => {
     if (userCircles.length > 0 && !activeCircleId) {
-      console.log('[CircleScreen] Setting default circle to:', userCircles[0].name);
+      if (__DEV__) console.log('[CircleScreen] Setting default circle to:', userCircles[0].name);
       setActiveCircle(userCircles[0].id);
     }
   }, [userCircles, activeCircleId]);
@@ -145,7 +145,7 @@ export const CircleScreen = () => {
   // Load data when active circle changes
   useEffect(() => {
     if (activeCircleId) {
-      console.log('[CircleScreen] Active circle changed, loading data for:', activeCircleId);
+      if (__DEV__) console.log('[CircleScreen] Active circle changed, loading data for:', activeCircleId);
       loadData();
     }
   }, [activeCircleId, loadData]);
@@ -527,7 +527,7 @@ export const CircleScreen = () => {
                 padding: 10,
               }}
               onPress={() => {
-                console.log('[CircleScreen] Closing profile modal');
+                if (__DEV__) console.log('[CircleScreen] Closing profile modal');
                 setSelectedUserId(null);
               }}
             >

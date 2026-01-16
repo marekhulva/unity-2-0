@@ -4,7 +4,7 @@
 import { supabase } from '../services/supabase.service';
 
 export async function createChallengeTables() {
-  console.log('🏗️ Creating challenge tables...');
+  if (__DEV__) console.log('🏗️ Creating challenge tables...');
   
   try {
     // Create challenges table
@@ -33,7 +33,7 @@ export async function createChallengeTables() {
     });
     
     if (challengesError) {
-      console.log('Note: challenges table might already exist or needs manual creation');
+      if (__DEV__) console.log('Note: challenges table might already exist or needs manual creation');
     }
     
     // Create challenge_activities table
@@ -54,7 +54,7 @@ export async function createChallengeTables() {
     });
     
     if (activitiesError) {
-      console.log('Note: challenge_activities table might already exist');
+      if (__DEV__) console.log('Note: challenge_activities table might already exist');
     }
     
     // Create challenge_participants table
@@ -80,7 +80,7 @@ export async function createChallengeTables() {
     });
     
     if (participantsError) {
-      console.log('Note: challenge_participants table might already exist');
+      if (__DEV__) console.log('Note: challenge_participants table might already exist');
     }
     
     // Create challenge_completions table
@@ -101,7 +101,7 @@ export async function createChallengeTables() {
     });
     
     if (completionsError) {
-      console.log('Note: challenge_completions table might already exist');
+      if (__DEV__) console.log('Note: challenge_completions table might already exist');
     }
     
     // Create activity_mappings table
@@ -121,15 +121,15 @@ export async function createChallengeTables() {
     });
     
     if (mappingsError) {
-      console.log('Note: activity_mappings table might already exist');
+      if (__DEV__) console.log('Note: activity_mappings table might already exist');
     }
     
-    console.log('✅ Challenge tables creation attempted');
-    console.log('Note: If tables don\'t exist, you may need to run the SQL migration directly in Supabase dashboard');
+    if (__DEV__) console.log('✅ Challenge tables creation attempted');
+    if (__DEV__) console.log('Note: If tables don\'t exist, you may need to run the SQL migration directly in Supabase dashboard');
     
     return true;
   } catch (error) {
-    console.error('❌ Error creating tables:', error);
+    if (__DEV__) console.error('❌ Error creating tables:', error);
     return false;
   }
 }

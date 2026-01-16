@@ -36,11 +36,11 @@ class SupabaseNotificationService {
 
   async getNotifications(limit = 50): Promise<Notification[]> {
     try {
-      console.log('🔔 [NOTIFICATIONS] Fetching notifications, limit:', limit);
+      if (__DEV__) console.log('🔔 [NOTIFICATIONS] Fetching notifications, limit:', limit);
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.log('❌ [NOTIFICATIONS] No user found');
+        if (__DEV__) console.log('❌ [NOTIFICATIONS] No user found');
         return [];
       }
 
@@ -52,14 +52,14 @@ class SupabaseNotificationService {
         .limit(limit);
 
       if (error) {
-        console.error('🔴 [NOTIFICATIONS] Error fetching:', error);
+        if (__DEV__) console.error('🔴 [NOTIFICATIONS] Error fetching:', error);
         return [];
       }
 
-      console.log('🟢 [NOTIFICATIONS] Fetched', data?.length || 0, 'notifications');
+      if (__DEV__) console.log('🟢 [NOTIFICATIONS] Fetched', data?.length || 0, 'notifications');
       return data || [];
     } catch (error) {
-      console.error('🔴 [NOTIFICATIONS] Exception:', error);
+      if (__DEV__) console.error('🔴 [NOTIFICATIONS] Exception:', error);
       return [];
     }
   }
@@ -76,24 +76,24 @@ class SupabaseNotificationService {
         .eq('is_read', false);
 
       if (error) {
-        console.error('🔴 [NOTIFICATIONS] Error getting unread count:', error);
+        if (__DEV__) console.error('🔴 [NOTIFICATIONS] Error getting unread count:', error);
         return 0;
       }
 
       return count || 0;
     } catch (error) {
-      console.error('🔴 [NOTIFICATIONS] Exception getting count:', error);
+      if (__DEV__) console.error('🔴 [NOTIFICATIONS] Exception getting count:', error);
       return 0;
     }
   }
 
   async markAsRead(notificationId: string): Promise<{ success: boolean }> {
     try {
-      console.log('🔔 [NOTIFICATIONS] Marking as read:', notificationId);
+      if (__DEV__) console.log('🔔 [NOTIFICATIONS] Marking as read:', notificationId);
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.log('❌ [NOTIFICATIONS] No user found');
+        if (__DEV__) console.log('❌ [NOTIFICATIONS] No user found');
         return { success: false };
       }
 
@@ -107,25 +107,25 @@ class SupabaseNotificationService {
         .eq('user_id', user.id);
 
       if (error) {
-        console.error('🔴 [NOTIFICATIONS] Error marking as read:', error);
+        if (__DEV__) console.error('🔴 [NOTIFICATIONS] Error marking as read:', error);
         return { success: false };
       }
 
-      console.log('✅ [NOTIFICATIONS] Marked as read');
+      if (__DEV__) console.log('✅ [NOTIFICATIONS] Marked as read');
       return { success: true };
     } catch (error) {
-      console.error('🔴 [NOTIFICATIONS] Exception:', error);
+      if (__DEV__) console.error('🔴 [NOTIFICATIONS] Exception:', error);
       return { success: false };
     }
   }
 
   async markAllAsRead(): Promise<{ success: boolean }> {
     try {
-      console.log('🔔 [NOTIFICATIONS] Marking all as read');
+      if (__DEV__) console.log('🔔 [NOTIFICATIONS] Marking all as read');
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.log('❌ [NOTIFICATIONS] No user found');
+        if (__DEV__) console.log('❌ [NOTIFICATIONS] No user found');
         return { success: false };
       }
 
@@ -139,14 +139,14 @@ class SupabaseNotificationService {
         .eq('is_read', false);
 
       if (error) {
-        console.error('🔴 [NOTIFICATIONS] Error marking all as read:', error);
+        if (__DEV__) console.error('🔴 [NOTIFICATIONS] Error marking all as read:', error);
         return { success: false };
       }
 
-      console.log('✅ [NOTIFICATIONS] All marked as read');
+      if (__DEV__) console.log('✅ [NOTIFICATIONS] All marked as read');
       return { success: true };
     } catch (error) {
-      console.error('🔴 [NOTIFICATIONS] Exception:', error);
+      if (__DEV__) console.error('🔴 [NOTIFICATIONS] Exception:', error);
       return { success: false };
     }
   }
@@ -156,7 +156,7 @@ class SupabaseNotificationService {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
-      console.log('🔔 [NOTIFICATIONS] Subscribing to realtime notifications');
+      if (__DEV__) console.log('🔔 [NOTIFICATIONS] Subscribing to realtime notifications');
 
       const channel = supabase
         .channel('notifications')
@@ -169,7 +169,7 @@ class SupabaseNotificationService {
             filter: `user_id=eq.${user.id}`,
           },
           (payload) => {
-            console.log('🔔 [NOTIFICATIONS] New notification received:', payload);
+            if (__DEV__) console.log('🔔 [NOTIFICATIONS] New notification received:', payload);
             callback(payload);
           }
         )
@@ -177,7 +177,7 @@ class SupabaseNotificationService {
 
       return channel;
     } catch (error) {
-      console.error('🔴 [NOTIFICATIONS] Error subscribing:', error);
+      if (__DEV__) console.error('🔴 [NOTIFICATIONS] Error subscribing:', error);
       return null;
     }
   }
@@ -195,13 +195,13 @@ class SupabaseNotificationService {
           const defaultPrefs = await this.createDefaultPreferences(userId);
           return defaultPrefs;
         }
-        console.error('🔴 [NOTIFICATIONS] Error fetching preferences:', error);
+        if (__DEV__) console.error('🔴 [NOTIFICATIONS] Error fetching preferences:', error);
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('🔴 [NOTIFICATIONS] Exception getting preferences:', error);
+      if (__DEV__) console.error('🔴 [NOTIFICATIONS] Exception getting preferences:', error);
       return null;
     }
   }
@@ -231,7 +231,7 @@ class SupabaseNotificationService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('🔴 [NOTIFICATIONS] Error creating default preferences:', error);
+      if (__DEV__) console.error('🔴 [NOTIFICATIONS] Error creating default preferences:', error);
       return null;
     }
   }
@@ -249,7 +249,7 @@ class SupabaseNotificationService {
       if (error) throw error;
       return { success: true };
     } catch (error) {
-      console.error('🔴 [NOTIFICATIONS] Error updating preferences:', error);
+      if (__DEV__) console.error('🔴 [NOTIFICATIONS] Error updating preferences:', error);
       return { success: false };
     }
   }
@@ -285,18 +285,18 @@ class SupabaseNotificationService {
 
       return true;
     } catch (error) {
-      console.error('🔴 [NOTIFICATIONS] Error checking if can send:', error);
+      if (__DEV__) console.error('🔴 [NOTIFICATIONS] Error checking if can send:', error);
       return false;
     }
   }
 
   async createNotification(params: CreateNotificationParams): Promise<{ success: boolean; notification?: Notification }> {
     try {
-      console.log('🔔 [NOTIFICATIONS] Creating notification:', params);
+      if (__DEV__) console.log('🔔 [NOTIFICATIONS] Creating notification:', params);
 
       const canSend = await this.canSendNotification(params.userId, params.type);
       if (!canSend) {
-        console.log('⚠️ [NOTIFICATIONS] Cannot send - preferences or limits');
+        if (__DEV__) console.log('⚠️ [NOTIFICATIONS] Cannot send - preferences or limits');
         return { success: false };
       }
 
@@ -318,14 +318,14 @@ class SupabaseNotificationService {
         .single();
 
       if (error) {
-        console.error('🔴 [NOTIFICATIONS] Error creating:', error);
+        if (__DEV__) console.error('🔴 [NOTIFICATIONS] Error creating:', error);
         return { success: false };
       }
 
-      console.log('✅ [NOTIFICATIONS] Created successfully');
+      if (__DEV__) console.log('✅ [NOTIFICATIONS] Created successfully');
       return { success: true, notification };
     } catch (error) {
-      console.error('🔴 [NOTIFICATIONS] Exception:', error);
+      if (__DEV__) console.error('🔴 [NOTIFICATIONS] Exception:', error);
       return { success: false };
     }
   }
@@ -507,7 +507,7 @@ class SupabaseNotificationService {
       if (error) throw error;
       return { success: true };
     } catch (error) {
-      console.error('🔴 [NOTIFICATIONS] Error scheduling notification:', error);
+      if (__DEV__) console.error('🔴 [NOTIFICATIONS] Error scheduling notification:', error);
       return { success: false };
     }
   }
@@ -532,7 +532,7 @@ class SupabaseNotificationService {
         status: 'pending',
       });
     } catch (error) {
-      console.error('🔴 [NOTIFICATIONS] Error scheduling morning digest:', error);
+      if (__DEV__) console.error('🔴 [NOTIFICATIONS] Error scheduling morning digest:', error);
       return { success: false };
     }
   }
@@ -549,7 +549,7 @@ class SupabaseNotificationService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('🔴 [NOTIFICATIONS] Error getting pending schedules:', error);
+      if (__DEV__) console.error('🔴 [NOTIFICATIONS] Error getting pending schedules:', error);
       return [];
     }
   }
@@ -602,7 +602,7 @@ class SupabaseNotificationService {
         category: 'social',
       });
     } catch (error) {
-      console.error('🔴 [NOTIFICATIONS] Error batching like notifications:', error);
+      if (__DEV__) console.error('🔴 [NOTIFICATIONS] Error batching like notifications:', error);
       return { success: false };
     }
   }

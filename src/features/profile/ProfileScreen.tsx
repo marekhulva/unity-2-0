@@ -165,7 +165,7 @@ interface ProfileClaudeProps {
 }
 
 export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = 'Circle', navigation: navProp, isInModal = false }) => {
-  console.log('>>> USING ProfileScreen COMPONENT <<<', userId ? `Viewing user: ${userId}` : 'Viewing own profile');
+  if (__DEV__) console.log('>>> USING ProfileScreen COMPONENT <<<', userId ? `Viewing user: ${userId}` : 'Viewing own profile');
   const insets = useSafeAreaInsets();
   const navigation = navProp || useNavigation();
   const route = useRoute();
@@ -191,7 +191,7 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
   const isOwnProfile = !actualUserId || actualUserId === currentUser?.id;
   const profileUserId = actualUserId || currentUser?.id;
   
-  console.log('🔵 [ProfileClaude] Profile detection:', {
+  if (__DEV__) console.log('🔵 [ProfileClaude] Profile detection:', {
     actualUserId,
     'currentUser?.id': currentUser?.id,
     isOwnProfile,
@@ -205,7 +205,7 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
   
-  console.log('🏁 [DEBUG] Initial goals state:', {
+  if (__DEV__) console.log('🏁 [DEBUG] Initial goals state:', {
     isOwnProfile,
     storeGoalsCount: storeGoals?.length || 0,
     initialGoalsCount: (isOwnProfile ? storeGoals : []).length,
@@ -237,19 +237,19 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
   // Handler for profile press (reactions and comments are handled inline)
   const handleProfilePress = (userId: string) => {
     // Navigation to profile is already handled by the parent component
-    console.log('Profile pressed:', userId);
+    if (__DEV__) console.log('Profile pressed:', userId);
   };
 
   // Fetch posts function - directly query database for user's posts
   const fetchUserPosts = async (userId: string) => {
     setPostsLoading(true);
-    console.log('🔍 [ProfileClaude] Fetching posts for user:', userId);
+    if (__DEV__) console.log('🔍 [ProfileClaude] Fetching posts for user:', userId);
 
     try {
       const { supabaseService } = await import('../../services/supabase.service');
       const posts = await supabaseService.getUserPosts(userId, 5);
 
-      console.log('📬 [ProfileClaude] Fetched user posts:', {
+      if (__DEV__) console.log('📬 [ProfileClaude] Fetched user posts:', {
         userPostsCount: posts.length,
         firstPost: posts[0],
         hasComments: posts[0]?.comments?.length > 0
@@ -257,7 +257,7 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
 
       setUserPosts(posts);
     } catch (error) {
-      console.error('❌ [ProfileClaude] Error fetching posts:', error);
+      if (__DEV__) console.error('❌ [ProfileClaude] Error fetching posts:', error);
       setUserPosts([]);
     } finally {
       setPostsLoading(false);
@@ -267,7 +267,7 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
   // Refresh posts when screen is focused
   useFocusEffect(
     React.useCallback(() => {
-      console.log('🔄 [ProfileClaude] Screen focused, refreshing posts');
+      if (__DEV__) console.log('🔄 [ProfileClaude] Screen focused, refreshing posts');
       if (profileUserId) {
         fetchUserPosts(profileUserId);
       }
@@ -281,7 +281,7 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
 
       try {
         setIsLoading(true);
-        console.log('🟦 [PROFILE-LOAD] Loading profile data for user:', profileUserId);
+        if (__DEV__) console.log('🟦 [PROFILE-LOAD] Loading profile data for user:', profileUserId);
         const { supabase } = await import('../../services/supabase.service');
 
         // Get profile data
@@ -291,14 +291,14 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
           .eq('id', profileUserId)
           .single();
 
-        console.log('🟦 [PROFILE-LOAD] Profile data from DB:', profile);
-        console.log('🟦 [PROFILE-LOAD] Error:', error);
+        if (__DEV__) console.log('🟦 [PROFILE-LOAD] Profile data from DB:', profile);
+        if (__DEV__) console.log('🟦 [PROFILE-LOAD] Error:', error);
 
         if (profile) {
           setProfileData(profile);
           setBio(profile.bio || 'Building my best self, one day at a time ✨');
           setProfileImage(profile.avatar_url || null);
-          console.log('🟢 [PROFILE-LOAD] Bio set to:', profile.bio);
+          if (__DEV__) console.log('🟢 [PROFILE-LOAD] Bio set to:', profile.bio);
         }
 
         // Posts are fetched by useFocusEffect for auto-refresh
@@ -311,7 +311,7 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
             .eq('user_id', profileUserId)
             .in('visibility', ['public', 'circle']); // Respect privacy settings
           
-          console.log('📚 [DEBUG] Setting goals for other user:', {
+          if (__DEV__) console.log('📚 [DEBUG] Setting goals for other user:', {
             userId: profileUserId,
             goalsCount: userGoals?.length || 0,
             goals: userGoals?.map(g => ({
@@ -329,7 +329,7 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
             .select('*')
             .eq('user_id', profileUserId);
           
-          console.log('🔥 [DEBUG] Fetched actions for user:', {
+          if (__DEV__) console.log('🔥 [DEBUG] Fetched actions for user:', {
             userId: profileUserId,
             actionsCount: userActions?.length || 0,
             actions: userActions?.map(a => ({
@@ -360,7 +360,7 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
           setProfileCompletedActions(completedToday);
         }
       } catch (error) {
-        console.log('🟡 [PROFILE] Could not load profile data:', error);
+        if (__DEV__) console.log('🟡 [PROFILE] Could not load profile data:', error);
       } finally {
         setIsLoading(false);
       }
@@ -372,21 +372,21 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
         try {
           const { supabase } = await import('../../services/supabase.service');
 
-          console.log('🟦 [PROFILE-LOAD] Loading own profile data for user:', profileUserId);
+          if (__DEV__) console.log('🟦 [PROFILE-LOAD] Loading own profile data for user:', profileUserId);
           const { data: profile, error } = await supabase
             .from('profiles')
             .select('bio, avatar_url, name, email')
             .eq('id', profileUserId)
             .single();
 
-          console.log('🟦 [PROFILE-LOAD] Own profile data from DB:', profile);
-          console.log('🟦 [PROFILE-LOAD] Error:', error);
+          if (__DEV__) console.log('🟦 [PROFILE-LOAD] Own profile data from DB:', profile);
+          if (__DEV__) console.log('🟦 [PROFILE-LOAD] Error:', error);
 
           if (profile) {
             setProfileData(profile);
             setBio(profile.bio || 'Building my best self, one day at a time ✨');
             setProfileImage(profile.avatar_url || null);
-            console.log('🟢 [PROFILE-LOAD] Own profile bio set to:', profile.bio);
+            if (__DEV__) console.log('🟢 [PROFILE-LOAD] Own profile bio set to:', profile.bio);
           } else {
             // Fallback to currentUser
             setBio('Building my best self, one day at a time ✨');
@@ -399,7 +399,7 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
             .select('*')
             .eq('user_id', profileUserId);
           
-          console.log('🏠 [DEBUG] Own profile - fetched actions from DB:', {
+          if (__DEV__) console.log('🏠 [DEBUG] Own profile - fetched actions from DB:', {
             actionsCount: dbActions?.length || 0,
             firstAction: dbActions?.[0],
             actions: dbActions?.slice(0, 2).map(a => ({
@@ -431,7 +431,7 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
             setProfileCompletedActions(completedToday);
           }
         } catch (error) {
-          console.error('Error fetching own profile data:', error);
+          if (__DEV__) console.error('Error fetching own profile data:', error);
           // Fallback to store actions if DB fetch fails
           setProfileActions(actions);
           setProfileCompletedActions(completedActions);
@@ -551,7 +551,7 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
         
         setRecentActivities(formattedActivities);
       } catch (error) {
-        console.log('Could not fetch recent activities:', error);
+        if (__DEV__) console.log('Could not fetch recent activities:', error);
         // Fall back to mock data on error
         setRecentActivities([
           { text: "Completed morning routine", time: "2 hours ago" },
@@ -732,7 +732,7 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
         setUserStatus(status);
         
       } catch (error) {
-        console.error('Error calculating milestones:', error);
+        if (__DEV__) console.error('Error calculating milestones:', error);
       }
     };
     
@@ -789,7 +789,7 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
         Alert.alert('Error', 'Failed to update profile photo');
         setProfileImage(currentUser?.avatar || null);
       } else {
-        console.log('🟢 [PROFILE] Profile photo updated successfully');
+        if (__DEV__) console.log('🟢 [PROFILE] Profile photo updated successfully');
       }
     }
   };
@@ -806,10 +806,10 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
       if (profileUserId) {
         try {
           const stats = await supabaseService.getGoalCompletionStats(profileUserId);
-          console.log('📊 [ProfileClaude] Goal completion stats fetched:', stats);
+          if (__DEV__) console.log('📊 [ProfileClaude] Goal completion stats fetched:', stats);
           setGoalCompletionStats(stats);
         } catch (error) {
-          console.error('Error fetching goal completion stats:', error);
+          if (__DEV__) console.error('Error fetching goal completion stats:', error);
         }
       }
     };
@@ -883,16 +883,16 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
                     <Pressable
                       style={styles.bioButton}
                       onPress={async () => {
-                        console.log('🟦 [PROFILE] Saving bio:', bio);
-                        console.log('🟦 [PROFILE] User ID:', profileUserId);
+                        if (__DEV__) console.log('🟦 [PROFILE] Saving bio:', bio);
+                        if (__DEV__) console.log('🟦 [PROFILE] User ID:', profileUserId);
 
                         const success = await updateBio(bio);
-                        console.log('🟦 [PROFILE] Save result:', success);
+                        if (__DEV__) console.log('🟦 [PROFILE] Save result:', success);
 
                         if (success) {
                           setIsEditingBio(false);
 
-                          console.log('🟦 [PROFILE] Refetching profile data...');
+                          if (__DEV__) console.log('🟦 [PROFILE] Refetching profile data...');
                           const { supabase } = await import('../../services/supabase.service');
                           const { data: profile, error } = await supabase
                             .from('profiles')
@@ -900,16 +900,16 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
                             .eq('id', profileUserId)
                             .single();
 
-                          console.log('🟦 [PROFILE] Refetched profile:', profile);
-                          console.log('🟦 [PROFILE] Refetch error:', error);
+                          if (__DEV__) console.log('🟦 [PROFILE] Refetched profile:', profile);
+                          if (__DEV__) console.log('🟦 [PROFILE] Refetch error:', error);
 
                           if (profile) {
                             setProfileData(profile);
                             setBio(profile.bio || 'Building my best self, one day at a time ✨');
-                            console.log('🟢 [PROFILE] Bio updated in state:', profile.bio);
+                            if (__DEV__) console.log('🟢 [PROFILE] Bio updated in state:', profile.bio);
                           }
                         } else {
-                          console.log('🔴 [PROFILE] Failed to save bio');
+                          if (__DEV__) console.log('🔴 [PROFILE] Failed to save bio');
                           Alert.alert('Error', 'Failed to save bio');
                         }
                         if (Platform.OS !== 'web') {
@@ -1235,7 +1235,7 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
                 <Text style={styles.consistencyHint}>Consistency = Actions completed / Days active</Text>
               </View>
               <View style={styles.goalsList}>
-                {console.log('🔥 [DEBUG] About to render goals:', {
+                if (__DEV__) {console.log('🔥 [DEBUG] About to render goals:', {
                   goalsCount: goals.length,
                   goals: goals.map(g => ({
                     id: g.id,
@@ -1249,7 +1249,7 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
                 })}
                 {goals.length > 0 ? (
                   goals.map((goal, index) => {
-                    console.log('🎯 [DEBUG] Processing goal:', {
+                    if (__DEV__) console.log('🎯 [DEBUG] Processing goal:', {
                       goalTitle: goal.title,
                       goalId: goal.id,
                       goalActive: goal.active,
@@ -1275,7 +1275,7 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
                     // If no specific goal actions, fall back to all actions
                     const goalActions = relevantActions.length > 0 ? relevantActions : profileActions;
                     
-                    console.log('🔍 [DEBUG] Goal actions selected:', {
+                    if (__DEV__) console.log('🔍 [DEBUG] Goal actions selected:', {
                       isChallenge,
                       relevantActionsCount: relevantActions.length,
                       goalActionsCount: goalActions.length,
@@ -1296,7 +1296,7 @@ export const ProfileScreen: React.FC<ProfileClaudeProps> = ({ userId, source = '
                     const completedCount = goalStats.completed || 0;
                     const expectedCount = goalStats.expected || 0;
                     
-                    console.log('📊 [DEBUG] Consistency calculation result:', {
+                    if (__DEV__) console.log('📊 [DEBUG] Consistency calculation result:', {
                       goalTitle: goal.title,
                       completedCount,
                       expectedCount,

@@ -60,7 +60,7 @@ export const ShareComposer: React.FC = () => {
         setPhotoUri(res.assets[0].uri);
       }
     } catch (error) {
-      console.error('Failed to pick image:', error);
+      if (__DEV__) console.error('Failed to pick image:', error);
     }
   };
 
@@ -73,7 +73,7 @@ export const ShareComposer: React.FC = () => {
       await rec.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
       await rec.startAsync();
       setRecording(rec);
-    } catch (e) { console.warn(e); }
+    if (__DEV__) } catch (e) { console.warn(e); }
     setBusy(false);
   };
   const stopRecording = async () => {
@@ -91,7 +91,7 @@ export const ShareComposer: React.FC = () => {
           const reader = new FileReader();
           reader.onloadend = () => {
             const base64 = reader.result as string;
-            console.log('ShareComposer - Audio converted to base64, length:', base64.length);
+            if (__DEV__) console.log('ShareComposer - Audio converted to base64, length:', base64.length);
             setAudioUri(base64);
             setBusy(false);
           };
@@ -99,13 +99,13 @@ export const ShareComposer: React.FC = () => {
           setRecording(null);
           return; // Exit early, setBusy(false) will be called in onloadend
         } catch (error) {
-          console.error('Error converting audio to base64:', error);
+          if (__DEV__) console.error('Error converting audio to base64:', error);
           setAudioUri(uri); // Fallback to blob URL
         }
       } else {
         setAudioUri(uri);
       }
-    } catch(e) { console.warn(e); }
+    if (__DEV__) } catch(e) { console.warn(e); }
     setRecording(null);
     setBusy(false);
   };
@@ -117,17 +117,17 @@ export const ShareComposer: React.FC = () => {
     // Use the ref value which should have the latest text
     const finalText = textRef.current || text;
     
-    console.log('Current text state:', text);
-    console.log('Text from ref:', textRef.current);
-    console.log('Draft:', draft);
-    console.log('Audio URI present:', !!audioUri);
-    console.log('Audio URI length:', audioUri?.length);
-    console.log('Audio URI starts with data:audio:', audioUri?.startsWith('data:audio'));
+    if (__DEV__) console.log('Current text state:', text);
+    if (__DEV__) console.log('Text from ref:', textRef.current);
+    if (__DEV__) console.log('Draft:', draft);
+    if (__DEV__) console.log('Audio URI present:', !!audioUri);
+    if (__DEV__) console.log('Audio URI length:', audioUri?.length);
+    if (__DEV__) console.log('Audio URI starts with data:audio:', audioUri?.startsWith('data:audio'));
     
     const content = finalText?.trim() || (type==='checkin' ? `Checked in: ${draft.actionTitle}` : '');
     
-    console.log('Publishing post with content:', content);
-    console.log('Text from input:', finalText);
+    if (__DEV__) console.log('Publishing post with content:', content);
+    if (__DEV__) console.log('Text from input:', finalText);
     
     // Determine the actual type based on media
     const actualType = audioUri ? 'audio' : (photoUri ? 'photo' : type);
@@ -145,9 +145,9 @@ export const ShareComposer: React.FC = () => {
       goalColor: draft.goalColor,
     };
     
-    console.log('Full post object:', post);
-    console.log('Post type:', post.type);
-    console.log('Post audioUri:', !!post.audioUri);
+    if (__DEV__) console.log('Full post object:', post);
+    if (__DEV__) console.log('Post type:', post.type);
+    if (__DEV__) console.log('Post audioUri:', !!post.audioUri);
     
     // Call the async addPost function to save to backend
     await addPost(post as any);
@@ -200,12 +200,12 @@ export const ShareComposer: React.FC = () => {
           <TextInput
             value={text}
             onChangeText={(newText) => {
-              console.log('Text changed to:', newText);
+              if (__DEV__) console.log('Text changed to:', newText);
               setText(newText);
               textRef.current = newText; // Also update ref
             }}
             onEndEditing={(e) => {
-              console.log('End editing with text:', e.nativeEvent.text);
+              if (__DEV__) console.log('End editing with text:', e.nativeEvent.text);
               setText(e.nativeEvent.text);
               textRef.current = e.nativeEvent.text;
             }}

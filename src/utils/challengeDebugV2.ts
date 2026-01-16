@@ -10,9 +10,9 @@ export class ChallengeDebugV2 {
   static startNewFlow() {
     this.flowId = `flow-${Date.now()}`;
     this.checkpoints.clear();
-    console.log(`\n${'='.repeat(80)}`);
-    console.log(`🚀 STARTING NEW CHALLENGE POST FLOW: ${this.flowId}`);
-    console.log(`${'='.repeat(80)}\n`);
+    if (__DEV__) console.log(`\n${'='.repeat(80)}`);
+    if (__DEV__) console.log(`🚀 STARTING NEW CHALLENGE POST FLOW: ${this.flowId}`);
+    if (__DEV__) console.log(`${'='.repeat(80)}\n`);
   }
 
   static checkpoint(id: string, description: string, data: any) {
@@ -26,9 +26,9 @@ export class ChallengeDebugV2 {
     this.checkpoints.set(id, checkpoint);
     
     // Log with clear formatting
-    console.log(`\n📍 CHECKPOINT ${id}: ${description}`);
-    console.log(`   Flow: ${this.flowId}`);
-    console.log(`   Time: ${checkpoint.timestamp}`);
+    if (__DEV__) console.log(`\n📍 CHECKPOINT ${id}: ${description}`);
+    if (__DEV__) console.log(`   Flow: ${this.flowId}`);
+    if (__DEV__) console.log(`   Time: ${checkpoint.timestamp}`);
     
     // Log specific challenge fields
     if (data) {
@@ -42,14 +42,14 @@ export class ChallengeDebugV2 {
         totalParticipants: data.totalParticipants ?? data.total_participants
       };
       
-      console.log(`   Challenge Data:`, challengeData);
+      if (__DEV__) console.log(`   Challenge Data:`, challengeData);
       
       // Check if ANY challenge data exists
       const hasAnyChallenge = Object.values(challengeData).some(v => v !== undefined && v !== null && v !== false);
-      console.log(`   ✅ Has Challenge Data: ${hasAnyChallenge ? 'YES' : 'NO'}`);
+      if (__DEV__) console.log(`   ✅ Has Challenge Data: ${hasAnyChallenge ? 'YES' : 'NO'}`);
       
       // Log full data for debugging
-      console.log(`   Full Data:`, data);
+      if (__DEV__) console.log(`   Full Data:`, data);
     }
     
     return checkpoint;
@@ -60,11 +60,11 @@ export class ChallengeDebugV2 {
     const cp2 = this.checkpoints.get(id2);
     
     if (!cp1 || !cp2) {
-      console.error(`❌ Cannot compare: Missing checkpoint ${!cp1 ? id1 : id2}`);
+      if (__DEV__) console.error(`❌ Cannot compare: Missing checkpoint ${!cp1 ? id1 : id2}`);
       return;
     }
     
-    console.log(`\n🔍 COMPARING ${id1} → ${id2}`);
+    if (__DEV__) console.log(`\n🔍 COMPARING ${id1} → ${id2}`);
     
     const fields = ['isChallenge', 'is_challenge', 'challengeName', 'challenge_name', 'challengeId', 'challenge_id'];
     
@@ -73,36 +73,36 @@ export class ChallengeDebugV2 {
       const val2 = cp2.data?.[field];
       
       if (val1 !== val2) {
-        console.log(`   ⚠️  ${field}: "${val1}" → "${val2}" ${val2 === undefined ? '(LOST!)' : '(CHANGED)'}`);
+        if (__DEV__) console.log(`   ⚠️  ${field}: "${val1}" → "${val2}" ${val2 === undefined ? '(LOST!)' : '(CHANGED)'}`);
       } else if (val1 !== undefined) {
-        console.log(`   ✅ ${field}: "${val1}" (preserved)`);
+        if (__DEV__) console.log(`   ✅ ${field}: "${val1}" (preserved)`);
       }
     });
   }
 
   static generateReport() {
-    console.log(`\n${'='.repeat(80)}`);
-    console.log(`📊 FLOW REPORT: ${this.flowId}`);
-    console.log(`${'='.repeat(80)}`);
+    if (__DEV__) console.log(`\n${'='.repeat(80)}`);
+    if (__DEV__) console.log(`📊 FLOW REPORT: ${this.flowId}`);
+    if (__DEV__) console.log(`${'='.repeat(80)}`);
     
     const checkpointArray = Array.from(this.checkpoints.values());
     
     checkpointArray.forEach((cp, index) => {
       const hasChallenge = cp.data?.isChallenge || cp.data?.is_challenge;
       const icon = hasChallenge ? '✅' : '❌';
-      console.log(`${icon} ${cp.id}: ${cp.description}`);
+      if (__DEV__) console.log(`${icon} ${cp.id}: ${cp.description}`);
       
       if (index > 0) {
         const prevCp = checkpointArray[index - 1];
         const prevHasChallenge = prevCp.data?.isChallenge || prevCp.data?.is_challenge;
         
         if (prevHasChallenge && !hasChallenge) {
-          console.log(`   🔴 DATA LOST HERE! Challenge data disappeared between ${prevCp.id} and ${cp.id}`);
+          if (__DEV__) console.log(`   🔴 DATA LOST HERE! Challenge data disappeared between ${prevCp.id} and ${cp.id}`);
         }
       }
     });
     
-    console.log(`\n${'='.repeat(80)}\n`);
+    if (__DEV__) console.log(`\n${'='.repeat(80)}\n`);
   }
 }
 

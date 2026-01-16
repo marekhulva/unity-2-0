@@ -110,7 +110,7 @@ export const CreateBballCircle: React.FC = () => {
       );
       
     } catch (error: any) {
-      console.error('Error creating Bball circle:', error);
+      if (__DEV__) console.error('Error creating Bball circle:', error);
       Alert.alert('Error', error.message || 'Failed to create circle');
     } finally {
       setCreating(false);

@@ -30,13 +30,13 @@ class MemoryCache {
     
     if (age > this.defaultTTL) {
       // Too old, delete it and fetch fresh
-      console.log(`🔄 Cache expired for ${key} (${ageInSeconds}s old)`);
+      if (__DEV__) console.log(`🔄 Cache expired for ${key} (${ageInSeconds}s old)`);
       this.cache.delete(key);
       return null;
     }
     
     // Found it and it's fresh!
-    console.log(`⚡ Cache hit! Using cached ${key} (${ageInSeconds}s old)`);
+    if (__DEV__) console.log(`⚡ Cache hit! Using cached ${key} (${ageInSeconds}s old)`);
     return item.data as T;
   }
   
@@ -48,7 +48,7 @@ class MemoryCache {
       data,
       timestamp: Date.now()
     });
-    console.log(`💾 Cached ${key} for faster loading`);
+    if (__DEV__) console.log(`💾 Cached ${key} for faster loading`);
   }
   
   /**
@@ -57,10 +57,10 @@ class MemoryCache {
   clear(key?: string): void {
     if (key) {
       this.cache.delete(key);
-      console.log(`🗑️ Cleared cache for ${key}`);
+      if (__DEV__) console.log(`🗑️ Cleared cache for ${key}`);
     } else {
       this.cache.clear();
-      console.log('🗑️ Cleared all cache');
+      if (__DEV__) console.log('🗑️ Cleared all cache');
     }
   }
 }

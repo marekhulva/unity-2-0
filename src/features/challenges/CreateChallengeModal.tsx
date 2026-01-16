@@ -116,7 +116,7 @@ export const CreateChallengeModal = ({
         return;
       }
 
-      console.log('✅ Challenge created successfully:', result.challengeId);
+      if (__DEV__) console.log('✅ Challenge created successfully:', result.challengeId);
 
       const { data: circleMembers } = await supabase
         .from('circle_members')
@@ -124,7 +124,7 @@ export const CreateChallengeModal = ({
         .eq('circle_id', circleId);
 
       if (circleMembers && circleMembers.length > 0) {
-        console.log(`📤 Sending notifications to ${circleMembers.length} circle members...`);
+        if (__DEV__) console.log(`📤 Sending notifications to ${circleMembers.length} circle members...`);
 
         await Promise.all(
           circleMembers.map(member =>
@@ -142,7 +142,7 @@ export const CreateChallengeModal = ({
           )
         );
 
-        console.log('✅ Notifications sent successfully');
+        if (__DEV__) console.log('✅ Notifications sent successfully');
       }
 
       Alert.alert('Success', `"${name}" challenge created!`, [
@@ -156,7 +156,7 @@ export const CreateChallengeModal = ({
         },
       ]);
     } catch (error: any) {
-      console.error('Error creating challenge:', error);
+      if (__DEV__) console.error('Error creating challenge:', error);
       Alert.alert('Error', error.message || 'Something went wrong');
     } finally {
       setIsCreating(false);

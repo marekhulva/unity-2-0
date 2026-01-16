@@ -236,7 +236,7 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
         set({ completedActions: completedResponse.data || [] });
       }
     } catch (error: any) {
-      console.error('🔴 [ACTIONS] Error in fetchDailyActions:', error);
+      if (__DEV__) console.error('🔴 [ACTIONS] Error in fetchDailyActions:', error);
       set({ actionsError: error.message, actionsLoading: false });
     }
   },
@@ -247,7 +247,7 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
     // Find the action to check if it's from a challenge
     const action = get().actions.find(a => a.id === id);
     if (!action) {
-      console.error('🔴 [ACTIONS] Action not found:', id);
+      if (__DEV__) console.error('🔴 [ACTIONS] Action not found:', id);
       return;
     }
 
@@ -270,7 +270,7 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
           }));
           if (__DEV__) console.log('🟢 [ACTIONS] Action uncompleted successfully');
         } else {
-          console.error('🔴 [ACTIONS] Failed to uncomplete action:', response);
+          if (__DEV__) console.error('🔴 [ACTIONS] Failed to uncomplete action:', response);
         }
         return;
       }
@@ -297,7 +297,7 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
           }));
           if (__DEV__) console.log('🟢 [ACTIONS] Challenge activity completed successfully');
         } else {
-          console.error('🔴 [ACTIONS] Challenge completion failed:', response.error);
+          if (__DEV__) console.error('🔴 [ACTIONS] Challenge completion failed:', response.error);
         }
       } else {
         // Regular action completion
@@ -333,11 +333,11 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
             );
           }
         } else {
-          console.error('🔴 [ACTIONS] Failed to complete action:', response);
+          if (__DEV__) console.error('🔴 [ACTIONS] Failed to complete action:', response);
         }
       }
     } catch (error) {
-      console.error('🔴 [ACTIONS] Failed to toggle action:', error);
+      if (__DEV__) console.error('🔴 [ACTIONS] Failed to toggle action:', error);
     }
   },
   
@@ -378,10 +378,10 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
           return { actions: [...s.actions, newAction] };
         });
       } else {
-        console.error('🔴 [ACTIONS] Failed to add action:', response.error);
+        if (__DEV__) console.error('🔴 [ACTIONS] Failed to add action:', response.error);
       }
     } catch (error) {
-      console.error('🔴 [ACTIONS] Exception adding action:', error);
+      if (__DEV__) console.error('🔴 [ACTIONS] Exception adding action:', error);
     }
   },
 
@@ -485,7 +485,7 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
         }
       }
     } catch (error) {
-      console.error('🔴 [CELEBRATION] Failed to create celebration post:', error);
+      if (__DEV__) console.error('🔴 [CELEBRATION] Failed to create celebration post:', error);
     }
   },
 });

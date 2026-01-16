@@ -75,7 +75,7 @@ class SupabaseChallengeService {
   supabase = supabase;
   // Get all challenges for a circle
   async getCircleChallenges(circleId: string) {
-    console.log('🏆 [CHALLENGES] Fetching challenges for circle:', circleId);
+    if (__DEV__) console.log('🏆 [CHALLENGES] Fetching challenges for circle:', circleId);
     
     // First fetch challenges without join to avoid relationship errors
     const { data, error } = await supabase
@@ -85,11 +85,11 @@ class SupabaseChallengeService {
       .order('start_date', { ascending: false });
     
     if (error) {
-      console.error('🔴 [CHALLENGES] Error fetching challenges:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching challenges:', error);
       throw error;
     }
     
-    console.log('🟢 [CHALLENGES] Found challenges:', data?.length || 0);
+    if (__DEV__) console.log('🟢 [CHALLENGES] Found challenges:', data?.length || 0);
     
     // If we have challenges, map config and fetch related data
     if (data && data.length > 0) {
@@ -119,7 +119,7 @@ class SupabaseChallengeService {
         }
         // Try to fetch activities for each challenge
         try {
-          console.log('🔍 [CHALLENGES] Fetching activities for challenge:', challenge.id);
+          if (__DEV__) console.log('🔍 [CHALLENGES] Fetching activities for challenge:', challenge.id);
           const { data: activities, error: actError } = await supabase
             .from('challenge_activities')
             .select('*')
@@ -127,14 +127,14 @@ class SupabaseChallengeService {
             .order('order_index');
           
           if (actError) {
-            console.error('❌ [CHALLENGES] Error fetching activities:', actError);
+            if (__DEV__) console.error('❌ [CHALLENGES] Error fetching activities:', actError);
             challenge.challenge_activities = [];
           } else {
-            console.log('✅ [CHALLENGES] Found activities:', activities?.length || 0);
+            if (__DEV__) console.log('✅ [CHALLENGES] Found activities:', activities?.length || 0);
             challenge.challenge_activities = activities || [];
           }
         } catch (err) {
-          console.log('Could not fetch activities, error:', err);
+          if (__DEV__) console.log('Could not fetch activities, error:', err);
           challenge.challenge_activities = [];
         }
         
@@ -147,7 +147,7 @@ class SupabaseChallengeService {
           
           challenge.challenge_participants = participants || [];
         } catch (err) {
-          console.log('Could not fetch participants');
+          if (__DEV__) console.log('Could not fetch participants');
           challenge.challenge_participants = [];
         }
       }
@@ -182,9 +182,9 @@ class SupabaseChallengeService {
   
   // Join a challenge
   async joinChallenge(challengeId: string, selectedActivityIds: string[]) {
-    console.log('🏆 [CHALLENGES] Joining challenge:', challengeId);
-    console.log('📝 [CHALLENGES] Selected activity IDs:', selectedActivityIds);
-    console.log('📝 [CHALLENGES] Number of activities:', selectedActivityIds.length);
+    if (__DEV__) console.log('🏆 [CHALLENGES] Joining challenge:', challengeId);
+    if (__DEV__) console.log('📝 [CHALLENGES] Selected activity IDs:', selectedActivityIds);
+    if (__DEV__) console.log('📝 [CHALLENGES] Number of activities:', selectedActivityIds.length);
     
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
@@ -198,7 +198,7 @@ class SupabaseChallengeService {
       .single();
     
     if (existing) {
-      console.log('⚠️ [CHALLENGES] Already joined this challenge');
+      if (__DEV__) console.log('⚠️ [CHALLENGES] Already joined this challenge');
       return { success: false, error: 'Already joined this challenge' };
     }
     
@@ -215,13 +215,13 @@ class SupabaseChallengeService {
       .single();
     
     if (error) {
-      console.error('🔴 [CHALLENGES] Error joining challenge:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error joining challenge:', error);
       throw error;
     }
     
-    console.log('🟢 [CHALLENGES] Successfully joined challenge');
-    console.log('✅ [CHALLENGES] Saved participant data:', JSON.stringify(data, null, 2));
-    console.log('✅ [CHALLENGES] Saved activities:', data.selected_activity_ids);
+    if (__DEV__) console.log('🟢 [CHALLENGES] Successfully joined challenge');
+    if (__DEV__) console.log('✅ [CHALLENGES] Saved participant data:', JSON.stringify(data, null, 2));
+    if (__DEV__) console.log('✅ [CHALLENGES] Saved activities:', data.selected_activity_ids);
     return { success: true, data };
   }
   
@@ -238,7 +238,7 @@ class SupabaseChallengeService {
       .single();
     
     if (error && error.code !== 'PGRST116') { // Not found is ok
-      console.error('🔴 [CHALLENGES] Error getting participation:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error getting participation:', error);
     }
     
     return data;
@@ -246,7 +246,7 @@ class SupabaseChallengeService {
   
   // Get leaderboard for a challenge
   async getChallengeLeaderboard(challengeId: string) {
-    console.log('🏆 [CHALLENGES] Fetching leaderboard for:', challengeId);
+    if (__DEV__) console.log('🏆 [CHALLENGES] Fetching leaderboard for:', challengeId);
     
     const { data, error } = await supabase
       .from('challenge_participants')
@@ -264,7 +264,7 @@ class SupabaseChallengeService {
       .order('total_completions', { ascending: false });
     
     if (error) {
-      console.error('🔴 [CHALLENGES] Error fetching leaderboard:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching leaderboard:', error);
       throw error;
     }
     
@@ -277,7 +277,7 @@ class SupabaseChallengeService {
     activityId: string,
     linkedActionCompletionId?: string
   ) {
-    console.log('🏆 [CHALLENGES] Recording activity completion');
+    if (__DEV__) console.log('🏆 [CHALLENGES] Recording activity completion');
     
     const today = new Date().toISOString().split('T')[0];
     
@@ -291,7 +291,7 @@ class SupabaseChallengeService {
       .single();
     
     if (existing) {
-      console.log('⚠️ [CHALLENGES] Activity already completed today');
+      if (__DEV__) console.log('⚠️ [CHALLENGES] Activity already completed today');
       return { success: false, error: 'Already completed today' };
     }
     
@@ -308,11 +308,11 @@ class SupabaseChallengeService {
       .single();
     
     if (error) {
-      console.error('🔴 [CHALLENGES] Error recording completion:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error recording completion:', error);
       throw error;
     }
     
-    console.log('🟢 [CHALLENGES] Activity completed successfully');
+    if (__DEV__) console.log('🟢 [CHALLENGES] Activity completed successfully');
     return { success: true, data };
   }
   
@@ -330,7 +330,7 @@ class SupabaseChallengeService {
       .eq('completion_date', today);
     
     if (error) {
-      console.error('🔴 [CHALLENGES] Error fetching completions:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching completions:', error);
       throw error;
     }
     
@@ -355,7 +355,7 @@ class SupabaseChallengeService {
       .eq('completion_date', today);
     
     if (error) {
-      console.error('🔴 [CHALLENGES] Error fetching user completions:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching user completions:', error);
       return [];
     }
     
@@ -364,7 +364,7 @@ class SupabaseChallengeService {
   
   // Check for activity matches with existing habits
   async findActivityMatches(activityTitle: string, userId: string) {
-    console.log('🔍 [CHALLENGES] Checking for activity matches:', activityTitle);
+    if (__DEV__) console.log('🔍 [CHALLENGES] Checking for activity matches:', activityTitle);
     
     // First check exact name match in user's actions
     const { data: exactMatch } = await supabase
@@ -412,7 +412,7 @@ class SupabaseChallengeService {
   
   // Link challenge activity to existing habit
   async linkActivityToAction(participantId: string, actionId: string) {
-    console.log('🔗 [CHALLENGES] Linking activity to action:', actionId);
+    if (__DEV__) console.log('🔗 [CHALLENGES] Linking activity to action:', actionId);
     
     // Get current linked actions
     const { data: participant } = await supabase
@@ -435,11 +435,11 @@ class SupabaseChallengeService {
       .eq('id', participantId);
     
     if (error) {
-      console.error('🔴 [CHALLENGES] Error linking activity:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error linking activity:', error);
       throw error;
     }
     
-    console.log('🟢 [CHALLENGES] Activity linked successfully');
+    if (__DEV__) console.log('🟢 [CHALLENGES] Activity linked successfully');
     return { success: true };
   }
   
@@ -498,14 +498,14 @@ class SupabaseChallengeService {
   
   // Get all challenge activities for a user to show in Daily page
   async getUserChallengeActivities() {
-    console.log('🏆 [CHALLENGES] Fetching user challenge activities for Daily page');
+    if (__DEV__) console.log('🏆 [CHALLENGES] Fetching user challenge activities for Daily page');
     
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.log('❌ [CHALLENGES] No user found');
+      if (__DEV__) console.log('❌ [CHALLENGES] No user found');
       return [];
     }
-    console.log('👤 [CHALLENGES] Fetching for user:', user.id, user.email);
+    if (__DEV__) console.log('👤 [CHALLENGES] Fetching for user:', user.id, user.email);
     
     // Get all active participations for the user
     // Include activity_times once column is added
@@ -527,10 +527,10 @@ class SupabaseChallengeService {
       .eq('challenges.is_active', true);
     
     if (error) {
-      console.error('🔴 [CHALLENGES] Error fetching participations:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching participations:', error);
       // If activity_times column doesn't exist yet, try without it
       if (error.message?.includes('activity_times')) {
-        console.log('⚠️ [CHALLENGES] activity_times column not found, retrying without it');
+        if (__DEV__) console.log('⚠️ [CHALLENGES] activity_times column not found, retrying without it');
         const { data: fallbackParticipations, error: fallbackError } = await supabase
           .from('challenge_participants')
           .select(`
@@ -548,13 +548,13 @@ class SupabaseChallengeService {
           .eq('challenges.is_active', true);
         
         if (fallbackError) {
-          console.error('🔴 [CHALLENGES] Fallback query also failed:', fallbackError);
+          if (__DEV__) console.error('🔴 [CHALLENGES] Fallback query also failed:', fallbackError);
           return [];
         }
         
         // Use fallback data without activity_times
         const participationsWithoutTimes = fallbackParticipations || [];
-        console.log('📊 [CHALLENGES] Found participations (without times):', participationsWithoutTimes);
+        if (__DEV__) console.log('📊 [CHALLENGES] Found participations (without times):', participationsWithoutTimes);
         
         // Process without times
         return this.processParticipations(participationsWithoutTimes, false);
@@ -563,24 +563,24 @@ class SupabaseChallengeService {
     }
     
     if (!participations || participations.length === 0) {
-      console.log('📊 [CHALLENGES] No active challenge participations');
+      if (__DEV__) console.log('📊 [CHALLENGES] No active challenge participations');
       return [];
     }
     
-    console.log('📊 [CHALLENGES] Found participations:', participations);
+    if (__DEV__) console.log('📊 [CHALLENGES] Found participations:', participations);
     return this.processParticipations(participations, true);
   }
   
   private async processParticipations(participations: any[], hasActivityTimes: boolean) {
-    console.log('🔄 [CHALLENGES] Processing participations, hasActivityTimes:', hasActivityTimes);
-    console.log('🔄 [CHALLENGES] Number of participations:', participations.length);
+    if (__DEV__) console.log('🔄 [CHALLENGES] Processing participations, hasActivityTimes:', hasActivityTimes);
+    if (__DEV__) console.log('🔄 [CHALLENGES] Number of participations:', participations.length);
     
     // For each participation, get the selected activities
     const activities = [];
     for (const participation of participations) {
-      console.log('🔍 [CHALLENGES] Processing participation:', participation.id);
-      console.log('📦 [CHALLENGES] Full participation object:', JSON.stringify(participation, null, 2));
-      console.log('📦 [CHALLENGES] Participation summary:', {
+      if (__DEV__) console.log('🔍 [CHALLENGES] Processing participation:', participation.id);
+      if (__DEV__) console.log('📦 [CHALLENGES] Full participation object:', JSON.stringify(participation, null, 2));
+      if (__DEV__) console.log('📦 [CHALLENGES] Participation summary:', {
         id: participation.id,
         challenge_id: participation.challenge_id,
         selected_activity_ids: participation.selected_activity_ids,
@@ -592,7 +592,7 @@ class SupabaseChallengeService {
       // Handle both array and string formats for selected_activity_ids
       let activityIds = participation.selected_activity_ids;
       if (!activityIds) {
-        console.log('⚠️ [CHALLENGES] No selected_activity_ids for participation:', participation.id);
+        if (__DEV__) console.log('⚠️ [CHALLENGES] No selected_activity_ids for participation:', participation.id);
         continue;
       }
       
@@ -600,18 +600,18 @@ class SupabaseChallengeService {
       if (typeof activityIds === 'string') {
         try {
           activityIds = JSON.parse(activityIds);
-          console.log('📋 [CHALLENGES] Parsed string to array:', activityIds);
+          if (__DEV__) console.log('📋 [CHALLENGES] Parsed string to array:', activityIds);
         } catch (e) {
-          console.log('⚠️ [CHALLENGES] Could not parse activities string, treating as array:', activityIds);
+          if (__DEV__) console.log('⚠️ [CHALLENGES] Could not parse activities string, treating as array:', activityIds);
         }
       }
       
       if (!Array.isArray(activityIds) || activityIds.length === 0) {
-        console.log('⚠️ [CHALLENGES] No valid activities for participation:', participation.id);
+        if (__DEV__) console.log('⚠️ [CHALLENGES] No valid activities for participation:', participation.id);
         continue;
       }
       
-      console.log('📋 [CHALLENGES] Fetching activities with IDs:', activityIds);
+      if (__DEV__) console.log('📋 [CHALLENGES] Fetching activities with IDs:', activityIds);
       
       // Fetch the activity details
       const { data: challengeActivities, error: activitiesError } = await supabase
@@ -620,28 +620,28 @@ class SupabaseChallengeService {
         .in('id', activityIds);
       
       if (activitiesError) {
-        console.error('🔴 [CHALLENGES] Error fetching activities:', activitiesError);
+        if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching activities:', activitiesError);
         continue;
       }
       
-      console.log('✅ [CHALLENGES] Found activities:', challengeActivities?.length || 0);
+      if (__DEV__) console.log('✅ [CHALLENGES] Found activities:', challengeActivities?.length || 0);
       
       if (challengeActivities && challengeActivities.length > 0) {
         // First, build a map of linked activities from activity_times
         const linkedActivityIds = new Set();
-        console.log('🔗 [CHALLENGES] Checking for linked activities in activity_times:', participation.activity_times);
+        if (__DEV__) console.log('🔗 [CHALLENGES] Checking for linked activities in activity_times:', participation.activity_times);
         if (participation.activity_times && Array.isArray(participation.activity_times)) {
-          console.log('🔗 [CHALLENGES] activity_times has', participation.activity_times.length, 'entries');
+          if (__DEV__) console.log('🔗 [CHALLENGES] activity_times has', participation.activity_times.length, 'entries');
           participation.activity_times.forEach((item: any) => {
-            console.log('🔗 [CHALLENGES] Checking time entry:', item);
+            if (__DEV__) console.log('🔗 [CHALLENGES] Checking time entry:', item);
             if (item.is_link && item.linked_to) {
               // This activity is linked to an existing action
               linkedActivityIds.add(item.activity_id);
-              console.log(`🔗✅ [CHALLENGES] Found linked activity: ${item.activity_id} -> ${item.linked_to}`);
+              if (__DEV__) console.log(`🔗✅ [CHALLENGES] Found linked activity: ${item.activity_id} -> ${item.linked_to}`);
             }
           });
         } else {
-          console.log('🔗❌ [CHALLENGES] No activity_times or not an array');
+          if (__DEV__) console.log('🔗❌ [CHALLENGES] No activity_times or not an array');
         }
         
         // Map activities to include challenge info and scheduled times
@@ -649,13 +649,13 @@ class SupabaseChallengeService {
         const mappedActivities = challengeActivities
           .filter(activity => {
             if (linkedActivityIds.has(activity.id)) {
-              console.log(`🔗 [CHALLENGES] Filtering out linked activity: "${activity.title}" (${activity.id})`);
+              if (__DEV__) console.log(`🔗 [CHALLENGES] Filtering out linked activity: "${activity.title}" (${activity.id})`);
               return false; // Don't include linked activities
             }
             return true;
           })
           .map(activity => {
-          console.log('📌 [CHALLENGES] Processing activity:', {
+          if (__DEV__) console.log('📌 [CHALLENGES] Processing activity:', {
             id: activity.id,
             title: activity.title,
             display_name: activity.display_name,
@@ -671,7 +671,7 @@ class SupabaseChallengeService {
             );
             scheduledTime = timeEntry?.scheduled_time;
             if (scheduledTime) {
-              console.log(`⏰ [CHALLENGES] Activity "${activity.display_name || activity.title}" has scheduled time:`, scheduledTime);
+              if (__DEV__) console.log(`⏰ [CHALLENGES] Activity "${activity.display_name || activity.title}" has scheduled time:`, scheduledTime);
             }
           }
           
@@ -695,28 +695,28 @@ class SupabaseChallengeService {
         });
         
         activities.push(...mappedActivities);
-        console.log('📊 [CHALLENGES] Added', mappedActivities.length, 'activities from participation', participation.id);
+        if (__DEV__) console.log('📊 [CHALLENGES] Added', mappedActivities.length, 'activities from participation', participation.id);
       }
     }
     
-    console.log(`🟢 [CHALLENGES] Found ${activities.length} total challenge activities for Daily page`);
+    if (__DEV__) console.log(`🟢 [CHALLENGES] Found ${activities.length} total challenge activities for Daily page`);
     activities.forEach(a => {
-      console.log(`  - ${a.display_name || a.title} (${a.id}) - scheduled: ${a.scheduledTime || 'not set'}`);
+      if (__DEV__) console.log(`  - ${a.display_name || a.title} (${a.id}) - scheduled: ${a.scheduledTime || 'not set'}`);
     });
     return activities;
   }
 
   // Get linked challenge activities for merging with regular actions
   async getLinkedChallengeActivities() {
-    console.log('🔗 [CHALLENGES] Getting linked challenge activities for merging');
+    if (__DEV__) console.log('🔗 [CHALLENGES] Getting linked challenge activities for merging');
     
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.log('🔗 [CHALLENGES] No user found');
+      if (__DEV__) console.log('🔗 [CHALLENGES] No user found');
       return [];
     }
     
-    console.log('🔗 [CHALLENGES] Fetching participations for user:', user.id);
+    if (__DEV__) console.log('🔗 [CHALLENGES] Fetching participations for user:', user.id);
     const { data: participations, error } = await supabase
       .from('challenge_participants')
       .select(`
@@ -733,24 +733,24 @@ class SupabaseChallengeService {
       .eq('challenges.is_active', true);
     
     if (error) {
-      console.error('🔗❌ [CHALLENGES] Error fetching participations:', error);
+      if (__DEV__) console.error('🔗❌ [CHALLENGES] Error fetching participations:', error);
       return [];
     }
     
-    console.log('🔗 [CHALLENGES] Found participations:', participations?.length || 0);
+    if (__DEV__) console.log('🔗 [CHALLENGES] Found participations:', participations?.length || 0);
     
     const linkedActivities = [];
     
     if (participations) {
       for (const participation of participations) {
-        console.log('🔗 [CHALLENGES] Checking participation:', participation.id);
-        console.log('🔗 [CHALLENGES] activity_times:', participation.activity_times);
+        if (__DEV__) console.log('🔗 [CHALLENGES] Checking participation:', participation.id);
+        if (__DEV__) console.log('🔗 [CHALLENGES] activity_times:', participation.activity_times);
         if (participation.activity_times && Array.isArray(participation.activity_times)) {
-          console.log('🔗 [CHALLENGES] Found activity_times array with', participation.activity_times.length, 'entries');
+          if (__DEV__) console.log('🔗 [CHALLENGES] Found activity_times array with', participation.activity_times.length, 'entries');
           participation.activity_times.forEach((item: any) => {
-            console.log('🔗 [CHALLENGES] Checking item:', item);
+            if (__DEV__) console.log('🔗 [CHALLENGES] Checking item:', item);
             if (item.is_link && item.linked_to) {
-              console.log('🔗✅ [CHALLENGES] Found link:', item.activity_id, '->', item.linked_to);
+              if (__DEV__) console.log('🔗✅ [CHALLENGES] Found link:', item.activity_id, '->', item.linked_to);
               linkedActivities.push({
                 challengeActivityId: item.activity_id,
                 linkedActionId: item.linked_to,
@@ -761,18 +761,18 @@ class SupabaseChallengeService {
             }
           });
         } else {
-          console.log('🔗❌ [CHALLENGES] No activity_times or not an array for participation:', participation.id);
+          if (__DEV__) console.log('🔗❌ [CHALLENGES] No activity_times or not an array for participation:', participation.id);
         }
       }
     }
     
-    console.log('🔗 [CHALLENGES] Found linked activities:', linkedActivities);
+    if (__DEV__) console.log('🔗 [CHALLENGES] Found linked activities:', linkedActivities);
     return linkedActivities;
   }
   
   // Update participant with linked action IDs
   async updateParticipantLinks(participantId: string, links: Record<string, string>) {
-    console.log('🔗 [CHALLENGES] Updating participant links:', participantId, links);
+    if (__DEV__) console.log('🔗 [CHALLENGES] Updating participant links:', participantId, links);
     
     // The column is UUID[] so we need to save just the action IDs
     // We'll need to maintain the mapping separately
@@ -788,7 +788,7 @@ class SupabaseChallengeService {
       .select();
     
     if (error) {
-      console.error('🔴 [CHALLENGES] Error updating participant links:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error updating participant links:', error);
       throw error;
     }
     
@@ -816,7 +816,7 @@ class SupabaseChallengeService {
     // Merge non-link times with new link mappings
     const updatedTimes = [...nonLinkTimes, ...linkMappings];
     
-    console.log('🔗 [CHALLENGES] Saving link mappings to activity_times:', JSON.stringify(updatedTimes, null, 2));
+    if (__DEV__) console.log('🔗 [CHALLENGES] Saving link mappings to activity_times:', JSON.stringify(updatedTimes, null, 2));
     
     const { data: linkData, error: timeError } = await supabase
       .from('challenge_participants')
@@ -827,20 +827,20 @@ class SupabaseChallengeService {
       .select();
     
     if (timeError) {
-      console.error('🔴 [CHALLENGES] Error updating link mappings:', timeError);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error updating link mappings:', timeError);
       throw timeError; // Important: throw the error so the caller knows it failed
     }
     
-    console.log('🟢 [CHALLENGES] Updated participant links and mappings');
-    console.log('🟢 [CHALLENGES] Verified activity_times:', JSON.stringify(linkData?.[0]?.activity_times, null, 2));
+    if (__DEV__) console.log('🟢 [CHALLENGES] Updated participant links and mappings');
+    if (__DEV__) console.log('🟢 [CHALLENGES] Verified activity_times:', JSON.stringify(linkData?.[0]?.activity_times, null, 2));
     return linkData || data;
   }
 
   // Update participant with activity times for new activities
   async updateParticipantActivityTimes(participantId: string, times: Record<string, string>) {
-    console.log('🔴🔴🔴 [SAVE TIMES] updateParticipantActivityTimes called');
-    console.log('🔴🔴🔴 [SAVE TIMES] Participant ID:', participantId);
-    console.log('🔴🔴🔴 [SAVE TIMES] Times to save:', JSON.stringify(times, null, 2));
+    if (__DEV__) console.log('🔴🔴🔴 [SAVE TIMES] updateParticipantActivityTimes called');
+    if (__DEV__) console.log('🔴🔴🔴 [SAVE TIMES] Participant ID:', participantId);
+    if (__DEV__) console.log('🔴🔴🔴 [SAVE TIMES] Times to save:', JSON.stringify(times, null, 2));
     
     // CRITICAL FIX: First get current activity_times to preserve link mappings
     const { data: participant, error: fetchError } = await supabase
@@ -850,14 +850,14 @@ class SupabaseChallengeService {
       .single();
     
     if (fetchError) {
-      console.error('🔴 [CHALLENGES] Error fetching current activity times:', fetchError);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching current activity times:', fetchError);
       throw fetchError;
     }
     
     // Extract existing link mappings (entries with is_link: true)
     const currentTimes = participant?.activity_times || [];
     const existingLinkMappings = currentTimes.filter((t: any) => t.is_link === true);
-    console.log('🔗 [SAVE TIMES] Preserving existing link mappings:', JSON.stringify(existingLinkMappings, null, 2));
+    if (__DEV__) console.log('🔗 [SAVE TIMES] Preserving existing link mappings:', JSON.stringify(existingLinkMappings, null, 2));
     
     // Convert times object to array format for storage
     // times is { activityId: timeString }
@@ -869,7 +869,7 @@ class SupabaseChallengeService {
     // Merge preserved link mappings with new activity times
     const mergedActivityTimes = [...existingLinkMappings, ...newActivityTimes];
     
-    console.log('⏰ [CHALLENGES] Merged activity times for DB:', JSON.stringify(mergedActivityTimes, null, 2));
+    if (__DEV__) console.log('⏰ [CHALLENGES] Merged activity times for DB:', JSON.stringify(mergedActivityTimes, null, 2));
     
     const { data, error } = await supabase
       .from('challenge_participants')
@@ -880,13 +880,13 @@ class SupabaseChallengeService {
       .select();
 
     if (error) {
-      console.error('🔴 [CHALLENGES] Error updating activity times:', error);
-      console.error('🔴 [CHALLENGES] Error details:', JSON.stringify(error, null, 2));
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error updating activity times:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error details:', JSON.stringify(error, null, 2));
       throw error;
     }
 
-    console.log('✅ [CHALLENGES] Activity times updated successfully');
-    console.log('✅ [CHALLENGES] Updated record:', JSON.stringify(data, null, 2));
+    if (__DEV__) console.log('✅ [CHALLENGES] Activity times updated successfully');
+    if (__DEV__) console.log('✅ [CHALLENGES] Updated record:', JSON.stringify(data, null, 2));
     return data;
   }
 
@@ -894,11 +894,11 @@ class SupabaseChallengeService {
   async getUserParticipations() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.log('❌ [CHALLENGES] No user found');
+      if (__DEV__) console.log('❌ [CHALLENGES] No user found');
       return [];
     }
     
-    console.log('📊 [CHALLENGES] Fetching all participations for user:', user.id);
+    if (__DEV__) console.log('📊 [CHALLENGES] Fetching all participations for user:', user.id);
     
     // IMPORTANT: Include activity_times in the select to get scheduled times
     const { data, error } = await supabase
@@ -914,16 +914,16 @@ class SupabaseChallengeService {
       .eq('user_id', user.id);
     
     if (error) {
-      console.error('🔴 [CHALLENGES] Error fetching participations:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching participations:', error);
       return [];
     }
     
-    console.log('🟢 [CHALLENGES] Found participations:', data?.length || 0);
+    if (__DEV__) console.log('🟢 [CHALLENGES] Found participations:', data?.length || 0);
     
     // Log activity_times to debug
     if (data && data.length > 0) {
       data.forEach((p: any) => {
-        console.log(`📊 [CHALLENGES] Participation ${p.id} activity_times:`, p.activity_times);
+        if (__DEV__) console.log(`📊 [CHALLENGES] Participation ${p.id} activity_times:`, p.activity_times);
       });
     }
     
@@ -932,7 +932,7 @@ class SupabaseChallengeService {
 
   // Link a single activity to an action
   async linkActivityToAction(participantId: string, activityId: string, actionId: string) {
-    console.log('🔗 [CHALLENGES] Linking activity to action:', { participantId, activityId, actionId });
+    if (__DEV__) console.log('🔗 [CHALLENGES] Linking activity to action:', { participantId, activityId, actionId });
     
     // Get existing links
     const { data: participant, error: fetchError } = await supabase
@@ -942,7 +942,7 @@ class SupabaseChallengeService {
       .single();
     
     if (fetchError) {
-      console.error('🔴 [CHALLENGES] Error fetching participant:', fetchError);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching participant:', fetchError);
       throw fetchError;
     }
     
@@ -958,11 +958,11 @@ class SupabaseChallengeService {
       .select();
     
     if (error) {
-      console.error('🔴 [CHALLENGES] Error linking activity:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error linking activity:', error);
       throw error;
     }
     
-    console.log('🟢 [CHALLENGES] Successfully linked activity');
+    if (__DEV__) console.log('🟢 [CHALLENGES] Successfully linked activity');
     return data;
   }
 }

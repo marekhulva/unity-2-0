@@ -23,27 +23,27 @@ class SupabaseService {
       const { data: { session } } = await supabase.auth.getSession();
       const { data: { user } } = await supabase.auth.getUser();
       
-      console.log('🔐 [AUTH] Session check:');
-      console.log('  - Session exists:', !!session);
-      console.log('  - User exists:', !!user);
-      console.log('  - User ID:', user?.id || 'none');
-      console.log('  - User email:', user?.email || 'none');
+      if (__DEV__) console.log('🔐 [AUTH] Session check:');
+      if (__DEV__) console.log('  - Session exists:', !!session);
+      if (__DEV__) console.log('  - User exists:', !!user);
+      if (__DEV__) console.log('  - User ID:', user?.id || 'none');
+      if (__DEV__) console.log('  - User email:', user?.email || 'none');
       
       // CRITICAL: Also check what the app thinks the user is
       const storedUser = await AsyncStorage.getItem('user');
       if (storedUser) {
         const parsedUser = JSON.parse(storedUser);
-        console.log('  - App cached user ID:', parsedUser.id);
+        if (__DEV__) console.log('  - App cached user ID:', parsedUser.id);
         if (user && parsedUser.id !== user.id) {
-          console.error('🔴 [AUTH] USER ID MISMATCH!');
-          console.error('  - Supabase user:', user.id);
-          console.error('  - Cached user:', parsedUser.id);
+          if (__DEV__) console.error('🔴 [AUTH] USER ID MISMATCH!');
+          if (__DEV__) console.error('  - Supabase user:', user.id);
+          if (__DEV__) console.error('  - Cached user:', parsedUser.id);
         }
       }
       
       return { session, user };
     } catch (error) {
-      console.error('🔴 [AUTH] Session verification failed:', error);
+      if (__DEV__) console.error('🔴 [AUTH] Session verification failed:', error);
       return { session: null, user: null };
     }
   }
@@ -62,7 +62,7 @@ class SupabaseService {
     
     // CRITICAL: Create profile for new user
     if (data.user) {
-      console.log('🟦 [AUTH] Creating profile for new user:', data.user.id);
+      if (__DEV__) console.log('🟦 [AUTH] Creating profile for new user:', data.user.id);
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
@@ -72,9 +72,9 @@ class SupabaseService {
         });
       
       if (profileError && !profileError.message.includes('duplicate')) {
-        console.error('🔴 [AUTH] Failed to create profile:', profileError);
+        if (__DEV__) console.error('🔴 [AUTH] Failed to create profile:', profileError);
       } else {
-        console.log('🟢 [AUTH] Profile created successfully');
+        if (__DEV__) console.log('🟢 [AUTH] Profile created successfully');
       }
     }
     
@@ -116,11 +116,11 @@ class SupabaseService {
       // Verify session first
       const { user } = await this.verifySession();
       if (!user) {
-        console.log('🔴 [SUPABASE] No user found in getGoals - not authenticated');
+        if (__DEV__) console.log('🔴 [SUPABASE] No user found in getGoals - not authenticated');
         return [];  // Return empty array instead of throwing
       }
       
-      console.log('🔵 [SUPABASE] Fetching goals for user:', user.id);
+      if (__DEV__) console.log('🔵 [SUPABASE] Fetching goals for user:', user.id);
 
       const { data, error } = await supabase
         .from('goals')
@@ -129,11 +129,11 @@ class SupabaseService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('🔴 [SUPABASE] Error fetching goals:', error);
+        if (__DEV__) console.error('🔴 [SUPABASE] Error fetching goals:', error);
         throw error;
       }
       
-      console.log('🟢 [SUPABASE] Retrieved', data?.length || 0, 'goals from database');
+      if (__DEV__) console.log('🟢 [SUPABASE] Retrieved', data?.length || 0, 'goals from database');
       
       // Add calculated fields for frontend display
       const goalsWithCalculatedFields = (data || []).map(goal => ({
@@ -144,7 +144,7 @@ class SupabaseService {
       
       return goalsWithCalculatedFields;
     } catch (error) {
-      console.error('🔴 [SUPABASE] getGoals exception:', error);
+      if (__DEV__) console.error('🔴 [SUPABASE] getGoals exception:', error);
       return [];  // Return empty array on error
     }
   }
@@ -183,10 +183,10 @@ class SupabaseService {
       // Verify session first
       const { user } = await this.verifySession();
       if (!user) {
-        console.log('🔴 [SUPABASE] No user found in getDailyActions - not authenticated');
+        if (__DEV__) console.log('🔴 [SUPABASE] No user found in getDailyActions - not authenticated');
         return [];  // Return empty array instead of throwing
       }
-      console.log('🔵 [SUPABASE] Fetching daily actions for user:', user.id);
+      if (__DEV__) console.log('🔵 [SUPABASE] Fetching daily actions for user:', user.id);
 
       // Don't filter by date - get ALL user's actions (they're recurring commitments)
       // The 'date' field should track when it was created, not when it's shown
@@ -200,19 +200,19 @@ class SupabaseService {
         .order('time', { ascending: true });
 
       if (error) {
-        console.error('Error fetching daily actions:', error);
+        if (__DEV__) console.error('Error fetching daily actions:', error);
         throw error;
       }
 
       // LOG RAW DATABASE RESPONSE TO DEBUG
-      console.log('🔴 [RAW DB RESPONSE] First action:', JSON.stringify(data?.[0], null, 2));
+      if (__DEV__) console.log('🔴 [RAW DB RESPONSE] First action:', JSON.stringify(data?.[0], null, 2));
 
       // Check if completed_at is TODAY for each action
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
       // Log raw data to debug
-      console.log('🔵 [SUPABASE] Raw actions from DB:', data?.map(a => ({
+      if (__DEV__) console.log('🔵 [SUPABASE] Raw actions from DB:', data?.map(a => ({
         id: a.id,
         title: a.title,
         completed: a.completed,
@@ -238,7 +238,7 @@ class SupabaseService {
 
         // Debug log for first action
         if (action.title === "Yoga/Stretching") {
-          console.log('🔥 [TRANSFORM] Yoga action after transform:', {
+          if (__DEV__) console.log('🔥 [TRANSFORM] Yoga action after transform:', {
             original_completed_at: action.completed_at,
             result_completed_at: result.completed_at,
             result_completedAt: result.completedAt
@@ -248,10 +248,10 @@ class SupabaseService {
         return result;
       }) || [];
 
-      console.log('🔥 [TRANSFORM] First transformed action:', transformed[0]?.completed_at, transformed[0]?.completedAt);
+      if (__DEV__) console.log('🔥 [TRANSFORM] First transformed action:', transformed[0]?.completed_at, transformed[0]?.completedAt);
       return transformed;
     } catch (error) {
-      console.error('getDailyActions error:', error);
+      if (__DEV__) console.error('getDailyActions error:', error);
       return [];  // Return empty array on error
     }
   }
@@ -263,19 +263,19 @@ class SupabaseService {
     frequency?: string;
     scheduled_days?: string[];
   }) {
-    console.log('🔵 [SUPABASE] createAction called:', action.title);
+    if (__DEV__) console.log('🔵 [SUPABASE] createAction called:', action.title);
     
     // Verify session first
     const { user } = await this.verifySession();
     if (!user) {
-      console.error('🔴 [SUPABASE] Not authenticated - cannot create action!');
+      if (__DEV__) console.error('🔴 [SUPABASE] Not authenticated - cannot create action!');
       throw new Error('Not authenticated');
     }
-    console.log('🔵 [SUPABASE] Creating action for user ID:', user.id);
+    if (__DEV__) console.log('🔵 [SUPABASE] Creating action for user ID:', user.id);
 
     // Remove goalId from action to avoid conflict
     const { goalId, ...actionData } = action;
-    console.log('🔵 [SUPABASE] Creating action with goalId:', goalId, 'frequency:', action.frequency, 'scheduled_days:', action.scheduled_days);
+    if (__DEV__) console.log('🔵 [SUPABASE] Creating action with goalId:', goalId, 'frequency:', action.frequency, 'scheduled_days:', action.scheduled_days);
 
     const { data, error } = await supabase
       .from('actions')
@@ -292,13 +292,13 @@ class SupabaseService {
       .single();
 
     if (error) {
-      console.error('🔴 [SUPABASE] createAction error:', error.message);
+      if (__DEV__) console.error('🔴 [SUPABASE] createAction error:', error.message);
       throw error;
     }
-    console.log('🟢 [SUPABASE] Action created successfully, ID:', data.id);
+    if (__DEV__) console.log('🟢 [SUPABASE] Action created successfully, ID:', data.id);
     
     // Verify the action was actually saved
-    console.log('🔵 [SUPABASE] Verifying action was saved...');
+    if (__DEV__) console.log('🔵 [SUPABASE] Verifying action was saved...');
     const { data: verifyData, error: verifyError } = await supabase
       .from('actions')
       .select('*')
@@ -306,16 +306,16 @@ class SupabaseService {
       .single();
     
     if (verifyError || !verifyData) {
-      console.error('🔴 [SUPABASE] Action verification failed!', verifyError);
+      if (__DEV__) console.error('🔴 [SUPABASE] Action verification failed!', verifyError);
       throw new Error('Action creation verification failed');
     }
     
-    console.log('🟢 [SUPABASE] Action verified in database:', verifyData.title);
+    if (__DEV__) console.log('🟢 [SUPABASE] Action verified in database:', verifyData.title);
     return data;
   }
 
   async completeAction(id: string) {
-    console.log('🔵 [SUPABASE] Completing action:', id);
+    if (__DEV__) console.log('🔵 [SUPABASE] Completing action:', id);
 
     // Get current user
     const { user } = await this.verifySession();
@@ -331,10 +331,10 @@ class SupabaseService {
       });
 
     if (completionError) {
-      console.error('❌ [SUPABASE] Error logging completion:', completionError);
+      if (__DEV__) console.error('❌ [SUPABASE] Error logging completion:', completionError);
       // Continue even if logging fails - don't break the user experience
     } else {
-      console.log('✅ [SUPABASE] Completion logged in action_completions table');
+      if (__DEV__) console.log('✅ [SUPABASE] Completion logged in action_completions table');
     }
 
     // Update the actions table with completion status
@@ -350,16 +350,16 @@ class SupabaseService {
       .single();
 
     if (error) {
-      console.error('🔴 [SUPABASE] Error updating action:', error);
+      if (__DEV__) console.error('🔴 [SUPABASE] Error updating action:', error);
       throw error;
     }
 
-    console.log('🟢 [SUPABASE] Action completed successfully:', data);
+    if (__DEV__) console.log('🟢 [SUPABASE] Action completed successfully:', data);
     return data;
   }
 
   async uncompleteAction(id: string) {
-    console.log('🔵 [SUPABASE] Uncompleting action:', id);
+    if (__DEV__) console.log('🔵 [SUPABASE] Uncompleting action:', id);
 
     // Get current user
     const { user } = await this.verifySession();
@@ -381,9 +381,9 @@ class SupabaseService {
       .lt('completed_at', tomorrow.toISOString());
 
     if (deleteError) {
-      console.error('❌ [SUPABASE] Error deleting completion:', deleteError);
+      if (__DEV__) console.error('❌ [SUPABASE] Error deleting completion:', deleteError);
     } else {
-      console.log('✅ [SUPABASE] Completion removed from action_completions table');
+      if (__DEV__) console.log('✅ [SUPABASE] Completion removed from action_completions table');
     }
 
     // Update the actions table to mark as incomplete
@@ -399,11 +399,11 @@ class SupabaseService {
       .single();
 
     if (error) {
-      console.error('🔴 [SUPABASE] Error updating action:', error);
+      if (__DEV__) console.error('🔴 [SUPABASE] Error updating action:', error);
       throw error;
     }
 
-    console.log('🟢 [SUPABASE] Action uncompleted successfully:', data);
+    if (__DEV__) console.log('🟢 [SUPABASE] Action uncompleted successfully:', data);
     return data;
   }
 
@@ -432,7 +432,7 @@ class SupabaseService {
   // Formula: (total completions) / (number of actions × days since oldest action)
   // This gives the overall consistency percentage since the user started tracking
   async getGoalCompletionStats(userId: string) {
-    console.log('📊 [SUPABASE] Fetching HISTORICAL goal completion stats for user:', userId);
+    if (__DEV__) console.log('📊 [SUPABASE] Fetching HISTORICAL goal completion stats for user:', userId);
 
     // Get all goals with their creation dates
     const { data: goals, error: goalsError } = await supabase
@@ -441,7 +441,7 @@ class SupabaseService {
       .eq('user_id', userId);
 
     if (goalsError) {
-      console.error('Error fetching goals:', goalsError);
+      if (__DEV__) console.error('Error fetching goals:', goalsError);
       return {};
     }
 
@@ -456,7 +456,7 @@ class SupabaseService {
         .eq('user_id', userId);
 
       if (actionsError) {
-        console.error(`Error fetching actions for goal ${goal.id}:`, actionsError);
+        if (__DEV__) console.error(`Error fetching actions for goal ${goal.id}:`, actionsError);
         continue;
       }
 
@@ -493,7 +493,7 @@ class SupabaseService {
       if (!countError) {
         completedCount = count || 0;
       } else {
-        console.warn('⚠️ [SUPABASE] Error counting completions:', countError);
+        if (__DEV__) console.warn('⚠️ [SUPABASE] Error counting completions:', countError);
       }
 
       const percentage = expectedCompletions > 0
@@ -506,7 +506,7 @@ class SupabaseService {
         percentage
       };
 
-      console.log(`📊 Goal "${goal.title}": ${completedCount}/${expectedCompletions} = ${percentage}% (${actions.length} actions × ${daysSinceStart} days)`);
+      if (__DEV__) console.log(`📊 Goal "${goal.title}": ${completedCount}/${expectedCompletions} = ${percentage}% (${actions.length} actions × ${daysSinceStart} days)`);
     }
 
     return stats;
@@ -570,7 +570,7 @@ class SupabaseService {
   }
 
   async getBulkOverallCompletionStats(userIds: string[]) {
-    console.log(`📊 [SUPABASE] Fetching bulk completion stats for ${userIds.length} users`);
+    if (__DEV__) console.log(`📊 [SUPABASE] Fetching bulk completion stats for ${userIds.length} users`);
 
     const results: Record<string, { expected: number; completed: number; percentage: number }> = {};
 
@@ -582,7 +582,7 @@ class SupabaseService {
         .in('user_id', userIds);
 
       if (actionsError || !allActions) {
-        console.error('Error fetching bulk actions:', actionsError);
+        if (__DEV__) console.error('Error fetching bulk actions:', actionsError);
         userIds.forEach(id => {
           results[id] = { expected: 0, completed: 0, percentage: 0 };
         });
@@ -656,10 +656,10 @@ class SupabaseService {
         };
       }
 
-      console.log(`✅ [SUPABASE] Bulk stats calculated for ${userIds.length} users`);
+      if (__DEV__) console.log(`✅ [SUPABASE] Bulk stats calculated for ${userIds.length} users`);
       return results;
     } catch (error) {
-      console.error('Error in bulk stats:', error);
+      if (__DEV__) console.error('Error in bulk stats:', error);
       userIds.forEach(id => {
         results[id] = { expected: 0, completed: 0, percentage: 0 };
       });
@@ -668,7 +668,7 @@ class SupabaseService {
   }
 
   async getOverallCompletionStats(userId: string) {
-    console.log('📊 [SUPABASE] Fetching overall completion stats for user:', userId);
+    if (__DEV__) console.log('📊 [SUPABASE] Fetching overall completion stats for user:', userId);
 
     // Get all unique action templates (not daily instances) with frequency data
     const { data: actions, error: actionsError } = await supabase
@@ -677,7 +677,7 @@ class SupabaseService {
       .eq('user_id', userId);
 
     if (actionsError || !actions || actions.length === 0) {
-      console.error('Error fetching actions or no actions found:', actionsError);
+      if (__DEV__) console.error('Error fetching actions or no actions found:', actionsError);
       return { expected: 0, completed: 0, percentage: 0 };
     }
 
@@ -694,7 +694,7 @@ class SupabaseService {
     // Calculate total expected based on each action's frequency
     let totalExpected = 0;
 
-    console.log('🔍 [DEBUG] Processing actions with frequencies:');
+    if (__DEV__) console.log('🔍 [DEBUG] Processing actions with frequencies:');
     for (const action of actions) {
       const actionCreatedAt = new Date(action.created_at);
       actionCreatedAt.setHours(0, 0, 0, 0);
@@ -738,24 +738,24 @@ class SupabaseService {
           expectedForAction = daysForThisAction; // Default to daily
       }
 
-      console.log(`   - "${action.title}": frequency=${frequency}, days=${daysForThisAction}, expected=${expectedForAction}`);
+      if (__DEV__) console.log(`   - "${action.title}": frequency=${frequency}, days=${daysForThisAction}, expected=${expectedForAction}`);
       totalExpected += expectedForAction;
     }
-    console.log(`🔍 [DEBUG] Total expected: ${totalExpected}`);
+    if (__DEV__) console.log(`🔍 [DEBUG] Total expected: ${totalExpected}`);
 
     // Get actual completions from action_completions table
     const actionIds = actions.map(a => a.id);
-    console.log(`🔍 [DEBUG] Querying action_completions for ${actionIds.length} action IDs`);
+    if (__DEV__) console.log(`🔍 [DEBUG] Querying action_completions for ${actionIds.length} action IDs`);
 
     const { count: totalCompleted, error: completionError } = await supabase
       .from('action_completions')
       .select('*', { count: 'exact', head: true })
       .in('action_id', actionIds);
 
-    console.log(`🔍 [DEBUG] Completions query result: count=${totalCompleted}, error=${completionError ? 'YES' : 'NO'}`);
+    if (__DEV__) console.log(`🔍 [DEBUG] Completions query result: count=${totalCompleted}, error=${completionError ? 'YES' : 'NO'}`);
 
     if (completionError) {
-      console.error('Error fetching completions:', completionError);
+      if (__DEV__) console.error('Error fetching completions:', completionError);
 
       // Fallback: If action_completions fails, check how many actions have completed_at
       // This gives us at least TODAY's completion status
@@ -770,12 +770,12 @@ class SupabaseService {
         ? Math.round((fallbackCompleted / totalExpected) * 100)
         : 0;
 
-      console.log(`📊 Overall stats for ${userId} (using fallback):`);
-      console.log(`   - Unique actions: ${actions.length}`);
-      console.log(`   - Days tracking: ${daysSinceStart}`);
-      console.log(`   - Expected: ${totalExpected}`);
-      console.log(`   - Completed today: ${fallbackCompleted}`);
-      console.log(`   - Percentage (TODAY ONLY): ${fallbackPercentage}%`);
+      if (__DEV__) console.log(`📊 Overall stats for ${userId} (using fallback):`);
+      if (__DEV__) console.log(`   - Unique actions: ${actions.length}`);
+      if (__DEV__) console.log(`   - Days tracking: ${daysSinceStart}`);
+      if (__DEV__) console.log(`   - Expected: ${totalExpected}`);
+      if (__DEV__) console.log(`   - Completed today: ${fallbackCompleted}`);
+      if (__DEV__) console.log(`   - Percentage (TODAY ONLY): ${fallbackPercentage}%`);
 
       return {
         expected: totalExpected,
@@ -788,12 +788,12 @@ class SupabaseService {
       ? Math.round((totalCompleted / totalExpected) * 100)
       : 0;
 
-    console.log(`📊 Overall stats for ${userId}:`);
-    console.log(`   - Unique actions: ${actions.length}`);
-    console.log(`   - Days tracking: ${daysSinceStart}`);
-    console.log(`   - Expected (based on frequencies): ${totalExpected}`);
-    console.log(`   - Completed (from action_completions): ${totalCompleted}`);
-    console.log(`   - Percentage: ${percentage}%`);
+    if (__DEV__) console.log(`📊 Overall stats for ${userId}:`);
+    if (__DEV__) console.log(`   - Unique actions: ${actions.length}`);
+    if (__DEV__) console.log(`   - Days tracking: ${daysSinceStart}`);
+    if (__DEV__) console.log(`   - Expected (based on frequencies): ${totalExpected}`);
+    if (__DEV__) console.log(`   - Completed (from action_completions): ${totalCompleted}`);
+    if (__DEV__) console.log(`   - Percentage: ${percentage}%`);
 
     return {
       expected: totalExpected,
@@ -806,11 +806,11 @@ class SupabaseService {
     try {
       const { user } = await this.verifySession();
       if (!user) {
-        console.log('🔴 [SUPABASE] No user found - not authenticated');
+        if (__DEV__) console.log('🔴 [SUPABASE] No user found - not authenticated');
         return [];
       }
       
-      console.log('🔵 [SUPABASE] Fetching today\'s completed actions for user:', user.id);
+      if (__DEV__) console.log('🔵 [SUPABASE] Fetching today\'s completed actions for user:', user.id);
       
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -825,11 +825,11 @@ class SupabaseService {
         .order('completed_at', { ascending: false });
       
       if (actionsError) {
-        console.error('🔴 [SUPABASE] Error fetching completed actions:', actionsError);
+        if (__DEV__) console.error('🔴 [SUPABASE] Error fetching completed actions:', actionsError);
         return [];
       }
       
-      console.log('🟢 [SUPABASE] Found', actions?.length || 0, 'completed actions today');
+      if (__DEV__) console.log('🟢 [SUPABASE] Found', actions?.length || 0, 'completed actions today');
       
       // Convert to CompletedAction format
       return (actions || []).map(a => ({
@@ -845,7 +845,7 @@ class SupabaseService {
         category: a.category
       }));
     } catch (error) {
-      console.error('🔴 [SUPABASE] getTodaysCompletedActions error:', error);
+      if (__DEV__) console.error('🔴 [SUPABASE] getTodaysCompletedActions error:', error);
       return [];
     }
   }
@@ -858,14 +858,14 @@ class SupabaseService {
       throw new Error('No authenticated user');
     }
 
-    console.log('🔵 [SUPABASE] Updating profile for user:', user.id, 'with updates:', JSON.stringify(updates));
+    if (__DEV__) console.log('🔵 [SUPABASE] Updating profile for user:', user.id, 'with updates:', JSON.stringify(updates));
 
     // Handle avatar - can be base64 or URL
     let avatarUrl = updates.avatar;
     if (avatarUrl && avatarUrl.startsWith('data:image')) {
       // Avatar is base64 - store directly in database
       // This is acceptable for profile photos as they're small
-      console.log('🔵 [STORAGE] Storing avatar as base64 in database');
+      if (__DEV__) console.log('🔵 [STORAGE] Storing avatar as base64 in database');
     }
 
     const updateData: any = {
@@ -876,7 +876,7 @@ class SupabaseService {
     if (updates.name !== undefined) updateData.name = updates.name;
     if (updates.bio !== undefined) updateData.bio = updates.bio;
 
-    console.log('🔵 [SUPABASE] Update data being sent to DB:', JSON.stringify(updateData));
+    if (__DEV__) console.log('🔵 [SUPABASE] Update data being sent to DB:', JSON.stringify(updateData));
 
     const { data, error } = await supabase
       .from('profiles')
@@ -886,11 +886,11 @@ class SupabaseService {
       .single();
 
     if (error) {
-      console.error('🔴 [SUPABASE] Error updating profile:', error);
+      if (__DEV__) console.error('🔴 [SUPABASE] Error updating profile:', error);
       throw error;
     }
 
-    console.log('🟢 [SUPABASE] Profile updated successfully. Returned data:', JSON.stringify(data));
+    if (__DEV__) console.log('🟢 [SUPABASE] Profile updated successfully. Returned data:', JSON.stringify(data));
     return data;
   }
 
@@ -898,11 +898,11 @@ class SupabaseService {
   async getFeed(type: 'circle' | 'follow' = 'circle', limit: number = 5, offset: number = 0, circleId?: string | null) {
     const { data: { user } } = await supabase.auth.getUser();
 
-    console.log('🟦 [FEED] getFeed called:', { type, userId: user?.id, limit, offset, circleId });
+    if (__DEV__) console.log('🟦 [FEED] getFeed called:', { type, userId: user?.id, limit, offset, circleId });
 
     // Must be authenticated to see feeds
     if (!user) {
-      console.log('🔴 [FEED] No authenticated user for feed');
+      if (__DEV__) console.log('🔴 [FEED] No authenticated user for feed');
       return { posts: [], hasMore: false };
     }
 
@@ -918,7 +918,7 @@ class SupabaseService {
           .single();
 
         if (!profile?.circle_id) {
-          console.log('🟡 [FEED] User', user.id, 'has no circle_id - returning empty circle feed');
+          if (__DEV__) console.log('🟡 [FEED] User', user.id, 'has no circle_id - returning empty circle feed');
           return { posts: [], hasMore: false };
         }
         targetCircleId = profile.circle_id;
@@ -929,7 +929,7 @@ class SupabaseService {
       let userCircleIds: string[] = []; // Define at top level for use in query
 
       if (targetCircleId === null) {
-        console.log('🟦 [FEED] Fetching posts from ALL user circles');
+        if (__DEV__) console.log('🟦 [FEED] Fetching posts from ALL user circles');
 
         // Get all circles the user belongs to
         const { data: userMemberships } = await supabase
@@ -938,7 +938,7 @@ class SupabaseService {
           .eq('user_id', user.id);
 
         if (!userMemberships || userMemberships.length === 0) {
-          console.log('🟡 [FEED] User is not in any circles');
+          if (__DEV__) console.log('🟡 [FEED] User is not in any circles');
           return { posts: [], hasMore: false };
         }
 
@@ -951,9 +951,9 @@ class SupabaseService {
           .in('circle_id', userCircleIds);
 
         memberIds = allMembers?.map(m => m.user_id).filter(id => id !== null) || [];
-        console.log('🟦 [FEED] Total members across all circles:', memberIds.length);
+        if (__DEV__) console.log('🟦 [FEED] Total members across all circles:', memberIds.length);
       } else {
-        console.log('🟦 [FEED] Fetching posts from specific circle:', targetCircleId);
+        if (__DEV__) console.log('🟦 [FEED] Fetching posts from specific circle:', targetCircleId);
 
         // For specific circle, userCircleIds contains just this circle
         userCircleIds = [targetCircleId];
@@ -965,14 +965,14 @@ class SupabaseService {
           .eq('circle_id', targetCircleId);
 
         memberIds = members?.map(m => m.user_id).filter(id => id !== null) || [];
-        console.log('🟦 [FEED] Circle members found:', memberIds.length);
+        if (__DEV__) console.log('🟦 [FEED] Circle members found:', memberIds.length);
       }
 
-      console.log('🟦 [FEED] Valid member IDs:', memberIds);
+      if (__DEV__) console.log('🟦 [FEED] Valid member IDs:', memberIds);
       
       // CRITICAL FIX #2: If no members in circle, return empty (don't fetch ALL posts)
       if (memberIds.length === 0) {
-        console.log('🔴 [FEED] User has no circle members - returning empty feed');
+        if (__DEV__) console.log('🔴 [FEED] User has no circle members - returning empty feed');
         return { posts: [], hasMore: false };
       }
       
@@ -1016,13 +1016,13 @@ class SupabaseService {
         // For specific circle: Get posts that are in post_circles for this circle
         // OR posts with old circle_id field (backward compatibility)
         // OR public posts
-        console.log('🔒 [FEED] Filtering posts for specific circle:', targetCircleId);
+        if (__DEV__) console.log('🔒 [FEED] Filtering posts for specific circle:', targetCircleId);
 
         // We can't filter on joined table directly in Supabase, so we'll fetch and filter in JS
         // Alternative: fetch all and filter client-side
       } else {
         // For "All Circles": show posts from any of user's circles OR public posts
-        console.log('🔓 [FEED] Showing posts from all user circles:', userCircleIds.length);
+        if (__DEV__) console.log('🔓 [FEED] Showing posts from all user circles:', userCircleIds.length);
       }
 
       const { data: posts, error } = await query
@@ -1030,22 +1030,22 @@ class SupabaseService {
         .range(offset, offset + limit - 1);
 
       if (error) {
-        console.error('❌ [FEED] Error fetching circle posts:', error);
+        if (__DEV__) console.error('❌ [FEED] Error fetching circle posts:', error);
         throw error;
       }
 
       // DEBUG: Log what we actually got from database
       if (posts && posts.length > 0) {
-        console.log('🔍 [DEBUG] First post from DB - all fields:', Object.keys(posts[0]));
-        console.log('🔍 [DEBUG] First post challenge fields:', {
+        if (__DEV__) console.log('🔍 [DEBUG] First post from DB - all fields:', Object.keys(posts[0]));
+        if (__DEV__) console.log('🔍 [DEBUG] First post challenge fields:', {
           is_challenge: posts[0].is_challenge,
           challenge_name: posts[0].challenge_name,
           challenge_id: posts[0].challenge_id
         });
-        console.log('🔍 [DEBUG] First post circles:', posts[0].post_circles);
+        if (__DEV__) console.log('🔍 [DEBUG] First post circles:', posts[0].post_circles);
       }
 
-      console.log('📬 [FEED] Raw posts fetched from DB:', posts?.length || 0, 'posts');
+      if (__DEV__) console.log('📬 [FEED] Raw posts fetched from DB:', posts?.length || 0, 'posts');
 
       // CRITICAL: Filter posts based on post_circles junction table
       let filteredPosts = posts || [];
@@ -1065,7 +1065,7 @@ class SupabaseService {
           const shouldShow = inCircleViaJunction || inCircleViaOldField || isPublic;
 
           if (shouldShow) {
-            console.log('✅ [FILTER] Post', post.id, 'included:', {
+            if (__DEV__) console.log('✅ [FILTER] Post', post.id, 'included:', {
               viaJunction: inCircleViaJunction,
               viaOldField: inCircleViaOldField,
               isPublic,
@@ -1076,7 +1076,7 @@ class SupabaseService {
           return shouldShow;
         });
 
-        console.log('🔒 [FEED] After circle filter:', filteredPosts.length, 'posts (was', posts?.length || 0, ')');
+        if (__DEV__) console.log('🔒 [FEED] After circle filter:', filteredPosts.length, 'posts (was', posts?.length || 0, ')');
       } else {
         // Filter for all user's circles
         filteredPosts = (posts || []).filter(post => {
@@ -1094,11 +1094,11 @@ class SupabaseService {
           return inUserCirclesViaJunction || inUserCirclesViaOldField || isPublic;
         });
 
-        console.log('🔓 [FEED] After all-circles filter:', filteredPosts.length, 'posts (was', posts?.length || 0, ')');
+        if (__DEV__) console.log('🔓 [FEED] After all-circles filter:', filteredPosts.length, 'posts (was', posts?.length || 0, ')');
       }
 
       if (filteredPosts.length > 0) {
-        console.log('📋 [FEED] Filtered post details:', filteredPosts.map(p => ({
+        if (__DEV__) console.log('📋 [FEED] Filtered post details:', filteredPosts.map(p => ({
           id: p.id,
           type: p.type,
           visibility: p.visibility,
@@ -1153,11 +1153,11 @@ class SupabaseService {
       // Check if there are more posts to load
       const hasMore = postsWithProfiles.length === limit;
 
-      console.log(`📊 Circle feed loaded: ${postsWithProfiles.length} posts (page: ${offset/limit + 1}, hasMore: ${hasMore})`);
+      if (__DEV__) console.log(`📊 Circle feed loaded: ${postsWithProfiles.length} posts (page: ${offset/limit + 1}, hasMore: ${hasMore})`);
       return { posts: postsWithProfiles, hasMore };
     } else {
       // Get posts from people you follow
-      console.log('🔍 Fetching Following feed for user:', user?.id);
+      if (__DEV__) console.log('🔍 Fetching Following feed for user:', user?.id);
       
       const { data: following, error: followError } = await supabase
         .from('follows')
@@ -1165,20 +1165,20 @@ class SupabaseService {
         .eq('follower_id', user?.id);
       
       if (followError) {
-        console.error('❌ Error fetching follows:', followError);
+        if (__DEV__) console.error('❌ Error fetching follows:', followError);
         return { posts: [], hasMore: false };
       }
       
-      console.log('👥 Following data:', following);
+      if (__DEV__) console.log('👥 Following data:', following);
       
       // CRITICAL FIX: Filter out null following_ids that break the query (same as circle fix)
       const followingIds = following?.map(f => f.following_id).filter(id => id !== null) || [];
       
-      console.log('✅ Valid following IDs:', followingIds);
+      if (__DEV__) console.log('✅ Valid following IDs:', followingIds);
       
       // CRITICAL FIX #2: If not following anyone, return empty (don't fetch ALL posts)
       if (!followingIds || followingIds.length === 0) {
-        console.log('📭 [FEED] Not following anyone - returning empty feed');
+        if (__DEV__) console.log('📭 [FEED] Not following anyone - returning empty feed');
         return { posts: [], hasMore: false };
       }
 
@@ -1219,7 +1219,7 @@ class SupabaseService {
         .range(offset, offset + limit - 1);
 
       if (error) {
-        console.error('❌ Error fetching following posts:', error);
+        if (__DEV__) console.error('❌ Error fetching following posts:', error);
         throw error;
       }
 
@@ -1250,7 +1250,7 @@ class SupabaseService {
       }) || [];
 
       const hasMore = postsWithMetrics.length === limit;
-      console.log(`📊 Following feed loaded: ${postsWithMetrics.length} posts (page: ${offset/limit + 1}, hasMore: ${hasMore})`);
+      if (__DEV__) console.log(`📊 Following feed loaded: ${postsWithMetrics.length} posts (page: ${offset/limit + 1}, hasMore: ${hasMore})`);
       return { posts: postsWithMetrics, hasMore };
     }
   }
@@ -1313,7 +1313,7 @@ class SupabaseService {
           .range(offset, offset + limit - 1);
 
         if (error) {
-          console.error('🔴 [UNIFIED FEED] Error fetching following posts:', error);
+          if (__DEV__) console.error('🔴 [UNIFIED FEED] Error fetching following posts:', error);
           throw error;
         }
 
@@ -1410,7 +1410,7 @@ class SupabaseService {
         .range(offset, offset + limit - 1);
 
       if (error) {
-        console.error('🔴 [UNIFIED FEED] Error fetching posts:', error);
+        if (__DEV__) console.error('🔴 [UNIFIED FEED] Error fetching posts:', error);
         throw error;
       }
 
@@ -1454,7 +1454,7 @@ class SupabaseService {
 
       return { posts: postsWithProfiles, hasMore };
     } catch (error) {
-      console.error('🔴 [UNIFIED FEED] Error:', error);
+      if (__DEV__) console.error('🔴 [UNIFIED FEED] Error:', error);
       throw error;
     }
   }
@@ -1466,7 +1466,7 @@ class SupabaseService {
 
       // Handle file:// URIs (from iOS image picker with base64: false)
       if (imageData.startsWith('file://')) {
-        console.log('📱 Detected file:// URI, reading file...');
+        if (__DEV__) console.log('📱 Detected file:// URI, reading file...');
         const FileSystem = require('expo-file-system').default;
 
         // Read file as base64 directly from disk (memory efficient)
@@ -1475,7 +1475,7 @@ class SupabaseService {
         });
 
         base64Data = `data:image/jpeg;base64,${base64}`;
-        console.log('✅ File read successfully');
+        if (__DEV__) console.log('✅ File read successfully');
       }
       // Handle base64 data URIs
       else if (imageData.startsWith('data:image')) {
@@ -1489,7 +1489,7 @@ class SupabaseService {
       // Check size (base64 is ~33% larger than binary)
       const sizeInMB = base64Data.length / 1_048_576;
       if (sizeInMB > 5) {
-        console.log(`⚠️ Image too large (${sizeInMB.toFixed(1)}MB), keeping as base64`);
+        if (__DEV__) console.log(`⚠️ Image too large (${sizeInMB.toFixed(1)}MB), keeping as base64`);
         throw new Error('Image too large for upload');
       }
 
@@ -1508,7 +1508,7 @@ class SupabaseService {
       // Generate unique filename
       const fileName = `${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
 
-      console.log(`📤 Uploading image to Supabase Storage: ${fileName}`);
+      if (__DEV__) console.log(`📤 Uploading image to Supabase Storage: ${fileName}`);
 
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
@@ -1520,7 +1520,7 @@ class SupabaseService {
         });
 
       if (error) {
-        console.error('❌ Image upload failed:', error);
+        if (__DEV__) console.error('❌ Image upload failed:', error);
         throw error;
       }
 
@@ -1529,11 +1529,11 @@ class SupabaseService {
         .from('post-images')
         .getPublicUrl(fileName);
 
-      console.log(`✅ Image uploaded successfully: ${publicUrl}`);
+      if (__DEV__) console.log(`✅ Image uploaded successfully: ${publicUrl}`);
       return publicUrl;
 
     } catch (error) {
-      console.error('❌ Error uploading image:', error);
+      if (__DEV__) console.error('❌ Error uploading image:', error);
       throw error;
     }
   }
@@ -1568,7 +1568,7 @@ class SupabaseService {
     // CHECKPOINT 5: Data received in supabaseService
     ChallengeDebugV2.checkpoint('CP5-SUPABASE-RECEIVED', 'Data received in supabaseService.createPost', post);
     
-    console.log('🔵 [SUPABASE] createPost called with:', {
+    if (__DEV__) console.log('🔵 [SUPABASE] createPost called with:', {
       type: post.type,
       visibility: post.visibility,
       content: post.content?.substring(0, 50),
@@ -1589,7 +1589,7 @@ class SupabaseService {
     }
     
     const userId = user.id;
-    console.log('👤 [SUPABASE] User ID:', userId);
+    if (__DEV__) console.log('👤 [SUPABASE] User ID:', userId);
 
     // Map camelCase to snake_case for database
     const {
@@ -1604,22 +1604,22 @@ class SupabaseService {
     // Phase 4: Upload image to Storage if it's base64 OR file:// URI
     let finalMediaUrl = mediaUrl;
     if (mediaUrl && (mediaUrl.startsWith('data:image') || mediaUrl.startsWith('file://'))) {
-      console.log('🖼️ Detected image for upload (base64 or file URI), uploading to Storage...');
+      if (__DEV__) console.log('🖼️ Detected image for upload (base64 or file URI), uploading to Storage...');
       try {
         finalMediaUrl = await this.uploadImage(mediaUrl, userId);
-        console.log('✨ Image optimized and uploaded!');
+        if (__DEV__) console.log('✨ Image optimized and uploaded!');
       } catch (uploadError) {
-        console.error('⚠️ Image upload failed:', uploadError);
+        if (__DEV__) console.error('⚠️ Image upload failed:', uploadError);
 
         // CRITICAL: If it's a file:// URI and upload fails, we CANNOT fall back
         // because the file will be deleted by iOS later
         if (mediaUrl.startsWith('file://')) {
-          console.error('🚨 CRITICAL: file:// URI upload failed - photo will NOT persist!');
+          if (__DEV__) console.error('🚨 CRITICAL: file:// URI upload failed - photo will NOT persist!');
           throw new Error('Image upload failed. Photo cannot be saved.');
         }
 
         // For base64, we can fall back to storing it directly (not ideal but works)
-        console.log('⚠️ Falling back to base64 storage...');
+        if (__DEV__) console.log('⚠️ Falling back to base64 storage...');
         finalMediaUrl = mediaUrl;
       }
     }
@@ -1654,7 +1654,7 @@ class SupabaseService {
     // CHECKPOINT 6: Data being inserted to database
     ChallengeDebugV2.checkpoint('CP6-DB-INSERT', 'Data being inserted to posts table', insertData);
     
-    console.log('📤 [SUPABASE] Inserting post with data:', {
+    if (__DEV__) console.log('📤 [SUPABASE] Inserting post with data:', {
       user_id: insertData.user_id,
       type: insertData.type,
       visibility: insertData.visibility,
@@ -1674,14 +1674,14 @@ class SupabaseService {
       .single();
 
     if (error) {
-      console.error('❌ [SUPABASE] Error creating post:', error);
+      if (__DEV__) console.error('❌ [SUPABASE] Error creating post:', error);
       throw error;
     }
 
     // CHECKPOINT 7: Data returned from database
     ChallengeDebugV2.checkpoint('CP7-DB-RESPONSE', 'Data returned from database after insert', data);
 
-    console.log('✅ [SUPABASE] Post created successfully, ID:', data?.id);
+    if (__DEV__) console.log('✅ [SUPABASE] Post created successfully, ID:', data?.id);
 
     // NEW: Insert circle relationships if circleIds are provided
     // OR if visibility is 'circle' but no circleId/circleIds provided, add to ALL user circles
@@ -1694,7 +1694,7 @@ class SupabaseService {
                             (!finalCircleIds || finalCircleIds.length === 0);
 
     if (needsAllCircles) {
-      console.log('🔵 [SUPABASE] No circleIds provided for circle post, fetching all user circles');
+      if (__DEV__) console.log('🔵 [SUPABASE] No circleIds provided for circle post, fetching all user circles');
       const { data: userMemberships } = await supabase
         .from('circle_members')
         .select('circle_id')
@@ -1702,14 +1702,14 @@ class SupabaseService {
 
       if (userMemberships && userMemberships.length > 0) {
         finalCircleIds = userMemberships.map(m => m.circle_id);
-        console.log('🔵 [SUPABASE] Adding post to all user circles:', finalCircleIds.length);
+        if (__DEV__) console.log('🔵 [SUPABASE] Adding post to all user circles:', finalCircleIds.length);
       } else {
-        console.log('⚠️ [SUPABASE] User is not a member of any circles');
+        if (__DEV__) console.log('⚠️ [SUPABASE] User is not a member of any circles');
       }
     }
 
     if (finalCircleIds && finalCircleIds.length > 0 && data?.id) {
-      console.log('🔵 [SUPABASE] Inserting post_circles relationships for', finalCircleIds.length, 'circles');
+      if (__DEV__) console.log('🔵 [SUPABASE] Inserting post_circles relationships for', finalCircleIds.length, 'circles');
       const postCircleRelationships = finalCircleIds.map(cid => ({
         post_id: data.id,
         circle_id: cid
@@ -1720,10 +1720,10 @@ class SupabaseService {
         .insert(postCircleRelationships);
 
       if (circleError) {
-        console.error('⚠️ [SUPABASE] Error creating post_circles relationships:', circleError);
+        if (__DEV__) console.error('⚠️ [SUPABASE] Error creating post_circles relationships:', circleError);
         // Don't throw - the post is created, just log the error
       } else {
-        console.log('✅ [SUPABASE] Post_circles relationships created for', finalCircleIds.length, 'circles');
+        if (__DEV__) console.log('✅ [SUPABASE] Post_circles relationships created for', finalCircleIds.length, 'circles');
       }
     }
     
@@ -1745,7 +1745,7 @@ class SupabaseService {
   }
 
   async getUserPosts(userId: string, limit: number = 5) {
-    console.log(`📬 [SUPABASE] Fetching posts for user: ${userId}, limit: ${limit}`);
+    if (__DEV__) console.log(`📬 [SUPABASE] Fetching posts for user: ${userId}, limit: ${limit}`);
 
     const { data: posts, error } = await supabase
       .from('posts')
@@ -1762,11 +1762,11 @@ class SupabaseService {
       .limit(limit);
 
     if (error) {
-      console.error('❌ [SUPABASE] Error fetching user posts:', error);
+      if (__DEV__) console.error('❌ [SUPABASE] Error fetching user posts:', error);
       throw error;
     }
 
-    console.log(`✅ [SUPABASE] Found ${posts?.length || 0} posts for user`);
+    if (__DEV__) console.log(`✅ [SUPABASE] Found ${posts?.length || 0} posts for user`);
 
     // Get reactions and comments for these posts
     const postIds = posts?.map(p => p.id) || [];
@@ -1945,10 +1945,10 @@ class SupabaseService {
 
   // Goal methods
   async getGoals() {
-    console.log('🔵 [SUPABASE] Fetching goals for user:', (await this.verifySession()).user?.id);
+    if (__DEV__) console.log('🔵 [SUPABASE] Fetching goals for user:', (await this.verifySession()).user?.id);
     const { user } = await this.verifySession();
     if (!user) {
-      console.error('🔴 [SUPABASE] Not authenticated - cannot fetch goals!');
+      if (__DEV__) console.error('🔴 [SUPABASE] Not authenticated - cannot fetch goals!');
       return [];
     }
 
@@ -1959,11 +1959,11 @@ class SupabaseService {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('🔴 [SUPABASE] Error fetching goals:', error);
+      if (__DEV__) console.error('🔴 [SUPABASE] Error fetching goals:', error);
       return [];
     }
 
-    console.log('🟢 [SUPABASE] Retrieved', data?.length || 0, 'goals from database');
+    if (__DEV__) console.log('🟢 [SUPABASE] Retrieved', data?.length || 0, 'goals from database');
     
     // Add calculated fields for frontend display
     const goalsWithCalculatedFields = (data || []).map(goal => ({
@@ -1984,10 +1984,10 @@ class SupabaseService {
     why?: string;
     type?: 'goal' | 'routine';
   }) {
-    console.log('🔵 [SUPABASE] Creating goal:', goal.title);
+    if (__DEV__) console.log('🔵 [SUPABASE] Creating goal:', goal.title);
     const { user } = await this.verifySession();
     if (!user) {
-      console.error('🔴 [SUPABASE] Not authenticated - cannot create goal!');
+      if (__DEV__) console.error('🔴 [SUPABASE] Not authenticated - cannot create goal!');
       throw new Error('Not authenticated');
     }
 
@@ -2001,11 +2001,11 @@ class SupabaseService {
       .single();
 
     if (error) {
-      console.error('🔴 [SUPABASE] Error creating goal:', error);
+      if (__DEV__) console.error('🔴 [SUPABASE] Error creating goal:', error);
       throw error;
     }
 
-    console.log('🟢 [SUPABASE] Goal created with ID:', data.id);
+    if (__DEV__) console.log('🟢 [SUPABASE] Goal created with ID:', data.id);
     return data;
   }
 
@@ -2061,16 +2061,16 @@ class SupabaseService {
   }
 
   async joinCircleWithCode(inviteCode: string) {
-    console.log('🟦 [CIRCLE] Attempting to join circle with code:', inviteCode);
+    if (__DEV__) console.log('🟦 [CIRCLE] Attempting to join circle with code:', inviteCode);
 
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.error('🔴 [CIRCLE] Not authenticated');
+      if (__DEV__) console.error('🔴 [CIRCLE] Not authenticated');
       return { success: false, error: 'Not authenticated', data: null };
     }
 
-    console.log('🟦 [CIRCLE] User authenticated:', user.id);
+    if (__DEV__) console.log('🟦 [CIRCLE] User authenticated:', user.id);
 
     // Find circle by join code - fetch ALL circle data
     const { data: circles, error: circleError } = await supabase
@@ -2080,17 +2080,17 @@ class SupabaseService {
       .limit(1);
 
     if (circleError) {
-      console.error('🔴 [CIRCLE] Error searching for circle:', circleError);
+      if (__DEV__) console.error('🔴 [CIRCLE] Error searching for circle:', circleError);
       return { success: false, error: circleError.message, data: null };
     }
 
     if (!circles || circles.length === 0) {
-      console.log('🔴 [CIRCLE] No circle found with code:', inviteCode);
+      if (__DEV__) console.log('🔴 [CIRCLE] No circle found with code:', inviteCode);
       return { success: false, error: 'Invalid circle code', data: null };
     }
 
     const circle = circles[0];
-    console.log('🟢 [CIRCLE] Found circle:', circle.name, circle.id);
+    if (__DEV__) console.log('🟢 [CIRCLE] Found circle:', circle.name, circle.id);
 
     // Check if already a member
     const { data: existingMember } = await supabase
@@ -2101,7 +2101,7 @@ class SupabaseService {
       .single();
 
     if (existingMember) {
-      console.log('🟡 [CIRCLE] User already a member of this circle');
+      if (__DEV__) console.log('🟡 [CIRCLE] User already a member of this circle');
       return { success: false, error: 'Already a member of this circle', data: circle };
     }
 
@@ -2114,11 +2114,11 @@ class SupabaseService {
       });
 
     if (memberError) {
-      console.error('🔴 [CIRCLE] Error adding to circle_members:', memberError);
+      if (__DEV__) console.error('🔴 [CIRCLE] Error adding to circle_members:', memberError);
       return { success: false, error: memberError.message, data: null };
     }
 
-    console.log('🟢 [CIRCLE] Added to circle_members');
+    if (__DEV__) console.log('🟢 [CIRCLE] Added to circle_members');
 
     // Update profile
     const { error: profileError } = await supabase
@@ -2127,11 +2127,11 @@ class SupabaseService {
       .eq('id', user.id);
 
     if (profileError) {
-      console.error('🔴 [CIRCLE] Error updating profile:', profileError);
+      if (__DEV__) console.error('🔴 [CIRCLE] Error updating profile:', profileError);
       return { success: false, error: profileError.message, data: null };
     }
 
-    console.log('🟢 [CIRCLE] Successfully joined circle!');
+    if (__DEV__) console.log('🟢 [CIRCLE] Successfully joined circle!');
     return { success: true, error: null, data: circle };
   }
 
@@ -2139,7 +2139,7 @@ class SupabaseService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    console.log('🟦 [CIRCLE] Adding user', user.id, 'to circle', circleId);
+    if (__DEV__) console.log('🟦 [CIRCLE] Adding user', user.id, 'to circle', circleId);
 
     // Add user to circle_members table
     const { error: memberError } = await supabase
@@ -2150,7 +2150,7 @@ class SupabaseService {
       });
 
     if (memberError && !memberError.message.includes('duplicate')) {
-      console.error('🔴 [CIRCLE] Failed to add to circle_members:', memberError);
+      if (__DEV__) console.error('🔴 [CIRCLE] Failed to add to circle_members:', memberError);
       throw memberError;
     }
 
@@ -2161,11 +2161,11 @@ class SupabaseService {
       .eq('id', user.id);
     
     if (profileError) {
-      console.error('🔴 [CIRCLE] Failed to update profile circle_id:', profileError);
+      if (__DEV__) console.error('🔴 [CIRCLE] Failed to update profile circle_id:', profileError);
       throw profileError;
     }
     
-    console.log('🟢 [CIRCLE] Successfully joined circle and updated profile');
+    if (__DEV__) console.log('🟢 [CIRCLE] Successfully joined circle and updated profile');
   }
 
   async getMyCircle() {
@@ -2180,12 +2180,12 @@ class SupabaseService {
       .single();
 
     if (profileError) {
-      console.error('Error fetching user profile:', profileError);
+      if (__DEV__) console.error('Error fetching user profile:', profileError);
       return null;
     }
 
     if (!profile?.circle_id) {
-      console.log('User has no circle_id set in profile');
+      if (__DEV__) console.log('User has no circle_id set in profile');
       return null;
     }
 
@@ -2197,7 +2197,7 @@ class SupabaseService {
       .single();
 
     if (circleError) {
-      console.error('Error fetching circle:', circleError);
+      if (__DEV__) console.error('Error fetching circle:', circleError);
       return null;
     }
 
@@ -2205,7 +2205,7 @@ class SupabaseService {
   }
 
   async getCircleMembers(circleId: string) {
-    console.log('Fetching members for circle:', circleId);
+    if (__DEV__) console.log('Fetching members for circle:', circleId);
     
     // First get the member records
     const { data: members, error: membersError } = await supabase
@@ -2214,13 +2214,13 @@ class SupabaseService {
       .eq('circle_id', circleId);
 
     if (membersError) {
-      console.error('Error fetching circle members:', membersError);
-      console.error('Failed query: SELECT user_id, role, joined_at FROM circle_members WHERE circle_id =', circleId);
+      if (__DEV__) console.error('Error fetching circle members:', membersError);
+      if (__DEV__) console.error('Failed query: SELECT user_id, role, joined_at FROM circle_members WHERE circle_id =', circleId);
       throw membersError;
     }
 
     if (!members || members.length === 0) {
-      console.log('No members found for circle:', circleId);
+      if (__DEV__) console.log('No members found for circle:', circleId);
       return [];
     }
 
@@ -2228,10 +2228,10 @@ class SupabaseService {
     const validMembers = members.filter(m => m.user_id !== null);
     const userIds = validMembers.map(m => m.user_id);
     
-    console.log('Valid user IDs:', userIds);
+    if (__DEV__) console.log('Valid user IDs:', userIds);
     
     if (userIds.length === 0) {
-      console.log('No valid user IDs found');
+      if (__DEV__) console.log('No valid user IDs found');
       return [];
     }
     
@@ -2241,7 +2241,7 @@ class SupabaseService {
       .in('id', userIds);
 
     if (profilesError) {
-      console.error('Error fetching profiles:', profilesError);
+      if (__DEV__) console.error('Error fetching profiles:', profilesError);
       throw profilesError;
     }
 
@@ -2256,7 +2256,7 @@ class SupabaseService {
       };
     });
     
-    console.log('Fetched circle members with profiles:', membersWithProfiles);
+    if (__DEV__) console.log('Fetched circle members with profiles:', membersWithProfiles);
     return membersWithProfiles;
   }
 
@@ -2265,7 +2265,7 @@ class SupabaseService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    console.log('🔵 [CIRCLES] Fetching all circles for user:', user.id);
+    if (__DEV__) console.log('🔵 [CIRCLES] Fetching all circles for user:', user.id);
 
     // Get all circle memberships for the user with emoji and additional fields
     const { data: memberships, error: membershipError } = await supabase
@@ -2289,7 +2289,7 @@ class SupabaseService {
       .order('joined_at', { ascending: false });
 
     if (membershipError) {
-      console.error('🔴 [CIRCLES] Error fetching user circles:', membershipError);
+      if (__DEV__) console.error('🔴 [CIRCLES] Error fetching user circles:', membershipError);
       throw membershipError;
     }
 
@@ -2335,7 +2335,7 @@ class SupabaseService {
       }
     }
 
-    console.log('✅ [CIRCLES] Found', circles.length, 'circles for user');
+    if (__DEV__) console.log('✅ [CIRCLES] Found', circles.length, 'circles for user');
     return circles;
   }
 
@@ -2344,7 +2344,7 @@ class SupabaseService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    console.log('🔵 [CIRCLES] User', user.id, 'leaving circle:', circleId);
+    if (__DEV__) console.log('🔵 [CIRCLES] User', user.id, 'leaving circle:', circleId);
 
     // Remove from circle_members table
     const { error: memberError } = await supabase
@@ -2354,7 +2354,7 @@ class SupabaseService {
       .eq('user_id', user.id);
 
     if (memberError) {
-      console.error('🔴 [CIRCLES] Error leaving circle:', memberError);
+      if (__DEV__) console.error('🔴 [CIRCLES] Error leaving circle:', memberError);
       throw memberError;
     }
 
@@ -2372,12 +2372,12 @@ class SupabaseService {
         .eq('id', user.id);
 
       if (profileError) {
-        console.error('🔴 [CIRCLES] Error updating profile:', profileError);
+        if (__DEV__) console.error('🔴 [CIRCLES] Error updating profile:', profileError);
         throw profileError;
       }
     }
 
-    console.log('✅ [CIRCLES] Successfully left circle');
+    if (__DEV__) console.log('✅ [CIRCLES] Successfully left circle');
   }
 
   // Following methods

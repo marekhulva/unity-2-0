@@ -37,7 +37,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     this.setState({ errorInfo });
     
     // Log error to crash reporting service
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    if (__DEV__) console.error('ErrorBoundary caught an error:', error, errorInfo);
     
     // Trigger haptic feedback for error
     HapticManager.error.strong();

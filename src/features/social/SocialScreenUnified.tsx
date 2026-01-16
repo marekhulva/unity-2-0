@@ -142,7 +142,7 @@ export const SocialScreenUnified = () => {
       // Refresh feed with current filter
       await fetchUnifiedFeed(true, feedType || FEED_ALL);
     } catch (error) {
-      console.error('Failed to create post:', error);
+      if (__DEV__) console.error('Failed to create post:', error);
     } finally {
       setIsPosting(false);
     }

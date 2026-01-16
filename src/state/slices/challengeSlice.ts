@@ -64,7 +64,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
       });
       if (__DEV__) console.log('🟢 [STORE] Loaded global challenges:', challenges.length);
     } catch (error: any) {
-      console.error('🔴 [STORE] Error fetching global challenges:', error);
+      if (__DEV__) console.error('🔴 [STORE] Error fetching global challenges:', error);
       set({
         challengeError: error.message || 'Failed to load challenges',
         challengesLoading: false
@@ -84,7 +84,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
       });
       if (__DEV__) console.log('🟢 [STORE] Loaded circle challenges:', challenges.length);
     } catch (error: any) {
-      console.error('🔴 [STORE] Error fetching circle challenges:', error);
+      if (__DEV__) console.error('🔴 [STORE] Error fetching circle challenges:', error);
       set({
         challengeError: error.message || 'Failed to load challenges',
         challengesLoading: false
@@ -104,7 +104,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
       });
       if (__DEV__) console.log('🟢 [STORE] Loaded all user circle challenges:', challenges.length);
     } catch (error: any) {
-      console.error('🔴 [STORE] Error fetching all user circle challenges:', error);
+      if (__DEV__) console.error('🔴 [STORE] Error fetching all user circle challenges:', error);
       set({
         challengeError: error.message || 'Failed to load challenges',
         challengesLoading: false
@@ -124,7 +124,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
       });
       if (__DEV__) console.log('🟢 [STORE] Loaded active challenges:', challenges.length);
     } catch (error: any) {
-      console.error('🔴 [STORE] Error fetching active challenges:', error);
+      if (__DEV__) console.error('🔴 [STORE] Error fetching active challenges:', error);
       set({ challengesLoading: false });
     }
   },
@@ -141,7 +141,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
       });
       if (__DEV__) console.log('🟢 [STORE] Loaded completed challenges:', challenges.length);
     } catch (error: any) {
-      console.error('🔴 [STORE] Error fetching completed challenges:', error);
+      if (__DEV__) console.error('🔴 [STORE] Error fetching completed challenges:', error);
       set({ challengesLoading: false });
     }
   },
@@ -154,7 +154,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
       set({ myBadges: badges });
       if (__DEV__) console.log('🟢 [STORE] Loaded badges:', badges.length);
     } catch (error: any) {
-      console.error('🔴 [STORE] Error fetching badges:', error);
+      if (__DEV__) console.error('🔴 [STORE] Error fetching badges:', error);
     }
   },
 
@@ -170,7 +170,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
       });
       if (__DEV__) console.log('🟢 [STORE] Loaded challenge:', challenge?.name);
     } catch (error: any) {
-      console.error('🔴 [STORE] Error loading challenge:', error);
+      if (__DEV__) console.error('🔴 [STORE] Error loading challenge:', error);
       set({ challengesLoading: false });
     }
   },
@@ -183,7 +183,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
       set({ leaderboard });
       if (__DEV__) console.log('🟢 [STORE] Loaded leaderboard:', leaderboard.length, 'participants');
     } catch (error: any) {
-      console.error('🔴 [STORE] Error loading leaderboard:', error);
+      if (__DEV__) console.error('🔴 [STORE] Error loading leaderboard:', error);
     }
   },
 
@@ -216,7 +216,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
         return false;
       }
     } catch (error: any) {
-      console.error('🔴 [STORE] Error joining challenge:', error);
+      if (__DEV__) console.error('🔴 [STORE] Error joining challenge:', error);
       set({
         challengeError: error.message || 'Failed to join challenge',
         challengesLoading: false
@@ -245,7 +245,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
         return false;
       }
     } catch (error: any) {
-      console.error('🔴 [STORE] Error leaving challenge:', error);
+      if (__DEV__) console.error('🔴 [STORE] Error leaving challenge:', error);
       set({ challengesLoading: false });
       return false;
     }
@@ -296,7 +296,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
         return false;
       }
     } catch (error: any) {
-      console.error('🔴 [STORE] Error recording completion:', error);
+      if (__DEV__) console.error('🔴 [STORE] Error recording completion:', error);
       return false;
     }
   },

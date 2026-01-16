@@ -45,25 +45,25 @@ export const CircleMembersModal: React.FC<CircleMembersModalProps> = ({
     try {
       // Get circle details
       const circleResult = await backendService.getMyCircle();
-      console.log('Circle result:', circleResult);
+      if (__DEV__) console.log('Circle result:', circleResult);
       
       if (circleResult.success && circleResult.data) {
         const circle = circleResult.data;
-        console.log('Circle data:', circle);
+        if (__DEV__) console.log('Circle data:', circle);
         setCircleName(circle.name);
         setInviteCode(circle.invite_code);
         
         // Get members
         const membersResult = await backendService.getCircleMembers(circle.id);
-        console.log('Members result:', membersResult);
+        if (__DEV__) console.log('Members result:', membersResult);
         const membersList = membersResult.success ? membersResult.data : [];
-        console.log('Members list:', membersList);
+        if (__DEV__) console.log('Members list:', membersList);
         setMembers(membersList || []);
       } else {
-        console.log('No circle found for user');
+        if (__DEV__) console.log('No circle found for user');
       }
     } catch (error) {
-      console.error('Failed to load circle data:', error);
+      if (__DEV__) console.error('Failed to load circle data:', error);
     } finally {
       setLoading(false);
     }

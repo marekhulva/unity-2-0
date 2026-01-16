@@ -48,7 +48,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, duration = 0 }) =
   const loadAndPlaySound = async () => {
     try {
       if (!uri) {
-        console.error('No audio URI provided');
+        if (__DEV__) console.error('No audio URI provided');
         return;
       }
 
@@ -79,7 +79,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, duration = 0 }) =
       setIsPlaying(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (error) {
-      console.error('Error playing audio:', error);
+      if (__DEV__) console.error('Error playing audio:', error);
       setIsPlaying(false);
     }
   };

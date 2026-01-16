@@ -24,11 +24,11 @@ export const JoinCircleModal: React.FC<JoinCircleModalProps> = ({ visible, onClo
       return;
     }
 
-    console.log('Attempting to join circle with code:', inviteCode);
+    if (__DEV__) console.log('Attempting to join circle with code:', inviteCode);
     setLoading(true);
     try {
       const success = await joinCircle(inviteCode);
-      console.log('Join circle result:', success);
+      if (__DEV__) console.log('Join circle result:', success);
       
       if (success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -43,7 +43,7 @@ export const JoinCircleModal: React.FC<JoinCircleModalProps> = ({ visible, onClo
         Alert.alert('Error', 'Invalid invite code or already a member');
       }
     } catch (error: any) {
-      console.error('Join circle error:', error);
+      if (__DEV__) console.error('Join circle error:', error);
       Alert.alert('Error', error.message || 'Failed to join circle');
     } finally {
       setLoading(false);

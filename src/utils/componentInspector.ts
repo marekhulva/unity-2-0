@@ -52,24 +52,24 @@ export class ComponentInspector {
     this.renderLog.set(componentName, count);
     
     if (__DEV__ && details?.verbose) {
-      console.log(`[RENDER #${count}] ${componentName}`, details);
+      if (__DEV__) console.log(`[RENDER #${count}] ${componentName}`, details);
     }
   }
 
   // Show all active components
   showActiveComponents() {
     console.group('🎯 ACTIVE COMPONENTS');
-    console.log('%cScreens:', 'font-weight: bold; color: #4CAF50');
+    if (__DEV__) console.log('%cScreens:', 'font-weight: bold; color: #4CAF50');
     Object.entries(ACTIVE_COMPONENTS.screens).forEach(([key, value]) => {
-      console.log(`  ${key}: ${value}`);
+      if (__DEV__) console.log(`  ${key}: ${value}`);
     });
     
-    console.log('%cCore Components:', 'font-weight: bold; color: #2196F3');
+    if (__DEV__) console.log('%cCore Components:', 'font-weight: bold; color: #2196F3');
     Object.entries(ACTIVE_COMPONENTS.components).forEach(([key, value]) => {
-      console.log(`  ${key}: ${value}`);
+      if (__DEV__) console.log(`  ${key}: ${value}`);
     });
     
-    console.log(`%cLast Updated: ${ACTIVE_COMPONENTS.lastUpdated}`, 'color: #666');
+    if (__DEV__) console.log(`%cLast Updated: ${ACTIVE_COMPONENTS.lastUpdated}`, 'color: #666');
     console.groupEnd();
   }
 
@@ -80,7 +80,7 @@ export class ComponentInspector {
       .sort((a, b) => b[1] - a[1]);
     
     sorted.forEach(([component, count]) => {
-      console.log(`${component}: ${count} renders`);
+      if (__DEV__) console.log(`${component}: ${count} renders`);
     });
     console.groupEnd();
   }
@@ -107,11 +107,11 @@ export class ComponentInspector {
     });
     
     if (results.length > 0) {
-      console.log('%cFound:', 'color: #4CAF50');
-      results.forEach(r => console.log('  ' + r));
+      if (__DEV__) console.log('%cFound:', 'color: #4CAF50');
+      if (__DEV__) results.forEach(r => console.log('  ' + r));
     } else {
-      console.log('%cNo matches found', 'color: #f44336');
-      console.log('Tip: Use showActiveComponents() to see all active components');
+      if (__DEV__) console.log('%cNo matches found', 'color: #f44336');
+      if (__DEV__) console.log('Tip: Use showActiveComponents() to see all active components');
     }
     
     console.groupEnd();
@@ -120,7 +120,7 @@ export class ComponentInspector {
   // Clear render log
   clearStats() {
     this.renderLog.clear();
-    console.log('✅ Render statistics cleared');
+    if (__DEV__) console.log('✅ Render statistics cleared');
   }
 
   // Check if a component is deprecated
@@ -139,7 +139,7 @@ export class ComponentInspector {
     ];
     
     if (deprecated.includes(componentName)) {
-      console.warn(`⚠️ ${componentName} is DEPRECATED. Use ComponentInspector.showActiveComponents() to find the active version.`);
+      if (__DEV__) console.warn(`⚠️ ${componentName} is DEPRECATED. Use ComponentInspector.showActiveComponents() to find the active version.`);
       return true;
     }
     return false;
@@ -156,10 +156,10 @@ if (__DEV__ && typeof window !== 'undefined') {
   (window as any).showRenderStats = () => inspector.showRenderStats();
   (window as any).findComponent = (name: string) => inspector.findComponent(name);
   
-  console.log('%c🔍 Component Inspector Ready!', 'background: #4CAF50; color: white; padding: 2px 8px; border-radius: 4px');
-  console.log('Available commands:');
-  console.log('  showActiveComponents() - Show all active components');
-  console.log('  showRenderStats() - Show component render counts');
-  console.log('  findComponent("name") - Search for a component');
-  console.log('  inspector.clearStats() - Clear render statistics');
+  if (__DEV__) console.log('%c🔍 Component Inspector Ready!', 'background: #4CAF50; color: white; padding: 2px 8px; border-radius: 4px');
+  if (__DEV__) console.log('Available commands:');
+  if (__DEV__) console.log('  showActiveComponents() - Show all active components');
+  if (__DEV__) console.log('  showRenderStats() - Show component render counts');
+  if (__DEV__) console.log('  findComponent("name") - Search for a component');
+  if (__DEV__) console.log('  inspector.clearStats() - Clear render statistics');
 }

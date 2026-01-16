@@ -57,7 +57,7 @@ export const ActionItem: React.FC<ActionItemProps> = ({
   type = 'goal',
   goalColor
 }) => {
-  console.log('ActionItem rendering:', { title, goalTitle, goalColor });
+  if (__DEV__) console.log('ActionItem rendering:', { title, goalTitle, goalColor });
   const toggle = useStore(s => s.toggleAction);
   const updateAction = useStore(s => s.updateAction);
   const deleteAction = useStore(s => s.deleteAction);
@@ -110,7 +110,7 @@ export const ActionItem: React.FC<ActionItemProps> = ({
   const handleToggle = () => {
     if (!done) {
       // Show privacy modal when completing an action
-      console.log('Opening privacy modal for action:', title);
+      if (__DEV__) console.log('Opening privacy modal for action:', title);
       setShowPrivacyModal(true);
       HapticManager.interaction.premiumPress();
     } else {

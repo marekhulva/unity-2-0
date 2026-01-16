@@ -9,14 +9,14 @@ class BackendService {
     if (isSupabaseBackend()) {
       try {
         const result = await supabaseService.signUp(email, password, name);
-        console.log('Supabase signup result:', result);
+        if (__DEV__) console.log('Supabase signup result:', result);
         
         // If user was created but no session (email confirmation might still be on)
         if (result.user && !result.session) {
           // Try to sign them in immediately since email confirmation is off
           try {
             const signInResult = await supabaseService.signIn(email, password);
-            console.log('Auto sign-in after signup:', signInResult);
+            if (__DEV__) console.log('Auto sign-in after signup:', signInResult);
             
             if (signInResult.session) {
               return {
@@ -32,7 +32,7 @@ class BackendService {
               };
             }
           } catch (signInError) {
-            console.log('Auto sign-in failed:', signInError);
+            if (__DEV__) console.log('Auto sign-in failed:', signInError);
           }
           
           return {
@@ -62,7 +62,7 @@ class BackendService {
           error: 'Sign up failed - no user created'
         };
       } catch (error: any) {
-        console.error('Signup error:', error);
+        if (__DEV__) console.error('Signup error:', error);
         return {
           success: false,
           error: error.message || 'Sign up failed'
@@ -128,12 +128,12 @@ class BackendService {
   async getGoals() {
     if (isSupabaseBackend()) {
       try {
-        console.log('🔵 [BACKEND] getGoals called');
+        if (__DEV__) console.log('🔵 [BACKEND] getGoals called');
         const goals = await supabaseService.getGoals();
-        console.log('🟢 [BACKEND] getGoals returned', goals?.length || 0, 'goals');
+        if (__DEV__) console.log('🟢 [BACKEND] getGoals returned', goals?.length || 0, 'goals');
         return { success: true, data: goals };
       } catch (error: any) {
-        console.error('🔴 [BACKEND] getGoals error:', error.message);
+        if (__DEV__) console.error('🔴 [BACKEND] getGoals error:', error.message);
         return { success: false, error: error.message, data: [] };
       }
     } else {
@@ -144,12 +144,12 @@ class BackendService {
   async createGoal(goal: any) {
     if (isSupabaseBackend()) {
       try {
-        console.log('🔵 [BACKEND] createGoal called with:', goal.title);
+        if (__DEV__) console.log('🔵 [BACKEND] createGoal called with:', goal.title);
         const newGoal = await supabaseService.createGoal(goal);
-        console.log('🟢 [BACKEND] createGoal succeeded, ID:', newGoal?.id);
+        if (__DEV__) console.log('🟢 [BACKEND] createGoal succeeded, ID:', newGoal?.id);
         return { success: true, data: newGoal };
       } catch (error: any) {
-        console.error('🔴 [BACKEND] createGoal error:', error.message);
+        if (__DEV__) console.error('🔴 [BACKEND] createGoal error:', error.message);
         return { success: false, error: error.message };
       }
     } else {
@@ -178,12 +178,12 @@ class BackendService {
   async getDailyActions() {
     if (isSupabaseBackend()) {
       try {
-        console.log('🔵 [BACKEND] getDailyActions called');
+        if (__DEV__) console.log('🔵 [BACKEND] getDailyActions called');
         const actions = await supabaseService.getDailyActions();
-        console.log('🟢 [BACKEND] getDailyActions returned', actions?.length || 0, 'actions');
+        if (__DEV__) console.log('🟢 [BACKEND] getDailyActions returned', actions?.length || 0, 'actions');
         return { success: true, data: actions };
       } catch (error: any) {
-        console.error('🔴 [BACKEND] getDailyActions error:', error.message);
+        if (__DEV__) console.error('🔴 [BACKEND] getDailyActions error:', error.message);
         return { success: false, error: error.message, data: [] };
       }
     } else {
@@ -194,12 +194,12 @@ class BackendService {
   async createAction(action: any) {
     if (isSupabaseBackend()) {
       try {
-        console.log('🔵 [BACKEND] createAction called with:', action.title, 'frequency:', action.frequency, 'scheduled_days:', action.scheduled_days, 'goalId:', action.goalId);
+        if (__DEV__) console.log('🔵 [BACKEND] createAction called with:', action.title, 'frequency:', action.frequency, 'scheduled_days:', action.scheduled_days, 'goalId:', action.goalId);
         const newAction = await supabaseService.createAction(action);
-        console.log('🟢 [BACKEND] createAction succeeded, ID:', newAction?.id);
+        if (__DEV__) console.log('🟢 [BACKEND] createAction succeeded, ID:', newAction?.id);
         return { success: true, data: newAction };
       } catch (error: any) {
-        console.error('🔴 [BACKEND] createAction error:', error.message);
+        if (__DEV__) console.error('🔴 [BACKEND] createAction error:', error.message);
         return { success: false, error: error.message };
       }
     } else {
@@ -246,12 +246,12 @@ class BackendService {
   async getTodaysCompletedActions() {
     if (isSupabaseBackend()) {
       try {
-        console.log('🔵 [BACKEND] getTodaysCompletedActions called');
+        if (__DEV__) console.log('🔵 [BACKEND] getTodaysCompletedActions called');
         const actions = await supabaseService.getTodaysCompletedActions();
-        console.log('🟢 [BACKEND] getTodaysCompletedActions returned', actions?.length || 0, 'actions');
+        if (__DEV__) console.log('🟢 [BACKEND] getTodaysCompletedActions returned', actions?.length || 0, 'actions');
         return { success: true, data: actions };
       } catch (error: any) {
-        console.error('🔴 [BACKEND] getTodaysCompletedActions error:', error.message);
+        if (__DEV__) console.error('🔴 [BACKEND] getTodaysCompletedActions error:', error.message);
         return { success: false, error: error.message, data: [] };
       }
     } else {
@@ -266,7 +266,7 @@ class BackendService {
         const stats = await supabaseService.getGoalCompletionStats(userId);
         return { success: true, data: stats };
       } catch (error: any) {
-        console.error('Error fetching goal stats:', error);
+        if (__DEV__) console.error('Error fetching goal stats:', error);
         return { success: false, error: error.message, data: {} };
       }
     } else {
@@ -280,7 +280,7 @@ class BackendService {
         const stats = await supabaseService.getOverallCompletionStats(userId);
         return { success: true, data: stats };
       } catch (error: any) {
-        console.error('Error fetching overall stats:', error);
+        if (__DEV__) console.error('Error fetching overall stats:', error);
         return { success: false, error: error.message, data: { expected: 0, completed: 0, percentage: 0 } };
       }
     } else {
@@ -294,7 +294,7 @@ class BackendService {
         const result = await supabaseService.updateProfile(updates);
         return { success: true, data: result };
       } catch (error) {
-        console.error('🔴 [BACKEND] Profile update error:', error);
+        if (__DEV__) console.error('🔴 [BACKEND] Profile update error:', error);
         return { success: false, error: error.message };
       }
     } else {
@@ -350,7 +350,7 @@ class BackendService {
         const comment = await supabaseService.addComment(postId, content);
         return { success: true, data: comment };
       } catch (error) {
-        console.error('Failed to add comment:', error);
+        if (__DEV__) console.error('Failed to add comment:', error);
         return { success: false, error: (error as Error).message };
       }
     } else {
@@ -365,7 +365,7 @@ class BackendService {
         const comments = await supabaseService.getComments(postId, limit, offset);
         return { success: true, data: comments };
       } catch (error) {
-        console.error('Failed to get comments:', error);
+        if (__DEV__) console.error('Failed to get comments:', error);
         return { success: false, error: (error as Error).message, data: [] };
       }
     } else {
@@ -379,7 +379,7 @@ class BackendService {
         await supabaseService.deleteComment(commentId);
         return { success: true };
       } catch (error) {
-        console.error('Failed to delete comment:', error);
+        if (__DEV__) console.error('Failed to delete comment:', error);
         return { success: false, error: (error as Error).message };
       }
     } else {
@@ -393,7 +393,7 @@ class BackendService {
         const result = await supabaseService.toggleLike(postId);
         return { success: true, data: result };
       } catch (error) {
-        console.error('Failed to toggle like:', error);
+        if (__DEV__) console.error('Failed to toggle like:', error);
         return { success: false, error: (error as Error).message };
       }
     } else {
@@ -408,7 +408,7 @@ class BackendService {
         const likesData = await supabaseService.getLikes(postId);
         return { success: true, data: likesData };
       } catch (error) {
-        console.error('Failed to get likes:', error);
+        if (__DEV__) console.error('Failed to get likes:', error);
         return { success: false, error: (error as Error).message, data: { likes: [], count: 0, userLiked: false } };
       }
     } else {
@@ -422,7 +422,7 @@ class BackendService {
         const likesMap = await supabaseService.getBatchLikes(postIds);
         return { success: true, data: likesMap };
       } catch (error) {
-        console.error('Failed to get batch likes:', error);
+        if (__DEV__) console.error('Failed to get batch likes:', error);
         return { success: false, error: (error as Error).message, data: {} };
       }
     } else {

@@ -124,7 +124,7 @@ export const GoalEditModal: React.FC<GoalEditModalProps> = ({ visible, goal, onC
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       onClose();
     } catch (error) {
-      console.error('Failed to update goal:', error);
+      if (__DEV__) console.error('Failed to update goal:', error);
       Alert.alert('Error', 'Failed to update goal. Please try again.');
     }
   };
@@ -146,7 +146,7 @@ export const GoalEditModal: React.FC<GoalEditModalProps> = ({ visible, goal, onC
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
               onClose();
             } catch (error) {
-              console.error('Failed to delete goal:', error);
+              if (__DEV__) console.error('Failed to delete goal:', error);
               Alert.alert('Error', 'Failed to delete goal. Please try again.');
             }
           }

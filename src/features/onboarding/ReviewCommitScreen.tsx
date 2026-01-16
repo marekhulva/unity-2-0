@@ -57,7 +57,7 @@ export const ReviewCommitScreen: React.FC<Props> = ({
   isCommitting = false,
   error = null
 }) => {
-  console.log('📊 [REVIEW] ReviewCommitScreen received:', {
+  if (__DEV__) console.log('📊 [REVIEW] ReviewCommitScreen received:', {
     goal: goal?.title,
     routine: routine?.title,
     actionsCount: actions?.length || 0,

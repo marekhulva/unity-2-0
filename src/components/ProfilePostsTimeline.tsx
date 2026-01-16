@@ -70,7 +70,7 @@ export const ProfilePostsTimeline: React.FC<ProfilePostsTimelineProps> = ({
 
       setPosts(data || []);
     } catch (error) {
-      console.error('Error loading posts:', error);
+      if (__DEV__) console.error('Error loading posts:', error);
       setPosts([]);
     } finally {
       setIsLoading(false);

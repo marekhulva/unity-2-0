@@ -334,7 +334,7 @@ export const createSocialSlice: StateCreator<
       set({ feedLoading: false });
       if (__DEV__) console.log('✅ [FEED] Feed loading complete');
     } catch (error: any) {
-      console.error('🔴 [FEED] Error loading feeds:', error);
+      if (__DEV__) console.error('🔴 [FEED] Error loading feeds:', error);
       set({ feedError: error.message, feedLoading: false });
     }
   },
@@ -443,7 +443,7 @@ export const createSocialSlice: StateCreator<
         }
       }
     } catch (error) {
-      console.error('Error loading more feeds:', error);
+      if (__DEV__) console.error('Error loading more feeds:', error);
       set({ loadingMore: false });
     }
   },
@@ -527,7 +527,7 @@ export const createSocialSlice: StateCreator<
         set({ feedLoading: false, feedError: 'Failed to load feed' });
       }
     } catch (error: any) {
-      console.error('🔴 [STORE] Error fetching unified feed:', error);
+      if (__DEV__) console.error('🔴 [STORE] Error fetching unified feed:', error);
       set({ feedLoading: false, feedError: error.message });
     }
   },
@@ -613,7 +613,7 @@ export const createSocialSlice: StateCreator<
         set({ loadingMore: false });
       }
     } catch (error) {
-      console.error('🔴 [STORE] Error loading more unified feed:', error);
+      if (__DEV__) console.error('🔴 [STORE] Error loading more unified feed:', error);
       set({ loadingMore: false });
     }
   },
@@ -652,7 +652,7 @@ export const createSocialSlice: StateCreator<
           [currentFeed]: updatePost(s[currentFeed], hasReacted),
           unifiedFeed: updatePost(s.unifiedFeed, hasReacted)
         }));
-        console.error('Failed to react to post:', response.error);
+        if (__DEV__) console.error('Failed to react to post:', response.error);
       }
     } catch (error) {
       // Revert optimistic update on error
@@ -660,7 +660,7 @@ export const createSocialSlice: StateCreator<
         [currentFeed]: updatePost(s[currentFeed], hasReacted),
         unifiedFeed: updatePost(s.unifiedFeed, hasReacted)
       }));
-      console.error('Failed to react to post:', error);
+      if (__DEV__) console.error('Failed to react to post:', error);
     }
   },
 
@@ -837,7 +837,7 @@ export const createSocialSlice: StateCreator<
         return { followFeed: s.followFeed.filter(p => p.id !== optimisticPost.id) };
       });
       set({ feedError: error.message || 'Failed to create post' });
-      console.error('Failed to create post:', error);
+      if (__DEV__) console.error('Failed to create post:', error);
     }
   },
   
@@ -949,7 +949,7 @@ export const createSocialSlice: StateCreator<
             : p
         )
       }));
-      console.error('❌ Failed to add comment:', error);
+      if (__DEV__) console.error('❌ Failed to add comment:', error);
     }
   },
   
@@ -1022,7 +1022,7 @@ export const createSocialSlice: StateCreator<
             : p
         )
       }));
-      console.error('❌ Failed to toggle like:', error);
+      if (__DEV__) console.error('❌ Failed to toggle like:', error);
     }
   },
   
@@ -1090,7 +1090,7 @@ export const createSocialSlice: StateCreator<
         if (__DEV__) console.log(`✅ Loaded ${comments.length} comments for post ${postId}`);
       }
     } catch (error) {
-      console.error('❌ Failed to load comments:', error);
+      if (__DEV__) console.error('❌ Failed to load comments:', error);
     }
   },
   
@@ -1132,7 +1132,7 @@ export const createSocialSlice: StateCreator<
       if (__DEV__) console.log('Join circle failed:', result.error);
       return false;
     } catch (error) {
-      console.error('Failed to join circle:', error);
+      if (__DEV__) console.error('Failed to join circle:', error);
       return false;
     }
   },
@@ -1155,7 +1155,7 @@ export const createSocialSlice: StateCreator<
         });
       }
     } catch (error) {
-      console.error('Failed to load circle data:', error);
+      if (__DEV__) console.error('Failed to load circle data:', error);
     }
   },
   
@@ -1171,7 +1171,7 @@ export const createSocialSlice: StateCreator<
       // Refresh feeds to show their content (force refresh)
       await get().fetchFeeds(true);
     } catch (error) {
-      console.error('Failed to follow user:', error);
+      if (__DEV__) console.error('Failed to follow user:', error);
     }
   },
   
@@ -1186,7 +1186,7 @@ export const createSocialSlice: StateCreator<
       // Refresh feeds (force refresh)
       await get().fetchFeeds(true);
     } catch (error) {
-      console.error('Failed to unfollow user:', error);
+      if (__DEV__) console.error('Failed to unfollow user:', error);
     }
   },
   
@@ -1202,7 +1202,7 @@ export const createSocialSlice: StateCreator<
         followers: followersResult.success ? followersResult.data : []
       });
     } catch (error) {
-      console.error('Failed to load following data:', error);
+      if (__DEV__) console.error('Failed to load following data:', error);
     }
   },
 });

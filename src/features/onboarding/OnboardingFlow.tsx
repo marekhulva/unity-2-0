@@ -113,10 +113,10 @@ export const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
   };
 
   const handleJourneyConfirmed = () => {
-    console.log('🔵 [DEBUG] handleJourneyConfirmed called');
-    console.log('🔵 [DEBUG] state.journeyType:', state.journeyType);
-    console.log('🔵 [DEBUG] selectedProgram:', selectedProgram);
-    console.log('🔵 [DEBUG] selectedProgram?.id:', selectedProgram?.id);
+    if (__DEV__) console.log('🔵 [DEBUG] handleJourneyConfirmed called');
+    if (__DEV__) console.log('🔵 [DEBUG] state.journeyType:', state.journeyType);
+    if (__DEV__) console.log('🔵 [DEBUG] selectedProgram:', selectedProgram);
+    if (__DEV__) console.log('🔵 [DEBUG] selectedProgram?.id:', selectedProgram?.id);
     
     setShowConfirmation(false);
     
@@ -219,14 +219,14 @@ export const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
       }));
     } else if (state.journeyType === 'routine') {
       // For routine creation, go straight to routine builder
-      console.log('🟢 [DEBUG] Setting up routine creation flow');
+      if (__DEV__) console.log('🟢 [DEBUG] Setting up routine creation flow');
       setState(prev => ({
         ...prev,
         currentStep: 0, // Go to routine builder
       }));
     } else if (state.journeyType === 'goal') {
       // For goal creation, go straight to goal setting
-      console.log('🟢 [DEBUG] Setting up goal creation flow');
+      if (__DEV__) console.log('🟢 [DEBUG] Setting up goal creation flow');
       setState(prev => ({
         ...prev,
         currentStep: 2, // Go to goal setting
@@ -236,8 +236,8 @@ export const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
 
 
   const handleGoalSubmit = (goal: OnboardingGoal) => {
-    console.log('🔵 [DEBUG] handleGoalSubmit called with goal:', goal);
-    console.log('🔵 [DEBUG] Setting currentStep to 4 for goal actions');
+    if (__DEV__) console.log('🔵 [DEBUG] handleGoalSubmit called with goal:', goal);
+    if (__DEV__) console.log('🔵 [DEBUG] Setting currentStep to 4 for goal actions');
     setState({
       ...state,
       goal,
@@ -255,9 +255,9 @@ export const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
   };
 
   const handleActionsSubmit = (actions: Action[]) => {
-    console.log('🎯 [DEBUG] handleActionsSubmit called with actions:', actions);
-    console.log('🎯 [DEBUG] Actions count:', actions.length);
-    console.log('🎯 [DEBUG] Actions details:', JSON.stringify(actions.map(a => ({ id: a.id, title: a.title, type: a.type }))));
+    if (__DEV__) console.log('🎯 [DEBUG] handleActionsSubmit called with actions:', actions);
+    if (__DEV__) console.log('🎯 [DEBUG] Actions count:', actions.length);
+    if (__DEV__) console.log('🎯 [DEBUG] Actions details:', JSON.stringify(actions.map(a => ({ id: a.id, title: a.title, type: a.type }))));
     
     const newState = {
       ...state,
@@ -265,7 +265,7 @@ export const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
       currentStep: 5, // Go to review after goal actions
     };
     
-    console.log('🎯 [DEBUG] New state will have:', {
+    if (__DEV__) console.log('🎯 [DEBUG] New state will have:', {
       goal: newState.goal?.title,
       routine: newState.routine?.title,
       actionsCount: newState.actions.length,
@@ -276,19 +276,19 @@ export const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
   };
 
   const handleCommit = async () => {
-    console.log('🟦 [ONBOARDING] handleCommit called');
-    console.log('🟦 [ONBOARDING] isCommitting:', isCommitting);
-    console.log('🟦 [ONBOARDING] state.routine:', state.routine?.title);
-    console.log('🟦 [ONBOARDING] state.goal:', state.goal?.title);
+    if (__DEV__) console.log('🟦 [ONBOARDING] handleCommit called');
+    if (__DEV__) console.log('🟦 [ONBOARDING] isCommitting:', isCommitting);
+    if (__DEV__) console.log('🟦 [ONBOARDING] state.routine:', state.routine?.title);
+    if (__DEV__) console.log('🟦 [ONBOARDING] state.goal:', state.goal?.title);
     
     if (isCommitting || (!state.goal && !state.routine)) {
-      console.log('🔴 [ONBOARDING] Blocked: isCommitting=' + isCommitting + ' or no goal/routine');
+      if (__DEV__) console.log('🔴 [ONBOARDING] Blocked: isCommitting=' + isCommitting + ' or no goal/routine');
       return;
     }
     
     setIsCommitting(true);
     setCommitError(null);
-    console.log('🟢 [ONBOARDING] Starting commit process...');
+    if (__DEV__) console.log('🟢 [ONBOARDING] Starting commit process...');
     
     const startTime = Date.now();
     
@@ -298,7 +298,7 @@ export const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
       
       // Step 1A: Create the routine if provided
       if (state.routine) {
-        console.log('🟦 [STEP 1A] Creating routine:', state.routine.title);
+        if (__DEV__) console.log('🟦 [STEP 1A] Creating routine:', state.routine.title);
 
         // Get the goals count before adding to find the new one
         const goalsBefore = useStore.getState().goals;
@@ -331,17 +331,17 @@ export const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
           ) || goalsAfter[goalsAfter.length - 1]; // Fallback to last goal
         } else {
           // If no new goal was added, something went wrong
-          console.error('🔴 [STEP 1A] No new goal was added!');
+          if (__DEV__) console.error('🔴 [STEP 1A] No new goal was added!');
           createdRoutine = goalsAfter.find(g => g.title === state.routine!.title);
         }
 
-        console.log('🟢 [STEP 1A] Routine created:', createdRoutine?.id);
+        if (__DEV__) console.log('🟢 [STEP 1A] Routine created:', createdRoutine?.id);
       }
       
       // Step 1B: Create the goal if provided
       if (state.goal) {
-        console.log('🟦 [STEP 1B] Creating goal:', state.goal.title);
-        console.log('🟦 [STEP 1B] Goal data:', JSON.stringify({
+        if (__DEV__) console.log('🟦 [STEP 1B] Creating goal:', state.goal.title);
+        if (__DEV__) console.log('🟦 [STEP 1B] Goal data:', JSON.stringify({
           title: state.goal.title,
           category: state.goal.category,
           targetDate: state.goal.targetDate,
@@ -366,12 +366,12 @@ export const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
         await new Promise(resolve => setTimeout(resolve, 500));
         const goals = useStore.getState().goals;
         createdGoal = goals.find(g => g.title === state.goal!.title);
-        console.log('🟢 [STEP 1B] Goal created:', createdGoal?.id);
+        if (__DEV__) console.log('🟢 [STEP 1B] Goal created:', createdGoal?.id);
       }
       
       // Step 2: Create actions for routine (can be standalone without a goal)
       if (state.routineActions.length > 0) {
-        console.log('🟦 [STEP 2] Creating', state.routineActions.length, 'routine actions');
+        if (__DEV__) console.log('🟦 [STEP 2] Creating', state.routineActions.length, 'routine actions');
         const addAction = useStore.getState().addAction;
 
         for (const action of state.routineActions) {
@@ -388,16 +388,16 @@ export const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
           };
 
           await addAction(dailyAction);
-          console.log('✅ [STEP 2] Routine action created:', action.title);
+          if (__DEV__) console.log('✅ [STEP 2] Routine action created:', action.title);
         }
       }
       
       // Step 3: Create actions for goal
       if (createdGoal && state.actions.length > 0) {
-        console.log('🟦 [STEP 3] Creating', state.actions.length, 'goal actions');
+        if (__DEV__) console.log('🟦 [STEP 3] Creating', state.actions.length, 'goal actions');
         const addAction = useStore.getState().addAction;
         const actionPromises = state.actions.map((action, index) => {
-          console.log('🟦 [STEP 3] Preparing action', index + 1, ':', action.title);
+          if (__DEV__) console.log('🟦 [STEP 3] Preparing action', index + 1, ':', action.title);
           // Format frequency string
           let frequencyStr = 'Daily';
           if (action.type === 'one-time') {
@@ -422,23 +422,23 @@ export const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
           // Return promise but don't await here - we'll await all at once
           return addAction(dailyAction)
             .then(() => {
-              console.log('✅ [STEP 3] Goal action created:', action.title);
+              if (__DEV__) console.log('✅ [STEP 3] Goal action created:', action.title);
             })
             .catch(error => {
-              console.error('🔴 [STEP 3] Failed action:', action.title, error);
+              if (__DEV__) console.error('🔴 [STEP 3] Failed action:', action.title, error);
               // Don't throw - allow other actions to be created
             });
         });
         
         // Wait for all actions to complete (in parallel)
-        console.log('🟦 [STEP 3] Awaiting all action promises...');
+        if (__DEV__) console.log('🟦 [STEP 3] Awaiting all action promises...');
         const actionStartTime = Date.now();
         await Promise.all(actionPromises);
-        console.log('🟢 [STEP 3] All goal actions completed in', Date.now() - actionStartTime, 'ms');
+        if (__DEV__) console.log('🟢 [STEP 3] All goal actions completed in', Date.now() - actionStartTime, 'ms');
       }
       
       // Step 4: Verify data was actually saved to Supabase
-      console.log('🟦 [STEP 5] Verifying data in Supabase...');
+      if (__DEV__) console.log('🟦 [STEP 5] Verifying data in Supabase...');
       await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for DB propagation
       
       const verifyGoals = useStore.getState().fetchGoals;
@@ -452,50 +452,50 @@ export const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
       const finalGoals = useStore.getState().goals;
       const finalActions = useStore.getState().actions;
       
-      console.log('🔵 [VERIFICATION] Final goals count:', finalGoals.length);
-      console.log('🔵 [VERIFICATION] Final actions count:', finalActions.length);
+      if (__DEV__) console.log('🔵 [VERIFICATION] Final goals count:', finalGoals.length);
+      if (__DEV__) console.log('🔵 [VERIFICATION] Final actions count:', finalActions.length);
       
       if (finalGoals.length === 0) {
-        console.error('🔴 [VERIFICATION] WARNING: No goals found after creation!');
+        if (__DEV__) console.error('🔴 [VERIFICATION] WARNING: No goals found after creation!');
       }
       if (finalActions.length === 0) {
-        console.error('🔴 [VERIFICATION] WARNING: No actions found after creation!');
+        if (__DEV__) console.error('🔴 [VERIFICATION] WARNING: No actions found after creation!');
       }
       
       // Step 6: Store milestones (use AsyncStorage for mobile)
-      console.log('🟦 [STEP 6] Saving onboarding state...');
+      if (__DEV__) console.log('🟦 [STEP 6] Saving onboarding state...');
       try {
         if (typeof localStorage !== 'undefined') {
           // Web environment
           localStorage.setItem('onboarding_milestones', JSON.stringify(state.milestones));
           localStorage.setItem('onboarding_completed', 'true');
-          console.log('🟢 [STEP 6] localStorage saved successfully');
+          if (__DEV__) console.log('🟢 [STEP 6] localStorage saved successfully');
         } else {
           // Mobile environment - data is already in database
-          console.log('🟢 [STEP 6] Mobile: data saved to database');
+          if (__DEV__) console.log('🟢 [STEP 6] Mobile: data saved to database');
         }
       } catch (storageError) {
-        console.log('🔴 [STEP 6] Storage failed:', storageError.message);
+        if (__DEV__) console.log('🔴 [STEP 6] Storage failed:', storageError.message);
         // Don't fail the whole process for storage issues
       }
       
       // Success! Update state and close
       const totalTime = Date.now() - startTime;
-      console.log('🎉 [SUCCESS] Total commit time:', totalTime, 'ms');
-      console.log('🟢 [ONBOARDING] Updating state to completed');
+      if (__DEV__) console.log('🎉 [SUCCESS] Total commit time:', totalTime, 'ms');
+      if (__DEV__) console.log('🟢 [ONBOARDING] Updating state to completed');
       
       // Manually trigger data refresh here as well (backup)
-      console.log('🟦 [ONBOARDING] Triggering manual data refresh...');
+      if (__DEV__) console.log('🟦 [ONBOARDING] Triggering manual data refresh...');
       const fetchGoals = useStore.getState().fetchGoals;
       const fetchDailyActions = useStore.getState().fetchDailyActions;
       
       setTimeout(async () => {
-        console.log('🟦 [ONBOARDING] Refreshing goals and actions from within onboarding...');
+        if (__DEV__) console.log('🟦 [ONBOARDING] Refreshing goals and actions from within onboarding...');
         await Promise.all([
           fetchGoals(),
           fetchDailyActions()
         ]);
-        console.log('✅ [ONBOARDING] Data refresh complete');
+        if (__DEV__) console.log('✅ [ONBOARDING] Data refresh complete');
       }, 100);
       
       setState({
@@ -504,23 +504,23 @@ export const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
       });
       
       // Small delay for UI feedback before closing
-      console.log('🟦 [ONBOARDING] Waiting 300ms before closing...');
+      if (__DEV__) console.log('🟦 [ONBOARDING] Waiting 300ms before closing...');
       setTimeout(() => {
-        console.log('🟢 [ONBOARDING] About to call onComplete');
-        console.log('🟢 [ONBOARDING] onComplete function exists?', typeof onComplete === 'function');
+        if (__DEV__) console.log('🟢 [ONBOARDING] About to call onComplete');
+        if (__DEV__) console.log('🟢 [ONBOARDING] onComplete function exists?', typeof onComplete === 'function');
         try {
           onComplete();
-          console.log('✅ [ONBOARDING] onComplete called successfully');
+          if (__DEV__) console.log('✅ [ONBOARDING] onComplete called successfully');
         } catch (completeError) {
-          console.error('🔴 [ONBOARDING] Error calling onComplete:', completeError);
+          if (__DEV__) console.error('🔴 [ONBOARDING] Error calling onComplete:', completeError);
         }
       }, 300);
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('🔴 [ERROR] Commit failed:', errorMessage);
-      console.error('🔴 [ERROR] Full error:', error);
-      console.error('🔴 [ERROR] Stack:', error instanceof Error ? error.stack : 'No stack');
+      if (__DEV__) console.error('🔴 [ERROR] Commit failed:', errorMessage);
+      if (__DEV__) console.error('🔴 [ERROR] Full error:', error);
+      if (__DEV__) console.error('🔴 [ERROR] Stack:', error instanceof Error ? error.stack : 'No stack');
       
       setCommitError('Failed to save your goals. Please try again.');
       setIsCommitting(false);
@@ -552,9 +552,9 @@ export const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
 
   // Wrap screens with progress indicator (except journey selection)
   const renderScreen = () => {
-    console.log('🟡 [DEBUG] renderScreen - currentStep:', state.currentStep);
-    console.log('🟡 [DEBUG] renderScreen - state.goal:', state.goal?.title);
-    console.log('🟡 [DEBUG] renderScreen - state.routine:', state.routine?.title);
+    if (__DEV__) console.log('🟡 [DEBUG] renderScreen - currentStep:', state.currentStep);
+    if (__DEV__) console.log('🟡 [DEBUG] renderScreen - state.goal:', state.goal?.title);
+    if (__DEV__) console.log('🟡 [DEBUG] renderScreen - state.routine:', state.routine?.title);
     switch (state.currentStep) {
     case -1:
       // Journey selection - JJ's, Huberman's, or Create Your Own
@@ -588,10 +588,10 @@ export const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
       return (
         <GoalSettingScreen
           onSubmit={(goal) => {
-            console.log('🔵 [DEBUG] handleGoalSubmit called with goal:', goal);
+            if (__DEV__) console.log('🔵 [DEBUG] handleGoalSubmit called with goal:', goal);
             // Always go to actions step to add activities to the goal
             const nextStep = 4;
-            console.log('🔵 [DEBUG] Setting currentStep to', nextStep, 'for journeyType:', state.journeyType);
+            if (__DEV__) console.log('🔵 [DEBUG] Setting currentStep to', nextStep, 'for journeyType:', state.journeyType);
             setState({
               ...state,
               goal,
@@ -619,7 +619,7 @@ export const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
     
     case 4:
       // Goal actions
-      console.log('🟢 [DEBUG] Case 4 - Goal actions, state.goal exists?', !!state.goal);
+      if (__DEV__) console.log('🟢 [DEBUG] Case 4 - Goal actions, state.goal exists?', !!state.goal);
       return state.goal ? (
         <ActionsCommitmentsScreen
           goal={state.goal}
@@ -631,7 +631,7 @@ export const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
     
     case 5:
       // Review and commit
-      console.log('📊 [DEBUG] Rendering ReviewCommitScreen with:', {
+      if (__DEV__) console.log('📊 [DEBUG] Rendering ReviewCommitScreen with:', {
         goal: state.goal?.title,
         routine: state.routine?.title,
         actionsCount: state.actions?.length || 0,

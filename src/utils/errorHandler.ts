@@ -161,7 +161,7 @@ export const ErrorHandler = {
           delay += Math.random() * 1000;
         }
         
-        console.log(`Retrying attempt ${attempt + 1} after ${delay}ms...`);
+        if (__DEV__) console.log(`Retrying attempt ${attempt + 1} after ${delay}ms...`);
         
         await new Promise(resolve => setTimeout(resolve, delay));
         return ErrorHandler.createRetryFunction(fn, config)(attempt + 1);
@@ -223,7 +223,7 @@ export const ErrorHandler = {
     
     // Show toast notification (would implement with your toast library)
     if (showToast) {
-      console.log('Toast:', appError.message); // Replace with actual toast
+      if (__DEV__) console.log('Toast:', appError.message); // Replace with actual toast
     }
     
     return appError;
@@ -248,7 +248,7 @@ export const ErrorHandler = {
     
     // Log to console in development
     if (__DEV__) {
-      console.error('Error logged:', logEntry);
+      if (__DEV__) console.error('Error logged:', logEntry);
     }
     
     // In production, send to crash reporting service

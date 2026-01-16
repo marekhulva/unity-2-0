@@ -7,7 +7,7 @@ import { Audio } from 'expo-av';
 import { KeyboardToolbar, useKeyboardToolbar } from '../../components/KeyboardToolbar';
 import { useStore } from '../../state/rootStore';
 
-console.log('PrivacySelectionModal.tsx (THREE-WAY) FILE LOADED');
+if (__DEV__) console.log('PrivacySelectionModal.tsx (THREE-WAY) FILE LOADED');
 
 const { width } = Dimensions.get('window');
 
@@ -47,10 +47,10 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
   // Load circles when modal opens
   useEffect(() => {
     if (visible && TEST_NEW_UI) {
-      console.log('🔵 Loading user circles for privacy modal...');
-      console.log('🔵 Current userCircles:', userCircles);
+      if (__DEV__) console.log('🔵 Loading user circles for privacy modal...');
+      if (__DEV__) console.log('🔵 Current userCircles:', userCircles);
       fetchUserCircles().then(() => {
-        console.log('🔵 Circles loaded, count:', userCircles?.length);
+        if (__DEV__) console.log('🔵 Circles loaded, count:', userCircles?.length);
       });
     }
   }, [visible, TEST_NEW_UI, fetchUserCircles]);
@@ -112,7 +112,7 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
         let photoUri = result.assets[0].uri;
         if (Platform.OS === 'ios') {
           // iOS URIs sometimes need adjustment
-          console.log('iOS Photo URI:', photoUri);
+          if (__DEV__) console.log('iOS Photo URI:', photoUri);
         }
         setPhotoUri(photoUri);
         setSelectedMedia('photo');
@@ -200,7 +200,7 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
         }
       }, 1000);
     } catch (error) {
-      console.error('Failed to start recording:', error);
+      if (__DEV__) console.error('Failed to start recording:', error);
       Alert.alert(
         'Recording Error', 
         Platform.OS === 'ios' 
@@ -226,11 +226,11 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
       }
       
       const uri = recordingRef.current.getURI();
-      console.log('Recording saved to:', uri);
+      if (__DEV__) console.log('Recording saved to:', uri);
       
       // On iOS, validate the URI format
       if (Platform.OS === 'ios' && uri) {
-        console.log('iOS Audio URI format:', uri);
+        if (__DEV__) console.log('iOS Audio URI format:', uri);
       }
       
       setAudioUri(uri);
@@ -238,7 +238,7 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
       // Don't reset duration - keep it to show in the preview
       recordingRef.current = null;
     } catch (error) {
-      console.error('Failed to stop recording:', error);
+      if (__DEV__) console.error('Failed to stop recording:', error);
       Alert.alert('Error', 'Failed to save recording');
     }
   };
@@ -547,7 +547,7 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
                         OR SELECT CIRCLES
                       </Text>
                       {userCircles.map(circle => {
-                        console.log('🔵 Rendering circle:', circle.name, circle.id);
+                        if (__DEV__) console.log('🔵 Rendering circle:', circle.name, circle.id);
                         return (
                         <Pressable
                           key={circle.id}

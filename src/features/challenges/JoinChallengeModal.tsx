@@ -50,7 +50,7 @@ export const JoinChallengeModal: React.FC<JoinChallengeModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  console.log('🔴🔴🔴 [JOIN MODAL] Component rendered, visible:', visible, 'challenge:', challenge?.name);
+  if (__DEV__) console.log('🔴🔴🔴 [JOIN MODAL] Component rendered, visible:', visible, 'challenge:', challenge?.name);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [selectedActivities, setSelectedActivities] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
@@ -61,13 +61,13 @@ export const JoinChallengeModal: React.FC<JoinChallengeModalProps> = ({
   const { joinChallenge, fetchDailyActions, actions } = useStore();
 
   useEffect(() => {
-    console.log('🎯 [JOIN MODAL] Challenge data:', challenge);
-    console.log('🎯 [JOIN MODAL] Activities in challenge:', challenge?.challenge_activities);
+    if (__DEV__) console.log('🎯 [JOIN MODAL] Challenge data:', challenge);
+    if (__DEV__) console.log('🎯 [JOIN MODAL] Activities in challenge:', challenge?.challenge_activities);
     if (challenge?.challenge_activities) {
       setActivities(challenge.challenge_activities);
-      console.log('🎯 [JOIN MODAL] Set activities:', challenge.challenge_activities.length);
+      if (__DEV__) console.log('🎯 [JOIN MODAL] Set activities:', challenge.challenge_activities.length);
     } else {
-      console.log('⚠️ [JOIN MODAL] No activities in challenge object');
+      if (__DEV__) console.log('⚠️ [JOIN MODAL] No activities in challenge object');
     }
   }, [challenge]);
 
@@ -102,7 +102,7 @@ export const JoinChallengeModal: React.FC<JoinChallengeModalProps> = ({
       return;
     }
 
-    console.log('🔴 [TIME FLOW] Step 1: Join button clicked, showing linking modal');
+    if (__DEV__) console.log('🔴 [TIME FLOW] Step 1: Join button clicked, showing linking modal');
     // Show linking modal
     const selectedIds = Array.from(selectedActivities);
     const selectedActivityObjects = activities.filter(a => selectedIds.includes(a.id));
@@ -111,7 +111,7 @@ export const JoinChallengeModal: React.FC<JoinChallengeModalProps> = ({
   };
 
   const handleLinkingComplete = async (links: Record<string, string>) => {
-    console.log('🔴 [TIME FLOW] Step 2: After linking modal, showing time setup');
+    if (__DEV__) console.log('🔴 [TIME FLOW] Step 2: After linking modal, showing time setup');
     setShowLinkingModal(false);
     setActivityLinks(links);
     
@@ -132,7 +132,7 @@ export const JoinChallengeModal: React.FC<JoinChallengeModalProps> = ({
   };
   
   const handleTimeSetupComplete = async (times: Record<string, string>) => {
-    console.log('🔴 [TIME FLOW] Step 5: Joining challenge with', Object.keys(times).length, 'new times');
+    if (__DEV__) console.log('🔴 [TIME FLOW] Step 5: Joining challenge with', Object.keys(times).length, 'new times');
     setShowTimeSetupModal(false);
     setIsLoading(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -141,33 +141,33 @@ export const JoinChallengeModal: React.FC<JoinChallengeModalProps> = ({
       const selectedIds = Array.from(selectedActivities);
       
       // Join the challenge
-      console.log('🔴🔴🔴 [SAVING] About to join challenge');
+      if (__DEV__) console.log('🔴🔴🔴 [SAVING] About to join challenge');
       const result = await joinChallenge(challenge.id, selectedIds);
-      console.log('🔴🔴🔴 [SAVING] Join result:', result);
+      if (__DEV__) console.log('🔴🔴🔴 [SAVING] Join result:', result);
       
       if (!result) {
-        console.log('🔴🔴🔴 [SAVING] Join failed, no result');
+        if (__DEV__) console.log('🔴🔴🔴 [SAVING] Join failed, no result');
         throw new Error('Failed to join challenge - no result returned');
       }
       
       // Save the links and times
-      console.log('🔴🔴🔴 [SAVING] Fetching participant...');
+      if (__DEV__) console.log('🔴🔴🔴 [SAVING] Fetching participant...');
       // Wait a moment for the database to be ready
       await new Promise(resolve => setTimeout(resolve, 500));
       
       const participant = await supabaseChallengeService.getMyParticipation(challenge.id);
-      console.log('🔴🔴🔴 [SAVING] Participant:', participant);
+      if (__DEV__) console.log('🔴🔴🔴 [SAVING] Participant:', participant);
       
       if (participant) {
         // Store links in the participant record
         if (Object.keys(activityLinks).length > 0) {
-          console.log('🔴🔴🔴 [SAVING] Saving links...');
+          if (__DEV__) console.log('🔴🔴🔴 [SAVING] Saving links...');
           const linkResult = await supabaseChallengeService.updateParticipantLinks(participant.id, activityLinks);
-          console.log('🔴🔴🔴 [SAVING] Link save result:', linkResult);
+          if (__DEV__) console.log('🔴🔴🔴 [SAVING] Link save result:', linkResult);
           
           // Add a small delay to ensure database commit
           await new Promise(resolve => setTimeout(resolve, 500));
-          console.log('🔴🔴🔴 [SAVING] Waited 500ms for link commit');
+          if (__DEV__) console.log('🔴🔴🔴 [SAVING] Waited 500ms for link commit');
         }
         
         // Prepare times for ALL activities (linked and new)
@@ -175,52 +175,52 @@ export const JoinChallengeModal: React.FC<JoinChallengeModalProps> = ({
         
         // For linked activities, get times from their existing actions
         if (Object.keys(activityLinks).length > 0) {
-          console.log('🔴🔴🔴 [SAVING] Getting times for linked activities...');
+          if (__DEV__) console.log('🔴🔴🔴 [SAVING] Getting times for linked activities...');
           const existingActions = actions.filter(a => !a.isFromChallenge);
           
           Object.entries(activityLinks).forEach(([activityId, actionId]) => {
             const linkedAction = existingActions.find(a => a.id === actionId);
             if (linkedAction && linkedAction.time) {
               allActivityTimes[activityId] = linkedAction.time;
-              console.log(`🔴🔴🔴 [SAVING] Linked activity ${activityId} will use time: ${linkedAction.time}`);
+              if (__DEV__) console.log(`🔴🔴🔴 [SAVING] Linked activity ${activityId} will use time: ${linkedAction.time}`);
             } else {
               // Default time if the linked action doesn't have one
               allActivityTimes[activityId] = '9:00 AM';
-              console.log(`🔴🔴🔴 [SAVING] Linked activity ${activityId} using default time: 9:00 AM`);
+              if (__DEV__) console.log(`🔴🔴🔴 [SAVING] Linked activity ${activityId} using default time: 9:00 AM`);
             }
           });
         }
         
         // Store times for ALL activities (both new and linked)
-        console.log('🔴🔴🔴 [SAVING] All activity times:', allActivityTimes);
-        console.log('🔴🔴🔴 [SAVING] Total times to save:', Object.keys(allActivityTimes).length);
+        if (__DEV__) console.log('🔴🔴🔴 [SAVING] All activity times:', allActivityTimes);
+        if (__DEV__) console.log('🔴🔴🔴 [SAVING] Total times to save:', Object.keys(allActivityTimes).length);
         
         if (Object.keys(allActivityTimes).length > 0) {
-          console.log('🔴🔴🔴 [SAVING] CALLING updateParticipantActivityTimes with ALL times!');
+          if (__DEV__) console.log('🔴🔴🔴 [SAVING] CALLING updateParticipantActivityTimes with ALL times!');
           await supabaseChallengeService.updateParticipantActivityTimes(participant.id, allActivityTimes);
-          console.log('🔴🔴🔴 [SAVING] All times saved!');
+          if (__DEV__) console.log('🔴🔴🔴 [SAVING] All times saved!');
         } else {
-          console.log('🔴🔴🔴 [SAVING] WARNING: No times to save at all!');
+          if (__DEV__) console.log('🔴🔴🔴 [SAVING] WARNING: No times to save at all!');
         }
       } else {
-        console.log('🔴🔴🔴 [SAVING] NO PARTICIPANT FOUND!');
+        if (__DEV__) console.log('🔴🔴🔴 [SAVING] NO PARTICIPANT FOUND!');
       }
       
       // Add a small delay to ensure database has committed all changes
       await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('🔄 [JOIN MODAL] Waited for database to commit');
+      if (__DEV__) console.log('🔄 [JOIN MODAL] Waited for database to commit');
       
       // Refresh daily actions to show the new challenge activities
       await fetchDailyActions();
-      console.log('🔄 [JOIN MODAL] Refreshed daily actions after joining challenge');
+      if (__DEV__) console.log('🔄 [JOIN MODAL] Refreshed daily actions after joining challenge');
       
       // Call onSuccess which will refresh the challenges list
       await onSuccess();
-      console.log('🔄 [JOIN MODAL] Called onSuccess to refresh challenges');
+      if (__DEV__) console.log('🔄 [JOIN MODAL] Called onSuccess to refresh challenges');
       
       onClose();
     } catch (error) {
-      console.error('Error joining challenge:', error);
+      if (__DEV__) console.error('Error joining challenge:', error);
       Alert.alert('Error', 'Failed to join challenge. Please try again.');
     } finally {
       setIsLoading(false);

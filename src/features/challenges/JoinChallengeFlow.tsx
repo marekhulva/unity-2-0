@@ -211,9 +211,9 @@ export const JoinChallengeFlow = ({ visible, challenge, onClose, onSuccess }: Jo
   const handleJoin = async () => {
     if (!challenge) return;
 
-    console.log('🏆 [JOIN] Starting challenge join process');
-    console.log('🏆 [JOIN] Challenge ID:', challenge.id);
-    console.log('🏆 [JOIN] Activity times:', activityTimes);
+    if (__DEV__) console.log('🏆 [JOIN] Starting challenge join process');
+    if (__DEV__) console.log('🏆 [JOIN] Challenge ID:', challenge.id);
+    if (__DEV__) console.log('🏆 [JOIN] Activity times:', activityTimes);
 
     setJoining(true);
 
@@ -226,7 +226,7 @@ export const JoinChallengeFlow = ({ visible, challenge, onClose, onSuccess }: Jo
 
       const selectedActivityIds = activities.map((a: any) => a.id);
 
-      console.log('🏆 [JOIN] Formatted data:', {
+      if (__DEV__) console.log('🏆 [JOIN] Formatted data:', {
         challengeId: challenge.id,
         selectedActivityIds,
         formattedTimes
@@ -239,14 +239,14 @@ export const JoinChallengeFlow = ({ visible, challenge, onClose, onSuccess }: Jo
       );
 
       if (success) {
-        console.log('✅ [JOIN] Successfully joined challenge');
+        if (__DEV__) console.log('✅ [JOIN] Successfully joined challenge');
         onSuccess();
       } else {
-        console.log('❌ [JOIN] Failed to join challenge');
+        if (__DEV__) console.log('❌ [JOIN] Failed to join challenge');
         setJoining(false);
       }
     } catch (error) {
-      console.error('❌ [JOIN] Error:', error);
+      if (__DEV__) console.error('❌ [JOIN] Error:', error);
       setJoining(false);
     }
   };

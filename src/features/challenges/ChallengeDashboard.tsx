@@ -40,7 +40,7 @@ export const ChallengeDashboard: React.FC<ChallengeDashboardProps> = ({
     getTodayCompletions
   } = useStore();
   
-  console.log('📊 [DASHBOARD] Component rendered with:', {
+  if (__DEV__) console.log('📊 [DASHBOARD] Component rendered with:', {
     challengeId: challenge?.id,
     participantId,
     leaderboardLength: leaderboard?.length,
@@ -59,7 +59,7 @@ export const ChallengeDashboard: React.FC<ChallengeDashboardProps> = ({
         if (completions && Array.isArray(completions)) {
           const completedIds = completions.map((c: any) => c.activity_id);
           setTodayCompleted(new Set(completedIds));
-          console.log('📊 [CHALLENGE] Loaded today\'s completions:', completedIds);
+          if (__DEV__) console.log('📊 [CHALLENGE] Loaded today\'s completions:', completedIds);
         }
       }
     };
@@ -256,7 +256,7 @@ export const ChallengeDashboard: React.FC<ChallengeDashboardProps> = ({
               
               {/* Motivational Message */}
               {(() => {
-                console.log('🎯 [MOTIVATIONAL] Debug info:', {
+                if (__DEV__) console.log('🎯 [MOTIVATIONAL] Debug info:', {
                   leaderboard: leaderboard.length,
                   myParticipation,
                   myUserId: myParticipation?.user_id,
@@ -266,7 +266,7 @@ export const ChallengeDashboard: React.FC<ChallengeDashboardProps> = ({
                 const myIndex = leaderboard.findIndex(p => p.user_id === myParticipation?.user_id);
                 const myCompletions = myParticipation?.total_completions || 0;
                 
-                console.log('🎯 [MOTIVATIONAL] Position:', {
+                if (__DEV__) console.log('🎯 [MOTIVATIONAL] Position:', {
                   myIndex,
                   myCompletions,
                   isInLeaderboard: myIndex !== -1
@@ -280,7 +280,7 @@ export const ChallengeDashboard: React.FC<ChallengeDashboardProps> = ({
                     !todayCompleted.has(act.id)
                   ).length;
                   
-                  console.log('🎯 [MOTIVATIONAL] Behind/tied with someone:', {
+                  if (__DEV__) console.log('🎯 [MOTIVATIONAL] Behind/tied with someone:', {
                     nextPerson: nextPerson?.profiles?.name,
                     theirCompletions: nextPerson?.total_completions,
                     gap,
@@ -289,7 +289,7 @@ export const ChallengeDashboard: React.FC<ChallengeDashboardProps> = ({
                   
                   if (gap > 0) {
                     // We're behind
-                    console.log('🎯 [MOTIVATIONAL] Showing catch-up message');
+                    if (__DEV__) console.log('🎯 [MOTIVATIONAL] Showing catch-up message');
                     return (
                       <View style={styles.motivationalBox}>
                         <Target size={16} color="#FFD700" />
@@ -303,7 +303,7 @@ export const ChallengeDashboard: React.FC<ChallengeDashboardProps> = ({
                     );
                   } else if (gap === 0 && activitiesLeftToday > 0) {
                     // We're tied - one more activity will put us ahead!
-                    console.log('🎯 [MOTIVATIONAL] Showing tie-breaker message');
+                    if (__DEV__) console.log('🎯 [MOTIVATIONAL] Showing tie-breaker message');
                     return (
                       <View style={styles.motivationalBox}>
                         <Target size={16} color="#FFD700" />
@@ -334,7 +334,7 @@ export const ChallengeDashboard: React.FC<ChallengeDashboardProps> = ({
                   );
                 }
                 
-                console.log('🎯 [MOTIVATIONAL] No message to show - not in proper position');
+                if (__DEV__) console.log('🎯 [MOTIVATIONAL] No message to show - not in proper position');
                 return null;
               })()}
             </View>

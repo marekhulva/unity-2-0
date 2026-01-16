@@ -93,7 +93,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
   
   // Fetch all challenges for a circle
   fetchCircleChallenges: async (circleId) => {
-    console.log('🏆 [CHALLENGES] Fetching challenges for circle:', circleId);
+    if (__DEV__) console.log('🏆 [CHALLENGES] Fetching challenges for circle:', circleId);
     set({ challengesLoading: true, challengeError: null });
     
     try {
@@ -119,12 +119,12 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
           challengesLoading: false 
         });
         
-        console.log('🟢 [CHALLENGES] Loaded challenges:', challenges.length);
+        if (__DEV__) console.log('🟢 [CHALLENGES] Loaded challenges:', challenges.length);
       } else {
         throw new Error('Failed to fetch challenges');
       }
     } catch (error) {
-      console.error('🔴 [CHALLENGES] Error:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error:', error);
       set({ 
         challengeError: error.message || 'Failed to load challenges',
         challengesLoading: false 
@@ -134,7 +134,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
   
   // Load a specific challenge with details
   loadChallenge: async (challengeId) => {
-    console.log('🏆 [CHALLENGES] Loading challenge:', challengeId);
+    if (__DEV__) console.log('🏆 [CHALLENGES] Loading challenge:', challengeId);
     set({ challengesLoading: true });
     
     try {
@@ -151,14 +151,14 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
         });
       }
     } catch (error) {
-      console.error('🔴 [CHALLENGES] Error loading challenge:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error loading challenge:', error);
       set({ challengesLoading: false });
     }
   },
   
   // Join a challenge with selected activities
   joinChallenge: async (challengeId, selectedActivityIds) => {
-    console.log('🏆 [CHALLENGES] Joining challenge with activities:', selectedActivityIds);
+    if (__DEV__) console.log('🏆 [CHALLENGES] Joining challenge with activities:', selectedActivityIds);
     set({ challengesLoading: true });
     
     try {
@@ -169,10 +169,10 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
         await get().loadChallenge(challengeId);
         await get().loadLeaderboard(challengeId);
         
-        console.log('🟢 [CHALLENGES] Successfully joined challenge');
+        if (__DEV__) console.log('🟢 [CHALLENGES] Successfully joined challenge');
         return true;
       } else {
-        console.error('🔴 [CHALLENGES] Failed to join:', response.error);
+        if (__DEV__) console.error('🔴 [CHALLENGES] Failed to join:', response.error);
         set({ 
           challengeError: response.error || 'Failed to join challenge',
           challengesLoading: false
@@ -180,7 +180,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
         return false;
       }
     } catch (error) {
-      console.error('🔴 [CHALLENGES] Error joining challenge:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error joining challenge:', error);
       set({ 
         challengeError: error.message || 'Failed to join challenge',
         challengesLoading: false
@@ -191,7 +191,7 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
   
   // Load leaderboard for a challenge
   loadLeaderboard: async (challengeId) => {
-    console.log('🏆 [CHALLENGES] Loading leaderboard');
+    if (__DEV__) console.log('🏆 [CHALLENGES] Loading leaderboard');
     
     try {
       const response = await backendService.getChallengeLeaderboard(challengeId);
@@ -212,32 +212,32 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
           }));
         
         set({ leaderboard });
-        console.log('🟢 [CHALLENGES] Leaderboard loaded:', leaderboard.length, 'participants');
+        if (__DEV__) console.log('🟢 [CHALLENGES] Leaderboard loaded:', leaderboard.length, 'participants');
       }
     } catch (error) {
-      console.error('🔴 [CHALLENGES] Error loading leaderboard:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error loading leaderboard:', error);
     }
   },
   
   // Load group statistics
   loadGroupStats: async (challengeId) => {
-    console.log('🏆 [CHALLENGES] Loading group stats');
+    if (__DEV__) console.log('🏆 [CHALLENGES] Loading group stats');
     
     try {
       const response = await backendService.getGroupStats(challengeId);
       
       if (response.success && response.data) {
         set({ groupStats: response.data });
-        console.log('🟢 [CHALLENGES] Group stats:', response.data);
+        if (__DEV__) console.log('🟢 [CHALLENGES] Group stats:', response.data);
       }
     } catch (error) {
-      console.error('🔴 [CHALLENGES] Error loading group stats:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error loading group stats:', error);
     }
   },
   
   // Record activity completion
   recordActivity: async (participantId, activityId, linkedActionId) => {
-    console.log('🏆 [CHALLENGES] Recording activity completion');
+    if (__DEV__) console.log('🏆 [CHALLENGES] Recording activity completion');
     
     try {
       const response = await backendService.recordChallengeActivity(
@@ -255,41 +255,41 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
           await get().loadGroupStats(currentChallenge.id);
         }
         
-        console.log('🟢 [CHALLENGES] Activity recorded successfully');
+        if (__DEV__) console.log('🟢 [CHALLENGES] Activity recorded successfully');
         return true;
       } else {
-        console.log('⚠️ [CHALLENGES]', response.error);
+        if (__DEV__) console.log('⚠️ [CHALLENGES]', response.error);
         return false;
       }
     } catch (error) {
-      console.error('🔴 [CHALLENGES] Error recording activity:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error recording activity:', error);
       return false;
     }
   },
   
   // Get today's completions for a participant
   getTodayCompletions: async (participantId) => {
-    console.log('📅 [CHALLENGES] Fetching today\'s completions for participant:', participantId);
+    if (__DEV__) console.log('📅 [CHALLENGES] Fetching today\'s completions for participant:', participantId);
     
     try {
       const response = await backendService.getTodayCompletions(participantId);
       
       if (response.success) {
-        console.log('✅ [CHALLENGES] Found', response.data?.length || 0, 'completions today');
+        if (__DEV__) console.log('✅ [CHALLENGES] Found', response.data?.length || 0, 'completions today');
         return response.data || [];
       } else {
-        console.error('🔴 [CHALLENGES] Failed to fetch today\'s completions:', response.error);
+        if (__DEV__) console.error('🔴 [CHALLENGES] Failed to fetch today\'s completions:', response.error);
         return [];
       }
     } catch (error) {
-      console.error('🔴 [CHALLENGES] Exception fetching today\'s completions:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Exception fetching today\'s completions:', error);
       return [];
     }
   },
   
   // Check if activity matches existing habit
   checkActivityMatch: async (activityTitle, userId) => {
-    console.log('🔍 [CHALLENGES] Checking for activity match:', activityTitle);
+    if (__DEV__) console.log('🔍 [CHALLENGES] Checking for activity match:', activityTitle);
     
     try {
       const response = await backendService.findActivityMatches(activityTitle, userId);
@@ -299,25 +299,25 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
       }
       return null;
     } catch (error) {
-      console.error('🔴 [CHALLENGES] Error checking match:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error checking match:', error);
       return null;
     }
   },
   
   // Link challenge activity to existing action
   linkActivity: async (participantId, actionId) => {
-    console.log('🔗 [CHALLENGES] Linking activity to action:', actionId);
+    if (__DEV__) console.log('🔗 [CHALLENGES] Linking activity to action:', actionId);
     
     try {
       const response = await backendService.linkActivityToAction(participantId, actionId);
       
       if (response.success) {
-        console.log('🟢 [CHALLENGES] Activity linked successfully');
+        if (__DEV__) console.log('🟢 [CHALLENGES] Activity linked successfully');
         return true;
       }
       return false;
     } catch (error) {
-      console.error('🔴 [CHALLENGES] Error linking activity:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error linking activity:', error);
       return false;
     }
   },

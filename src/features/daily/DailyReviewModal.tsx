@@ -66,7 +66,7 @@ export const DailyReviewModal: React.FC = () => {
 
   // Debug logging
   useEffect(() => {
-    console.log('🔴 [DAILY REVIEW MODAL] isOpen changed:', isOpen);
+    if (__DEV__) console.log('🔴 [DAILY REVIEW MODAL] isOpen changed:', isOpen);
   }, [isOpen]);
   
   // Daily review backend integration
@@ -191,9 +191,9 @@ export const DailyReviewModal: React.FC = () => {
     );
     
     if (success) {
-      console.log('✅ [REVIEW] Review saved successfully!');
+      if (__DEV__) console.log('✅ [REVIEW] Review saved successfully!');
     } else {
-      console.error('❌ [REVIEW] Failed to save review');
+      if (__DEV__) console.error('❌ [REVIEW] Failed to save review');
     }
     
     setTimeout(() => {
@@ -238,7 +238,7 @@ export const DailyReviewModal: React.FC = () => {
   
   // Test with simple content first
   if (isOpen) {
-    console.log('🔴 [DAILY REVIEW MODAL] Modal should be visible now');
+    if (__DEV__) console.log('🔴 [DAILY REVIEW MODAL] Modal should be visible now');
   }
 
   return (
@@ -248,7 +248,7 @@ export const DailyReviewModal: React.FC = () => {
       animationType="slide"
       statusBarTranslucent
       onRequestClose={close}
-      onShow={() => console.log('🔴 [DAILY REVIEW MODAL] Modal onShow fired')}
+      if (__DEV__) onShow={() => console.log('🔴 [DAILY REVIEW MODAL] Modal onShow fired')}
     >
       <View style={styles.modalOverlay}>
         <Animated.View style={[styles.modalContainer, modalAnimatedStyle]}>

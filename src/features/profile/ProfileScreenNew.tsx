@@ -97,7 +97,7 @@ export const ProfileScreenNew: React.FC<ProfileScreenProps> = ({
       const posts = await supabaseService.getUserPosts(userId, 20);
       setUserPosts(posts);
     } catch (error) {
-      console.error('Error fetching posts:', error);
+      if (__DEV__) console.error('Error fetching posts:', error);
       setUserPosts([]);
     } finally {
       setPostsLoading(false);
@@ -164,7 +164,7 @@ export const ProfileScreenNew: React.FC<ProfileScreenProps> = ({
           setProfileCompletedActions(completedToday);
         }
       } catch (error) {
-        console.log('Could not load profile data:', error);
+        if (__DEV__) console.log('Could not load profile data:', error);
       } finally {
         setIsLoading(false);
       }
@@ -211,7 +211,7 @@ export const ProfileScreenNew: React.FC<ProfileScreenProps> = ({
             setProfileCompletedActions(completedToday);
           }
         } catch (error) {
-          console.error('Error fetching own profile data:', error);
+          if (__DEV__) console.error('Error fetching own profile data:', error);
           setProfileActions(actions);
           setProfileCompletedActions(completedActions);
         }
@@ -289,7 +289,7 @@ export const ProfileScreenNew: React.FC<ProfileScreenProps> = ({
 
         setGoalsCompleted(completedGoals?.length || 0);
       } catch (error) {
-        console.error('Error calculating milestones:', error);
+        if (__DEV__) console.error('Error calculating milestones:', error);
       }
     };
 
@@ -309,7 +309,7 @@ export const ProfileScreenNew: React.FC<ProfileScreenProps> = ({
           const stats = await supabaseService.getGoalCompletionStats(profileUserId);
           setGoalCompletionStats(stats);
         } catch (error) {
-          console.error('Error fetching goal completion stats:', error);
+          if (__DEV__) console.error('Error fetching goal completion stats:', error);
         }
       }
     };
@@ -344,7 +344,7 @@ export const ProfileScreenNew: React.FC<ProfileScreenProps> = ({
   };
 
   const handleProfilePress = (userId: string) => {
-    console.log('Profile pressed:', userId);
+    if (__DEV__) console.log('Profile pressed:', userId);
   };
 
   const animatedTabIndicator = useAnimatedStyle(() => {

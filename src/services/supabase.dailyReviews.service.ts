@@ -38,7 +38,7 @@ class DailyReviewService {
     try {
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
       
-      console.log('📝 [REVIEW] Getting review for user:', userId, 'date:', today);
+      if (__DEV__) console.log('📝 [REVIEW] Getting review for user:', userId, 'date:', today);
       
       // First try to get existing review
       const { data: existing, error: fetchError } = await supabase
@@ -49,12 +49,12 @@ class DailyReviewService {
         .single();
       
       if (existing) {
-        console.log('✅ [REVIEW] Found existing review:', existing.id);
+        if (__DEV__) console.log('✅ [REVIEW] Found existing review:', existing.id);
         return existing;
       }
       
       // If no review exists, create one
-      console.log('📝 [REVIEW] Creating new review for today');
+      if (__DEV__) console.log('📝 [REVIEW] Creating new review for today');
       const { data: newReview, error: createError } = await supabase
         .from('daily_reviews')
         .insert({
@@ -69,14 +69,14 @@ class DailyReviewService {
         .single();
       
       if (createError) {
-        console.error('❌ [REVIEW] Error creating review:', createError);
+        if (__DEV__) console.error('❌ [REVIEW] Error creating review:', createError);
         return null;
       }
       
-      console.log('✅ [REVIEW] Created new review:', newReview?.id);
+      if (__DEV__) console.log('✅ [REVIEW] Created new review:', newReview?.id);
       return newReview;
     } catch (error) {
-      console.error('❌ [REVIEW] Error in getOrCreateTodayReview:', error);
+      if (__DEV__) console.error('❌ [REVIEW] Error in getOrCreateTodayReview:', error);
       return null;
     }
   }
@@ -86,7 +86,7 @@ class DailyReviewService {
    */
   async updateReview(reviewId: string, updates: Partial<DailyReview>): Promise<boolean> {
     try {
-      console.log('📝 [REVIEW] Updating review:', reviewId, updates);
+      if (__DEV__) console.log('📝 [REVIEW] Updating review:', reviewId, updates);
       
       const { error } = await supabase
         .from('daily_reviews')
@@ -94,14 +94,14 @@ class DailyReviewService {
         .eq('id', reviewId);
       
       if (error) {
-        console.error('❌ [REVIEW] Error updating review:', error);
+        if (__DEV__) console.error('❌ [REVIEW] Error updating review:', error);
         return false;
       }
       
-      console.log('✅ [REVIEW] Review updated successfully');
+      if (__DEV__) console.log('✅ [REVIEW] Review updated successfully');
       return true;
     } catch (error) {
-      console.error('❌ [REVIEW] Error in updateReview:', error);
+      if (__DEV__) console.error('❌ [REVIEW] Error in updateReview:', error);
       return false;
     }
   }
@@ -111,7 +111,7 @@ class DailyReviewService {
    */
   async saveMissedAction(reviewId: string, missedAction: Omit<MissedAction, 'id' | 'review_id' | 'created_at'>): Promise<boolean> {
     try {
-      console.log('📝 [REVIEW] Saving missed action for review:', reviewId);
+      if (__DEV__) console.log('📝 [REVIEW] Saving missed action for review:', reviewId);
       
       // Check if this action already exists for this review
       const { data: existing } = await supabase
@@ -134,7 +134,7 @@ class DailyReviewService {
           .eq('id', existing.id);
         
         if (error) {
-          console.error('❌ [REVIEW] Error updating missed action:', error);
+          if (__DEV__) console.error('❌ [REVIEW] Error updating missed action:', error);
           return false;
         }
       } else {
@@ -147,15 +147,15 @@ class DailyReviewService {
           });
         
         if (error) {
-          console.error('❌ [REVIEW] Error inserting missed action:', error);
+          if (__DEV__) console.error('❌ [REVIEW] Error inserting missed action:', error);
           return false;
         }
       }
       
-      console.log('✅ [REVIEW] Missed action saved successfully');
+      if (__DEV__) console.log('✅ [REVIEW] Missed action saved successfully');
       return true;
     } catch (error) {
-      console.error('❌ [REVIEW] Error in saveMissedAction:', error);
+      if (__DEV__) console.error('❌ [REVIEW] Error in saveMissedAction:', error);
       return false;
     }
   }
@@ -165,7 +165,7 @@ class DailyReviewService {
    */
   async saveMissedActions(reviewId: string, missedActions: Array<Omit<MissedAction, 'id' | 'review_id' | 'created_at'>>): Promise<boolean> {
     try {
-      console.log('📝 [REVIEW] Saving', missedActions.length, 'missed actions');
+      if (__DEV__) console.log('📝 [REVIEW] Saving', missedActions.length, 'missed actions');
       
       // Delete existing missed actions for this review
       await supabase
@@ -185,15 +185,15 @@ class DailyReviewService {
           );
         
         if (error) {
-          console.error('❌ [REVIEW] Error saving missed actions:', error);
+          if (__DEV__) console.error('❌ [REVIEW] Error saving missed actions:', error);
           return false;
         }
       }
       
-      console.log('✅ [REVIEW] All missed actions saved');
+      if (__DEV__) console.log('✅ [REVIEW] All missed actions saved');
       return true;
     } catch (error) {
-      console.error('❌ [REVIEW] Error in saveMissedActions:', error);
+      if (__DEV__) console.error('❌ [REVIEW] Error in saveMissedActions:', error);
       return false;
     }
   }
@@ -203,7 +203,7 @@ class DailyReviewService {
    */
   async getReviewHistory(userId: string, limit: number = 30): Promise<DailyReview[]> {
     try {
-      console.log('📝 [REVIEW] Getting review history for user:', userId);
+      if (__DEV__) console.log('📝 [REVIEW] Getting review history for user:', userId);
       
       const { data, error } = await supabase
         .from('daily_reviews')
@@ -213,14 +213,14 @@ class DailyReviewService {
         .limit(limit);
       
       if (error) {
-        console.error('❌ [REVIEW] Error getting review history:', error);
+        if (__DEV__) console.error('❌ [REVIEW] Error getting review history:', error);
         return [];
       }
       
-      console.log('✅ [REVIEW] Found', data?.length || 0, 'reviews');
+      if (__DEV__) console.log('✅ [REVIEW] Found', data?.length || 0, 'reviews');
       return data || [];
     } catch (error) {
-      console.error('❌ [REVIEW] Error in getReviewHistory:', error);
+      if (__DEV__) console.error('❌ [REVIEW] Error in getReviewHistory:', error);
       return [];
     }
   }
@@ -230,7 +230,7 @@ class DailyReviewService {
    */
   async getReviewWithMissedActions(reviewId: string): Promise<{ review: DailyReview | null; missedActions: MissedAction[] }> {
     try {
-      console.log('📝 [REVIEW] Getting review with missed actions:', reviewId);
+      if (__DEV__) console.log('📝 [REVIEW] Getting review with missed actions:', reviewId);
       
       // Get the review
       const { data: review, error: reviewError } = await supabase
@@ -240,7 +240,7 @@ class DailyReviewService {
         .single();
       
       if (reviewError || !review) {
-        console.error('❌ [REVIEW] Error getting review:', reviewError);
+        if (__DEV__) console.error('❌ [REVIEW] Error getting review:', reviewError);
         return { review: null, missedActions: [] };
       }
       
@@ -252,14 +252,14 @@ class DailyReviewService {
         .order('created_at', { ascending: true });
       
       if (actionsError) {
-        console.error('❌ [REVIEW] Error getting missed actions:', actionsError);
+        if (__DEV__) console.error('❌ [REVIEW] Error getting missed actions:', actionsError);
         return { review, missedActions: [] };
       }
       
-      console.log('✅ [REVIEW] Found review with', missedActions?.length || 0, 'missed actions');
+      if (__DEV__) console.log('✅ [REVIEW] Found review with', missedActions?.length || 0, 'missed actions');
       return { review, missedActions: missedActions || [] };
     } catch (error) {
-      console.error('❌ [REVIEW] Error in getReviewWithMissedActions:', error);
+      if (__DEV__) console.error('❌ [REVIEW] Error in getReviewWithMissedActions:', error);
       return { review: null, missedActions: [] };
     }
   }
@@ -269,7 +269,7 @@ class DailyReviewService {
    */
   async updateStreak(userId: string): Promise<number> {
     try {
-      console.log('📝 [REVIEW] Calculating streak for user:', userId);
+      if (__DEV__) console.log('📝 [REVIEW] Calculating streak for user:', userId);
       
       // Get all reviews ordered by date
       const { data: reviews } = await supabase
@@ -309,10 +309,10 @@ class DailyReviewService {
         .eq('user_id', userId)
         .eq('review_date', todayStr);
       
-      console.log('✅ [REVIEW] Streak calculated:', streak);
+      if (__DEV__) console.log('✅ [REVIEW] Streak calculated:', streak);
       return streak;
     } catch (error) {
-      console.error('❌ [REVIEW] Error in updateStreak:', error);
+      if (__DEV__) console.error('❌ [REVIEW] Error in updateStreak:', error);
       return 0;
     }
   }

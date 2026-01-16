@@ -125,7 +125,7 @@ export const ProgressTab = () => {
           percentage
         });
       } catch (error) {
-        console.error('Error fetching weekly consistency:', error);
+        if (__DEV__) console.error('Error fetching weekly consistency:', error);
         setWeeklyStats({
           completed: completedToday,
           total: totalToday,
@@ -271,7 +271,7 @@ export const ProgressTab = () => {
         setOverallStats(overallStatsResponse.data);
       }
     } catch (error) {
-      console.log('Could not fetch completion stats:', error);
+      if (__DEV__) console.log('Could not fetch completion stats:', error);
     }
   };
 
@@ -320,7 +320,7 @@ export const ProgressTab = () => {
           .eq('user_id', user.id);
 
         if (actionsError || !allActionsData) {
-          console.error('Error fetching actions:', actionsError);
+          if (__DEV__) console.error('Error fetching actions:', actionsError);
           return;
         }
 
@@ -348,7 +348,7 @@ export const ProgressTab = () => {
         setAllGoalActions(allActions);
       }
     } catch (error) {
-      console.log('Could not fetch all goal actions:', error);
+      if (__DEV__) console.log('Could not fetch all goal actions:', error);
     }
   };
 

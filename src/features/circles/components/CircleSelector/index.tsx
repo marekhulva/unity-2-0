@@ -42,7 +42,7 @@ export const CircleSelector: React.FC<CircleSelectorProps> = (props) => {
       return <DropdownSelector {...props} />;
 
     case 'ICONS':
-      console.warn('Icons selector not yet implemented, falling back to TabBar');
+      if (__DEV__) console.warn('Icons selector not yet implemented, falling back to TabBar');
       return <TabBarSelector {...props} />;
       // return <IconOnlySelector {...props} />;
 

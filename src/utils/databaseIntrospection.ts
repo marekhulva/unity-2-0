@@ -6,17 +6,17 @@ import { supabase } from '../services/supabase.service';
  */
 
 export async function introspectDatabase() {
-  console.log('🔍 ========== DATABASE INTROSPECTION ==========');
+  if (__DEV__) console.log('🔍 ========== DATABASE INTROSPECTION ==========');
 
   try {
     // 1. Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
-      console.error('❌ No authenticated user');
+      if (__DEV__) console.error('❌ No authenticated user');
       return;
     }
-    console.log('✅ Current User ID:', user.id);
-    console.log('✅ Current User Email:', user.email);
+    if (__DEV__) console.log('✅ Current User ID:', user.id);
+    if (__DEV__) console.log('✅ Current User Email:', user.email);
 
     // 2. Check if actions table exists and get schema
     const { data: columns, error: schemaError } = await supabase
@@ -25,9 +25,9 @@ export async function introspectDatabase() {
 
     if (schemaError) {
       // Try alternative approach
-      console.log('⚠️ Cannot fetch schema via RPC, trying direct query...');
+      if (__DEV__) console.log('⚠️ Cannot fetch schema via RPC, trying direct query...');
     } else {
-      console.log('📊 Actions table schema:', columns);
+      if (__DEV__) console.log('📊 Actions table schema:', columns);
     }
 
     // 3. Fetch user's actions with ALL fields
@@ -37,16 +37,16 @@ export async function introspectDatabase() {
       .eq('user_id', user.id);
 
     if (actionsError) {
-      console.error('❌ Error fetching actions:', actionsError);
+      if (__DEV__) console.error('❌ Error fetching actions:', actionsError);
     } else {
-      console.log('📋 Total actions for user:', actions?.length);
+      if (__DEV__) console.log('📋 Total actions for user:', actions?.length);
 
       // Analyze first action in detail
       if (actions && actions.length > 0) {
-        console.log('🔍 First action - ALL FIELDS:');
+        if (__DEV__) console.log('🔍 First action - ALL FIELDS:');
         const firstAction = actions[0];
         for (const [key, value] of Object.entries(firstAction)) {
-          console.log(`  ${key}:`, value);
+          if (__DEV__) console.log(`  ${key}:`, value);
         }
 
         // Count completion status
@@ -57,14 +57,14 @@ export async function introspectDatabase() {
           completed_but_no_timestamp: actions.filter(a => a.completed === true && !a.completed_at).length
         };
 
-        console.log('📊 Completion Statistics:', stats);
+        if (__DEV__) console.log('📊 Completion Statistics:', stats);
 
         // Show sample of completed_at values
         const completedAtValues = actions
           .map(a => ({ title: a.title, completed_at: a.completed_at }))
           .filter(a => a.completed_at);
 
-        console.log('🕐 Actions with completed_at timestamps:', completedAtValues);
+        if (__DEV__) console.log('🕐 Actions with completed_at timestamps:', completedAtValues);
       }
     }
 
@@ -75,23 +75,23 @@ export async function introspectDatabase() {
       .eq('user_id', user.id);
 
     if (!goalsError) {
-      console.log('🎯 Total goals:', goals?.length);
+      if (__DEV__) console.log('🎯 Total goals:', goals?.length);
       goals?.forEach(g => {
-        console.log(`  - ${g.title} (ID: ${g.id})`);
+        if (__DEV__) console.log(`  - ${g.title} (ID: ${g.id})`);
       });
     }
 
     // 5. Try to query non-existent daily_actions table
-    console.log('🔍 Checking if daily_actions table exists...');
+    if (__DEV__) console.log('🔍 Checking if daily_actions table exists...');
     const { error: dailyError } = await supabase
       .from('daily_actions')
       .select('count')
       .single();
 
     if (dailyError) {
-      console.log('❌ daily_actions table does not exist:', dailyError.message);
+      if (__DEV__) console.log('❌ daily_actions table does not exist:', dailyError.message);
     } else {
-      console.log('✅ daily_actions table exists');
+      if (__DEV__) console.log('✅ daily_actions table exists');
     }
 
     // 6. Get raw SQL query result (if RPC function exists)
@@ -106,22 +106,22 @@ export async function introspectDatabase() {
       });
 
       if (!sqlError && sqlResult) {
-        console.log('📊 SQL Query Result:', sqlResult);
+        if (__DEV__) console.log('📊 SQL Query Result:', sqlResult);
       }
     } catch (e) {
       // RPC function might not exist
     }
 
-    console.log('🔍 ========== END INTROSPECTION ==========');
+    if (__DEV__) console.log('🔍 ========== END INTROSPECTION ==========');
 
   } catch (error) {
-    console.error('❌ Introspection failed:', error);
+    if (__DEV__) console.error('❌ Introspection failed:', error);
   }
 }
 
 // Function to manually check a specific user's data
 export async function checkUserData(userId: string) {
-  console.log(`🔍 Checking data for user: ${userId}`);
+  if (__DEV__) console.log(`🔍 Checking data for user: ${userId}`);
 
   const { data: actions, error } = await supabase
     .from('actions')
@@ -129,7 +129,7 @@ export async function checkUserData(userId: string) {
     .eq('user_id', userId);
 
   if (error) {
-    console.error('❌ Error:', error);
+    if (__DEV__) console.error('❌ Error:', error);
     return;
   }
 
@@ -145,6 +145,6 @@ export async function checkUserData(userId: string) {
     return completedDate >= today;
   });
 
-  console.log('✅ Completed today:', todayCompletions?.length || 0);
-  console.log('📅 Actions with ANY completion date:', actions?.filter(a => a.completed_at).length || 0);
+  if (__DEV__) console.log('✅ Completed today:', todayCompletions?.length || 0);
+  if (__DEV__) console.log('📅 Actions with ANY completion date:', actions?.filter(a => a.completed_at).length || 0);
 }

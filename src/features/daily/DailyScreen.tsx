@@ -81,7 +81,7 @@ export const DailyScreen = () => {
   
   // Fetch actions on mount
   useEffect(() => {
-    console.log('🟦 [DAILY] DailyScreen mounted - fetching actions');
+    if (__DEV__) console.log('🟦 [DAILY] DailyScreen mounted - fetching actions');
     fetchDailyActions();
     fetchUserCircles();
   }, []);
@@ -96,8 +96,8 @@ export const DailyScreen = () => {
   
   // Log actions when component mounts or actions change
   useEffect(() => {
-    console.log('🟦 [DAILY] DailyScreen mounted/updated');
-    console.log('🟦 [DAILY] Current actions:', actions.map(a => ({ 
+    if (__DEV__) console.log('🟦 [DAILY] DailyScreen mounted/updated');
+    if (__DEV__) console.log('🟦 [DAILY] Current actions:', actions.map(a => ({
       title: a.title, 
       goalId: a.goalId, 
       goalTitle: a.goalTitle,
@@ -105,7 +105,7 @@ export const DailyScreen = () => {
       challengeName: a.challengeName,
       time: a.time 
     })));
-    console.log('🟦 [DAILY] Current goals:', goals.map(g => ({ id: g.id, title: g.title })));
+    if (__DEV__) console.log('🟦 [DAILY] Current goals:', goals.map(g => ({ id: g.id, title: g.title })));
   }, [actions, goals]);
   
   // Initialize animations
@@ -243,7 +243,7 @@ export const DailyScreen = () => {
     // CHECKPOINT 1: Initial action data
     ChallengeDebugV2.checkpoint('CP1-DAILY-START', 'Selected action in Daily screen', selectedAction);
 
-    console.log('🎯 [DAILY] handlePrivacySelect called:', {
+    if (__DEV__) console.log('🎯 [DAILY] handlePrivacySelect called:', {
       visibility,
       contentType,
       content,
@@ -260,7 +260,7 @@ export const DailyScreen = () => {
       const isLinkedActivity = selectedAction.id && !selectedAction.id.startsWith('challenge-');
       const linkedActionId = isLinkedActivity ? selectedAction.id : undefined;
 
-      console.log('🏆 [DAILY] Recording challenge activity completion:', {
+      if (__DEV__) console.log('🏆 [DAILY] Recording challenge activity completion:', {
         participantId: selectedAction.challengeParticipantId,
         activityId: selectedAction.challengeActivityId,
         linkedActionId,
@@ -275,11 +275,11 @@ export const DailyScreen = () => {
       );
 
       if (success) {
-        console.log('✅ [DAILY] Challenge activity marked as completed');
+        if (__DEV__) console.log('✅ [DAILY] Challenge activity marked as completed');
         // The store handles updating the action state, so we just need to refresh
         await fetchDailyActions();
       } else {
-        console.error('❌ [DAILY] Failed to record challenge completion');
+        if (__DEV__) console.error('❌ [DAILY] Failed to record challenge completion');
       }
     } else {
       // Mark regular action as complete
@@ -346,7 +346,7 @@ export const DailyScreen = () => {
         // CHECKPOINT 2: Post data before sending
         ChallengeDebugV2.checkpoint('CP2-POST-DATA', 'Post data created in Daily', postData);
 
-        console.log('🎯 [DEBUG] Creating post with challenge data:', {
+        if (__DEV__) console.log('🎯 [DEBUG] Creating post with challenge data:', {
           isChallenge: postData.isChallenge,
           challengeName: postData.challengeName,
           isFromChallenge: selectedAction.isFromChallenge,
@@ -355,9 +355,9 @@ export const DailyScreen = () => {
         });
 
         await addPost(postData);
-        console.log('✅ Post saved to database for action:', selectedAction.title);
+        if (__DEV__) console.log('✅ Post saved to database for action:', selectedAction.title);
       } catch (error) {
-        console.error('❌ Failed to save post to database:', error);
+        if (__DEV__) console.error('❌ Failed to save post to database:', error);
       }
     }
 
@@ -647,10 +647,10 @@ export const DailyScreen = () => {
       >
         <HapticButton
           onPress={() => {
-            console.log('🟢 [DAILY SCREEN] Review button pressed');
-            console.log('🟢 [DAILY SCREEN] Calling openReview function');
+            if (__DEV__) console.log('🟢 [DAILY SCREEN] Review button pressed');
+            if (__DEV__) console.log('🟢 [DAILY SCREEN] Calling openReview function');
             openReview();
-            console.log('🟢 [DAILY SCREEN] openReview called');
+            if (__DEV__) console.log('🟢 [DAILY SCREEN] openReview called');
           }}
           style={styles.reviewButton}
           hapticType="medium"

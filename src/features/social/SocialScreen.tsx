@@ -82,7 +82,7 @@ const { width, height } = Dimensions.get('window');
 
 export const SocialScreen = () => {
   if (__DEV__) {
-    console.log('[COMPONENT RENDER] SocialScreen');
+    if (__DEV__) console.log('[COMPONENT RENDER] SocialScreen');
   }
   const insets = useSafeAreaInsets();
   
@@ -241,7 +241,7 @@ export const SocialScreen = () => {
     currentMembersRequestId.current = requestId;
 
     try {
-      console.log('[SocialScreen] Fetching members for circle:', activeCircleId, 'requestId:', requestId);
+      if (__DEV__) console.log('[SocialScreen] Fetching members for circle:', activeCircleId, 'requestId:', requestId);
 
       const activeCircle = userCircles.find(c => c.id === activeCircleId);
       if (activeCircle) {
@@ -252,18 +252,18 @@ export const SocialScreen = () => {
 
       if (currentMembersRequestId.current === requestId) {
         if (response.success && response.data) {
-          console.log('[SocialScreen] Loaded', response.data.length, 'members (requestId:', requestId, ')');
+          if (__DEV__) console.log('[SocialScreen] Loaded', response.data.length, 'members (requestId:', requestId, ')');
           setCircleMembers(response.data);
         } else {
-          console.error('[SocialScreen] Failed to load members:', response);
+          if (__DEV__) console.error('[SocialScreen] Failed to load members:', response);
           setCircleMembers([]);
         }
       } else {
-        console.log('[SocialScreen] Discarding stale response for requestId:', requestId);
+        if (__DEV__) console.log('[SocialScreen] Discarding stale response for requestId:', requestId);
       }
     } catch (error) {
       if (currentMembersRequestId.current === requestId) {
-        console.error('[SocialScreen] Error loading members:', error);
+        if (__DEV__) console.error('[SocialScreen] Error loading members:', error);
         setCircleMembers([]);
       }
     }
@@ -288,7 +288,7 @@ export const SocialScreen = () => {
   // Load circle members when activeCircleId changes
   useEffect(() => {
     if (activeCircleId) {
-      console.log('[SocialScreen] Active circle changed, loading members for:', activeCircleId);
+      if (__DEV__) console.log('[SocialScreen] Active circle changed, loading members for:', activeCircleId);
       loadCircleMembers();
     }
   }, [activeCircleId, loadCircleMembers]);
@@ -309,14 +309,14 @@ export const SocialScreen = () => {
   useEffect(() => {
     const loadChallengeData = async () => {
       if (feedView === 'circle' && circleSubTab === 'challenges' && activeCircleId) {
-        console.log('🏆 Auto-fetching challenges for circle:', activeCircleId);
+        if (__DEV__) console.log('🏆 Auto-fetching challenges for circle:', activeCircleId);
         await fetchCircleChallenges(activeCircleId);
         
         // After challenges are loaded, load leaderboard and participation for each
         // We'll use a timeout to ensure the state has updated
         setTimeout(() => {
           const challenges = useStore.getState().circleChallenges;
-          console.log('📊 Loading data for', challenges.length, 'challenges');
+          if (__DEV__) console.log('📊 Loading data for', challenges.length, 'challenges');
           challenges.forEach(challenge => {
             if (challenge.id) {
               // Load leaderboard and participation data for each challenge
@@ -378,9 +378,9 @@ export const SocialScreen = () => {
   
   // Handle post submission
   const handlePost = async () => {
-    console.log('🟦 [POST] Submit triggered');
+    if (__DEV__) console.log('🟦 [POST] Submit triggered');
     if (!postText.trim() && !postPhoto && !postAudio) {
-      console.log('🟡 [POST] No content to post');
+      if (__DEV__) console.log('🟡 [POST] No content to post');
       return;
     }
     
@@ -388,16 +388,16 @@ export const SocialScreen = () => {
     let postType = 'status';
     if (postPhoto) {
       postType = 'photo';
-      console.log('🟦 [POST] Posting photo:', postPhoto?.substring(0, 100));
+      if (__DEV__) console.log('🟦 [POST] Posting photo:', postPhoto?.substring(0, 100));
     } else if (postAudio) {
       postType = 'audio';
-      console.log('🟦 [POST] Posting audio:', postAudio?.substring(0, 100));
+      if (__DEV__) console.log('🟦 [POST] Posting audio:', postAudio?.substring(0, 100));
     } else {
-      console.log('🟦 [POST] Posting text status');
+      if (__DEV__) console.log('🟦 [POST] Posting text status');
     }
     
     try {
-      console.log('🟦 [POST] Calling addPost with:', {
+      if (__DEV__) console.log('🟦 [POST] Calling addPost with:', {
         content: postText?.substring(0, 50),
         type: postType,
         visibility: selectedPrivacySettings.visibility,
@@ -422,7 +422,7 @@ export const SocialScreen = () => {
         circleIds: selectedPrivacySettings.circleIds,
       });
       
-      console.log('🟢 [POST] Post submitted successfully');
+      if (__DEV__) console.log('🟢 [POST] Post submitted successfully');
       
       // Reset composer
       setPostText('');
@@ -431,25 +431,25 @@ export const SocialScreen = () => {
       setComposerExpanded(false);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Success);
     } catch (error) {
-      console.error('🔴 [POST] Error submitting post:', error);
-      console.error('🔴 [POST] Error stack:', error.stack);
+      if (__DEV__) console.error('🔴 [POST] Error submitting post:', error);
+      if (__DEV__) console.error('🔴 [POST] Error stack:', error.stack);
       alert(`Failed to submit post: ${error.message}`);
     }
   };
   
   // Handle photo picker
   const pickImage = async () => {
-    console.log('🟦 [PHOTO] pickImage triggered');
-    console.log('🟦 [PHOTO] Platform:', Platform.OS);
+    if (__DEV__) console.log('🟦 [PHOTO] pickImage triggered');
+    if (__DEV__) console.log('🟦 [PHOTO] Platform:', Platform.OS);
     
     try {
       // Request permission
-      console.log('🟦 [PHOTO] Requesting media library permissions...');
+      if (__DEV__) console.log('🟦 [PHOTO] Requesting media library permissions...');
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      console.log('🟢 [PHOTO] Permission status:', status);
+      if (__DEV__) console.log('🟢 [PHOTO] Permission status:', status);
       
       if (status !== 'granted') {
-        console.log('🔴 [PHOTO] Permission denied');
+        if (__DEV__) console.log('🔴 [PHOTO] Permission denied');
         alert('Sorry, we need camera roll permissions to add photos!');
         return;
       }
@@ -473,24 +473,24 @@ export const SocialScreen = () => {
       try {
         if (ImagePicker.MediaTypeOptions && ImagePicker.MediaTypeOptions.Images) {
           pickerOptions.mediaTypes = ImagePicker.MediaTypeOptions.Images;
-          console.log('🟦 [PHOTO] Using MediaTypeOptions.Images (old API)');
+          if (__DEV__) console.log('🟦 [PHOTO] Using MediaTypeOptions.Images (old API)');
         } else if (ImagePicker.MediaType) {
           pickerOptions.mediaTypes = [ImagePicker.MediaType.images || 'images'];
-          console.log('🟦 [PHOTO] Using MediaType array (new API)');
+          if (__DEV__) console.log('🟦 [PHOTO] Using MediaType array (new API)');
         } else {
           pickerOptions.mediaTypes = 'images';
-          console.log('🟦 [PHOTO] Using string fallback');
+          if (__DEV__) console.log('🟦 [PHOTO] Using string fallback');
         }
       } catch (e) {
-        console.log('🟡 [PHOTO] Error detecting API version, using fallback:', e);
+        if (__DEV__) console.log('🟡 [PHOTO] Error detecting API version, using fallback:', e);
         pickerOptions.mediaTypes = 'images';
       }
       
-      console.log('🟦 [PHOTO] Launching image picker with options:', pickerOptions);
+      if (__DEV__) console.log('🟦 [PHOTO] Launching image picker with options:', pickerOptions);
       
       const result = await ImagePicker.launchImageLibraryAsync(pickerOptions);
       
-      console.log('🟢 [PHOTO] Picker result:', {
+      if (__DEV__) console.log('🟢 [PHOTO] Picker result:', {
         canceled: result.canceled,
         assets: result.assets?.length || 0,
         firstAssetUri: result.assets?.[0]?.uri?.substring(0, 50) || 'none'
@@ -498,32 +498,32 @@ export const SocialScreen = () => {
       
       if (!result.canceled && result.assets[0]) {
         const uri = result.assets[0].uri;
-        console.log('🟢 [PHOTO] Setting photo URI:', uri.substring(0, 50));
+        if (__DEV__) console.log('🟢 [PHOTO] Setting photo URI:', uri.substring(0, 50));
         setPostPhoto(uri);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       } else {
-        console.log('🟡 [PHOTO] User canceled or no asset returned');
+        if (__DEV__) console.log('🟡 [PHOTO] User canceled or no asset returned');
       }
     } catch (error) {
-      console.error('🔴 [PHOTO] Error in pickImage:', error);
-      console.error('🔴 [PHOTO] Error stack:', error.stack);
+      if (__DEV__) console.error('🔴 [PHOTO] Error in pickImage:', error);
+      if (__DEV__) console.error('🔴 [PHOTO] Error stack:', error.stack);
       alert(`Failed to pick image: ${error.message}`);
     }
   };
   
   // Handle camera capture
   const takePhoto = async () => {
-    console.log('🟦 [CAMERA] takePhoto triggered');
-    console.log('🟦 [CAMERA] Platform:', Platform.OS);
+    if (__DEV__) console.log('🟦 [CAMERA] takePhoto triggered');
+    if (__DEV__) console.log('🟦 [CAMERA] Platform:', Platform.OS);
     
     try {
       // Request permission
-      console.log('🟦 [CAMERA] Requesting camera permissions...');
+      if (__DEV__) console.log('🟦 [CAMERA] Requesting camera permissions...');
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      console.log('🟢 [CAMERA] Permission status:', status);
+      if (__DEV__) console.log('🟢 [CAMERA] Permission status:', status);
       
       if (status !== 'granted') {
-        console.log('🔴 [CAMERA] Permission denied');
+        if (__DEV__) console.log('🔴 [CAMERA] Permission denied');
         alert('Sorry, we need camera permissions to take photos!');
         return;
       }
@@ -542,11 +542,11 @@ export const SocialScreen = () => {
         cameraOptions.aspect = [4, 3];
       }
       
-      console.log('🟦 [CAMERA] Launching camera with options:', cameraOptions);
+      if (__DEV__) console.log('🟦 [CAMERA] Launching camera with options:', cameraOptions);
       
       const result = await ImagePicker.launchCameraAsync(cameraOptions);
       
-      console.log('🟢 [CAMERA] Camera result:', {
+      if (__DEV__) console.log('🟢 [CAMERA] Camera result:', {
         canceled: result.canceled,
         assets: result.assets?.length || 0,
         firstAssetUri: result.assets?.[0]?.uri?.substring(0, 50) || 'none'
@@ -554,44 +554,44 @@ export const SocialScreen = () => {
       
       if (!result.canceled && result.assets[0]) {
         const uri = result.assets[0].uri;
-        console.log('🟢 [CAMERA] Setting photo URI:', uri.substring(0, 50));
+        if (__DEV__) console.log('🟢 [CAMERA] Setting photo URI:', uri.substring(0, 50));
         setPostPhoto(uri);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       } else {
-        console.log('🟡 [CAMERA] User canceled or no asset returned');
+        if (__DEV__) console.log('🟡 [CAMERA] User canceled or no asset returned');
       }
     } catch (error) {
-      console.error('🔴 [CAMERA] Error in takePhoto:', error);
-      console.error('🔴 [CAMERA] Error stack:', error.stack);
+      if (__DEV__) console.error('🔴 [CAMERA] Error in takePhoto:', error);
+      if (__DEV__) console.error('🔴 [CAMERA] Error stack:', error.stack);
       alert(`Failed to take photo: ${error.message}`);
     }
   };
   
   // Handle audio recording
   const toggleRecording = async () => {
-    console.log('🟦 [AUDIO] toggleRecording triggered');
-    console.log('🟦 [AUDIO] Platform:', Platform.OS);
-    console.log('🟦 [AUDIO] Current state - isRecording:', isRecording, 'hasRecording:', !!recording);
+    if (__DEV__) console.log('🟦 [AUDIO] toggleRecording triggered');
+    if (__DEV__) console.log('🟦 [AUDIO] Platform:', Platform.OS);
+    if (__DEV__) console.log('🟦 [AUDIO] Current state - isRecording:', isRecording, 'hasRecording:', !!recording);
     
     // Check if platform supports audio recording
     if (Platform.OS === 'web') {
-      console.log('🟡 [AUDIO] Web platform detected - audio recording may have limited support');
+      if (__DEV__) console.log('🟡 [AUDIO] Web platform detected - audio recording may have limited support');
       // Continue anyway for testing
     }
     
     try {
       if (isRecording && recording) {
         // Stop recording
-        console.log('🟦 [AUDIO] Stopping recording...');
+        if (__DEV__) console.log('🟦 [AUDIO] Stopping recording...');
         await recording.stopAndUnloadAsync();
         const uri = recording.getURI();
-        console.log('🟢 [AUDIO] Recording stopped, URI:', uri?.substring(0, 100));
+        if (__DEV__) console.log('🟢 [AUDIO] Recording stopped, URI:', uri?.substring(0, 100));
         
         if (uri) {
           setPostAudio(uri);
-          console.log('🟢 [AUDIO] Audio URI saved to state');
+          if (__DEV__) console.log('🟢 [AUDIO] Audio URI saved to state');
         } else {
-          console.log('🔴 [AUDIO] No URI returned from recording');
+          if (__DEV__) console.log('🔴 [AUDIO] No URI returned from recording');
         }
         
         setIsRecording(false);
@@ -599,12 +599,12 @@ export const SocialScreen = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Success);
       } else {
         // Start recording
-        console.log('🟦 [AUDIO] Requesting audio permissions...');
+        if (__DEV__) console.log('🟦 [AUDIO] Requesting audio permissions...');
         const { status } = await Audio.requestPermissionsAsync();
-        console.log('🟢 [AUDIO] Permission status:', status);
+        if (__DEV__) console.log('🟢 [AUDIO] Permission status:', status);
         
         if (status === 'granted') {
-          console.log('🟦 [AUDIO] Setting up audio mode...');
+          if (__DEV__) console.log('🟦 [AUDIO] Setting up audio mode...');
           
           // Set audio mode for recording
           await Audio.setAudioModeAsync({
@@ -615,30 +615,30 @@ export const SocialScreen = () => {
             playThroughEarpieceAndroid: false
           });
           
-          console.log('🟦 [AUDIO] Creating recording with HIGH_QUALITY preset...');
+          if (__DEV__) console.log('🟦 [AUDIO] Creating recording with HIGH_QUALITY preset...');
           
           try {
             const { recording: newRecording } = await Audio.Recording.createAsync(
               Audio.RecordingOptionsPresets.HIGH_QUALITY
             );
             
-            console.log('🟢 [AUDIO] Recording created successfully');
+            if (__DEV__) console.log('🟢 [AUDIO] Recording created successfully');
             setRecording(newRecording);
             setIsRecording(true);
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           } catch (recordError) {
-            console.error('🔴 [AUDIO] Failed to create recording:', recordError);
-            console.error('🔴 [AUDIO] Error details:', recordError.message);
+            if (__DEV__) console.error('🔴 [AUDIO] Failed to create recording:', recordError);
+            if (__DEV__) console.error('🔴 [AUDIO] Error details:', recordError.message);
             alert(`Failed to start recording: ${recordError.message}`);
           }
         } else {
-          console.log('🔴 [AUDIO] Permission denied');
+          if (__DEV__) console.log('🔴 [AUDIO] Permission denied');
           alert('Microphone permission is required to record audio');
         }
       }
     } catch (error) {
-      console.error('🔴 [AUDIO] Error in toggleRecording:', error);
-      console.error('🔴 [AUDIO] Error stack:', error.stack);
+      if (__DEV__) console.error('🔴 [AUDIO] Error in toggleRecording:', error);
+      if (__DEV__) console.error('🔴 [AUDIO] Error stack:', error.stack);
       alert(`Audio recording error: ${error.message}`);
       
       // Reset state on error
@@ -1036,7 +1036,7 @@ export const SocialScreen = () => {
                     <Pressable
                       style={styles.mediaButton}
                       onPress={() => {
-                        console.log('🟦 [UI] Camera button pressed');
+                        if (__DEV__) console.log('🟦 [UI] Camera button pressed');
                         takePhoto();
                       }}
                     >
@@ -1045,7 +1045,7 @@ export const SocialScreen = () => {
                     <Pressable
                       style={styles.mediaButton}
                       onPress={() => {
-                        console.log('🟦 [UI] Gallery button pressed');
+                        if (__DEV__) console.log('🟦 [UI] Gallery button pressed');
                         pickImage();
                       }}
                     >
@@ -1057,11 +1057,11 @@ export const SocialScreen = () => {
                         isRecording && styles.mediaButtonActive
                       ]}
                       onPress={() => {
-                        console.log('🟦 [UI] Mic button pressed - calling toggleRecording');
+                        if (__DEV__) console.log('🟦 [UI] Mic button pressed - calling toggleRecording');
                         try {
                           toggleRecording();
                         } catch (e) {
-                          console.error('🔴 [UI] Error calling toggleRecording:', e);
+                          if (__DEV__) console.error('🔴 [UI] Error calling toggleRecording:', e);
                         }
                       }}
                     >
@@ -1168,10 +1168,10 @@ export const SocialScreen = () => {
                     setCircleSubTab('challenges');
                     // Load challenges when switching to challenges tab
                     if (activeCircleId) {
-                      console.log('🏆 Loading challenges for circle:', activeCircleId);
+                      if (__DEV__) console.log('🏆 Loading challenges for circle:', activeCircleId);
                       await fetchCircleChallenges(activeCircleId);
                     } else {
-                      console.log('⚠️ No activeCircleId, user needs to join a circle first');
+                      if (__DEV__) console.log('⚠️ No activeCircleId, user needs to join a circle first');
                     }
                   }}
                 >
@@ -1398,7 +1398,7 @@ export const SocialScreen = () => {
 
                   // Use UnifiedActivityCard for ALL activity check-ins (with or without media/comments)
                   if (isActivityCheckin) {
-                    console.log('🎯 [CARD] Using UnifiedActivityCard for post:', post.id, 'type:', post.type);
+                    if (__DEV__) console.log('🎯 [CARD] Using UnifiedActivityCard for post:', post.id, 'type:', post.type);
                     return (
                       <UnifiedActivityCard
                         key={post.id}
@@ -1406,18 +1406,18 @@ export const SocialScreen = () => {
                         onReact={react}
                         onComment={addComment}
                         onProfilePress={(userId) => {
-                          console.log('🟡 [SocialScreenV6] Profile pressed from UnifiedActivityCard');
-                          console.log('🟡 [SocialScreenV6] userId received:', userId);
-                          console.log('🟡 [SocialScreenV6] currentUser:', user?.id);
-                          console.log('🟡 [SocialScreenV6] Setting selectedUserId to:', userId || user?.id);
+                          if (__DEV__) console.log('🟡 [SocialScreenV6] Profile pressed from UnifiedActivityCard');
+                          if (__DEV__) console.log('🟡 [SocialScreenV6] userId received:', userId);
+                          if (__DEV__) console.log('🟡 [SocialScreenV6] currentUser:', user?.id);
+                          if (__DEV__) console.log('🟡 [SocialScreenV6] Setting selectedUserId to:', userId || user?.id);
 
                           // For own profile, use the user's id
                           const targetUserId = userId || user?.id;
                           if (targetUserId) {
                             setSelectedUserId(targetUserId);
-                            console.log('🟡 [SocialScreenV6] Modal should now open with userId:', targetUserId);
+                            if (__DEV__) console.log('🟡 [SocialScreenV6] Modal should now open with userId:', targetUserId);
                           } else {
-                            console.log('🟡 [SocialScreenV6] ERROR: No userId available!');
+                            if (__DEV__) console.log('🟡 [SocialScreenV6] ERROR: No userId available!');
                           }
                         }}
                         feedView={feedView}
@@ -1425,7 +1425,7 @@ export const SocialScreen = () => {
                     );
                   }
                   
-                  console.log('🎨 [CARD] Using LuxuryPostCard for post:', post.id, 'type:', post.type);
+                  if (__DEV__) console.log('🎨 [CARD] Using LuxuryPostCard for post:', post.id, 'type:', post.type);
                   return (
                     <LuxuryPostCard
                       key={post.id}
@@ -1434,18 +1434,18 @@ export const SocialScreen = () => {
                       onToggleLike={toggleLike}
                       onComment={addComment}
                       onProfilePress={(userId) => {
-                        console.log('🟡 [SocialScreenV6] Profile pressed from LuxuryPostCard');
-                        console.log('🟡 [SocialScreenV6] userId received:', userId);
-                        console.log('🟡 [SocialScreenV6] currentUser:', user?.id);
-                        console.log('🟡 [SocialScreenV6] Setting selectedUserId to:', userId || user?.id);
+                        if (__DEV__) console.log('🟡 [SocialScreenV6] Profile pressed from LuxuryPostCard');
+                        if (__DEV__) console.log('🟡 [SocialScreenV6] userId received:', userId);
+                        if (__DEV__) console.log('🟡 [SocialScreenV6] currentUser:', user?.id);
+                        if (__DEV__) console.log('🟡 [SocialScreenV6] Setting selectedUserId to:', userId || user?.id);
 
                         // For own profile, use the user's id
                         const targetUserId = userId || user?.id;
                         if (targetUserId) {
                           setSelectedUserId(targetUserId);
-                          console.log('🟡 [SocialScreenV6] Modal should now open with userId:', targetUserId);
+                          if (__DEV__) console.log('🟡 [SocialScreenV6] Modal should now open with userId:', targetUserId);
                         } else {
-                          console.log('🟡 [SocialScreenV6] ERROR: No userId available!');
+                          if (__DEV__) console.log('🟡 [SocialScreenV6] ERROR: No userId available!');
                         }
                       }}
                       delay={index * 50}
@@ -1580,7 +1580,7 @@ export const SocialScreen = () => {
       />
 
       {/* Profile View - Full Screen Overlay */}
-      {selectedUserId && console.log('🔵 [SocialScreenV6] Modal should show for userId:', selectedUserId, 'currentUser:', user?.id, 'isOwnProfile:', selectedUserId === user?.id)}
+      if (__DEV__) {selectedUserId && console.log('🔵 [SocialScreenV6] Modal should show for userId:', selectedUserId, 'currentUser:', user?.id, 'isOwnProfile:', selectedUserId === user?.id)}
       {selectedUserId && (
         <Modal
           visible={!!selectedUserId}
@@ -1588,11 +1588,11 @@ export const SocialScreen = () => {
           presentationStyle={Platform.OS === 'ios' ? 'overFullScreen' : 'fullScreen'}
           transparent={Platform.OS === 'android'}
           onRequestClose={() => {
-            console.log('🔵 [SocialScreenV6] Modal close requested');
+            if (__DEV__) console.log('🔵 [SocialScreenV6] Modal close requested');
             setSelectedUserId(null);
           }}
           onShow={() => {
-            console.log('🔵 [SocialScreenV6] Modal is now visible with userId:', selectedUserId);
+            if (__DEV__) console.log('🔵 [SocialScreenV6] Modal is now visible with userId:', selectedUserId);
           }}
         >
           <View style={{ flex: 1, backgroundColor: '#000' }}>
@@ -1606,7 +1606,7 @@ export const SocialScreen = () => {
                 padding: 10,
               }}
               onPress={() => {
-                console.log('🔵 [SocialScreenV6] X button pressed, closing modal');
+                if (__DEV__) console.log('🔵 [SocialScreenV6] X button pressed, closing modal');
                 setSelectedUserId(null);
               }}
             >
@@ -1626,21 +1626,21 @@ export const SocialScreen = () => {
             setSelectedChallenge(null);
           }}
           onSuccess={async () => {
-            console.log('🎯 [CHALLENGE] Join success callback triggered');
+            if (__DEV__) console.log('🎯 [CHALLENGE] Join success callback triggered');
             
             // Small delay to ensure database has committed
             await new Promise(resolve => setTimeout(resolve, 500));
             
             // Refresh challenges after joining
             if (activeCircleId) {
-              console.log('🎯 [CHALLENGE] Refreshing circle challenges');
+              if (__DEV__) console.log('🎯 [CHALLENGE] Refreshing circle challenges');
               await fetchCircleChallenges(activeCircleId);
             }
             
             // IMPORTANT: Refresh Daily actions to include new challenge activities
-            console.log('🎯 [CHALLENGE] Refreshing daily actions');
+            if (__DEV__) console.log('🎯 [CHALLENGE] Refreshing daily actions');
             await fetchDailyActions();
-            console.log('🎯 [CHALLENGE] All refreshes complete');
+            if (__DEV__) console.log('🎯 [CHALLENGE] All refreshes complete');
           }}
         />
       )}
@@ -1703,7 +1703,7 @@ const LuxuryPostCard: React.FC<{
   feedView: string;
 }> = ({ post, onReact, onToggleLike, onComment, onProfilePress, delay, feedView }) => {
   if (__DEV__ && post.isChallenge) {
-    console.log('[COMPONENT RENDER] LuxuryPostCard - Challenge Post', post.challengeName);
+    if (__DEV__) console.log('[COMPONENT RENDER] LuxuryPostCard - Challenge Post', post.challengeName);
   }
   const [isPlaying, setIsPlaying] = useState(false);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
@@ -1715,14 +1715,14 @@ const LuxuryPostCard: React.FC<{
   
   // Debug logging
   if (post.mediaUrl) {
-    console.log('Post has mediaUrl:', post.mediaUrl);
+    if (__DEV__) console.log('Post has mediaUrl:', post.mediaUrl);
   }
   
   // Check for photo and audio
   const hasPhoto = !!post.photoUri;
   const hasAudio = !!post.audioUri;
   
-  console.log('Post detection - hasPhoto:', hasPhoto, 'photoUri:', post.photoUri, 'hasAudio:', hasAudio, 'audioUri:', post.audioUri);
+  if (__DEV__) console.log('Post detection - hasPhoto:', hasPhoto, 'photoUri:', post.photoUri, 'hasAudio:', hasAudio, 'audioUri:', post.audioUri);
   
   // Handle audio playback
   const toggleAudio = async () => {
@@ -1819,7 +1819,7 @@ const LuxuryPostCard: React.FC<{
         onHoverIn={() => Platform.OS === 'web' && setIsHovered(true)}
         onHoverOut={() => Platform.OS === 'web' && setIsHovered(false)}
         onPress={() => {
-          console.log('🟢 [LuxuryPostCard] Card clicked anywhere');
+          if (__DEV__) console.log('🟢 [LuxuryPostCard] Card clicked anywhere');
         }}
       >
         {/* Base gradient background */}
@@ -1837,18 +1837,18 @@ const LuxuryPostCard: React.FC<{
             style={styles.postAuthorSection}
             onPress={() => {
               const userId = post.userId || post.user_id || post.user;
-              console.log('🔴 [LuxuryPostCard] Profile click - postData:', {
+              if (__DEV__) console.log('🔴 [LuxuryPostCard] Profile click - postData:', {
                 userId: post.userId,
                 user_id: post.user_id,
                 user: post.user,
                 actualUserId: userId
               });
-              console.log('🔴 [LuxuryPostCard] Calling onProfilePress with:', userId);
+              if (__DEV__) console.log('🔴 [LuxuryPostCard] Calling onProfilePress with:', userId);
               if (onProfilePress) {
-                console.log('🔴 [LuxuryPostCard] onProfilePress exists, calling it');
+                if (__DEV__) console.log('🔴 [LuxuryPostCard] onProfilePress exists, calling it');
                 onProfilePress(userId);
               } else {
-                console.log('🔴 [LuxuryPostCard] onProfilePress is undefined!');
+                if (__DEV__) console.log('🔴 [LuxuryPostCard] onProfilePress is undefined!');
               }
             }}
           >

@@ -60,11 +60,11 @@ export const createGoalsSlice: StateCreator<GoalsSlice> = (set, get) => ({
         memoryCache.set('goals', goals); // Save for next time
         set({ goals, goalsLoading: false });
       } else {
-        console.error('🔴 [GOALS] Fetch failed:', response.error);
+        if (__DEV__) console.error('🔴 [GOALS] Fetch failed:', response.error);
         set({ goalsError: response.error, goalsLoading: false });
       }
     } catch (error: any) {
-      console.error('🔴 [GOALS] Exception:', error);
+      if (__DEV__) console.error('🔴 [GOALS] Exception:', error);
       set({ goalsError: error.message, goalsLoading: false });
     }
   },
@@ -101,7 +101,7 @@ export const createGoalsSlice: StateCreator<GoalsSlice> = (set, get) => ({
         if (__DEV__) console.log('🟦 [GOALS] Goal IDs in store:', currentGoals.map(g => g.id));
       }
     } catch (error) {
-      console.error('🔴 [GOALS] Failed to add goal:', error);
+      if (__DEV__) console.error('🔴 [GOALS] Failed to add goal:', error);
     }
   },
   

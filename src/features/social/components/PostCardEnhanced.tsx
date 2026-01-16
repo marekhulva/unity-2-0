@@ -137,7 +137,7 @@ export const PostCardEnhanced: React.FC<PostCardEnhancedProps> = ({ post, onReac
             style={styles.commentButton}
             onPress={() => {
               // TODO: Implement comment functionality
-              console.log('Comment pressed for post:', post.id);
+              if (__DEV__) console.log('Comment pressed for post:', post.id);
             }}
           >
             <Text style={styles.commentText}>💬 Comment</Text>

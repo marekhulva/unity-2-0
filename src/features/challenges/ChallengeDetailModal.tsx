@@ -204,7 +204,7 @@ export const ChallengeDetailModal = ({ visible, challengeId, onClose }: Challeng
               style={[styles.actionButton, isJoined && styles.actionButtonJoined]}
               onPress={() => {
                 if (isJoined) {
-                  console.log('View progress');
+                  if (__DEV__) console.log('View progress');
                 } else {
                   setShowJoinFlow(true);
                 }

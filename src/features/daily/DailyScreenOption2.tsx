@@ -62,7 +62,7 @@ export const DailyScreenOption2 = () => {
   }, [actions]);
 
   useEffect(() => {
-    console.log('🟦 [DAILY-OPTION2] DailyScreenOption2 mounted');
+    if (__DEV__) console.log('🟦 [DAILY-OPTION2] DailyScreenOption2 mounted');
     fetchDailyActions();
   }, []);
 
@@ -193,7 +193,7 @@ export const DailyScreenOption2 = () => {
         ChallengeDebugV2.checkpoint('CP2-POST-DATA', 'Post data created in Daily', postData);
         await addPost(postData);
       } catch (error) {
-        console.error('❌ Failed to save post to database:', error);
+        if (__DEV__) console.error('❌ Failed to save post to database:', error);
       }
     }
 

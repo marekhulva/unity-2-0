@@ -62,7 +62,7 @@ export const createDailyReviewSlice: StateCreator<DailyReviewSlice> = (set, get)
       // Get current user from auth state
       const { user } = (get() as any);
       if (!user?.id) {
-        console.error('❌ [REVIEW] No user found');
+        if (__DEV__) console.error('❌ [REVIEW] No user found');
         set({ isLoading: false, error: 'User not authenticated' });
         return null;
       }
@@ -78,7 +78,7 @@ export const createDailyReviewSlice: StateCreator<DailyReviewSlice> = (set, get)
       set({ currentReview: review, isLoading: false });
       return review;
     } catch (error: any) {
-      console.error('❌ [REVIEW] Error initializing review:', error);
+      if (__DEV__) console.error('❌ [REVIEW] Error initializing review:', error);
       set({ isLoading: false, error: error.message });
       return null;
     }
@@ -89,7 +89,7 @@ export const createDailyReviewSlice: StateCreator<DailyReviewSlice> = (set, get)
     const { currentReview } = get();
     
     if (!currentReview?.id) {
-      console.error('❌ [REVIEW] No current review to save');
+      if (__DEV__) console.error('❌ [REVIEW] No current review to save');
       return false;
     }
     
@@ -102,7 +102,7 @@ export const createDailyReviewSlice: StateCreator<DailyReviewSlice> = (set, get)
       });
       
       if (!updateSuccess) {
-        console.error('❌ [REVIEW] Failed to update review');
+        if (__DEV__) console.error('❌ [REVIEW] Failed to update review');
         return false;
       }
       
@@ -123,7 +123,7 @@ export const createDailyReviewSlice: StateCreator<DailyReviewSlice> = (set, get)
         );
         
         if (!actionsSuccess) {
-          console.error('❌ [REVIEW] Failed to save missed actions');
+          if (__DEV__) console.error('❌ [REVIEW] Failed to save missed actions');
           return false;
         }
       }
@@ -146,7 +146,7 @@ export const createDailyReviewSlice: StateCreator<DailyReviewSlice> = (set, get)
       if (__DEV__) console.log('✅ [REVIEW] Review saved successfully');
       return true;
     } catch (error: any) {
-      console.error('❌ [REVIEW] Error saving review:', error);
+      if (__DEV__) console.error('❌ [REVIEW] Error saving review:', error);
       return false;
     }
   },
@@ -166,7 +166,7 @@ export const createDailyReviewSlice: StateCreator<DailyReviewSlice> = (set, get)
       set({ reviewHistory: history, isLoading: false });
       if (__DEV__) console.log('✅ [REVIEW] Loaded', history.length, 'reviews');
     } catch (error: any) {
-      console.error('❌ [REVIEW] Error loading history:', error);
+      if (__DEV__) console.error('❌ [REVIEW] Error loading history:', error);
       set({ isLoading: false, error: error.message });
     }
   },
@@ -184,7 +184,7 @@ export const createDailyReviewSlice: StateCreator<DailyReviewSlice> = (set, get)
         set({ isLoading: false, error: 'Review not found' });
       }
     } catch (error: any) {
-      console.error('❌ [REVIEW] Error getting review:', error);
+      if (__DEV__) console.error('❌ [REVIEW] Error getting review:', error);
       set({ isLoading: false, error: error.message });
     }
   },
@@ -195,7 +195,7 @@ export const createDailyReviewSlice: StateCreator<DailyReviewSlice> = (set, get)
     try {
       const { user } = (get() as any);
       if (!user?.id) {
-        console.error('❌ [REVIEW] No user found');
+        if (__DEV__) console.error('❌ [REVIEW] No user found');
         return 0;
       }
       
@@ -203,7 +203,7 @@ export const createDailyReviewSlice: StateCreator<DailyReviewSlice> = (set, get)
       if (__DEV__) console.log('✅ [REVIEW] Streak calculated:', streak);
       return streak;
     } catch (error: any) {
-      console.error('❌ [REVIEW] Error calculating streak:', error);
+      if (__DEV__) console.error('❌ [REVIEW] Error calculating streak:', error);
       return 0;
     }
   }

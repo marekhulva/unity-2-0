@@ -289,7 +289,7 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
         }
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
+      if (__DEV__) console.error('Auth check failed:', error);
     }
   },
 
@@ -319,11 +319,11 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
         if (__DEV__) console.log('🟢 [AUTH] Avatar updated successfully');
         return true;
       } else {
-        console.error('🔴 [AUTH] Failed to update avatar:', response.error || 'No response data');
+        if (__DEV__) console.error('🔴 [AUTH] Failed to update avatar:', response.error || 'No response data');
         return false;
       }
     } catch (error) {
-      console.error('🔴 [AUTH] Exception updating avatar:', error);
+      if (__DEV__) console.error('🔴 [AUTH] Exception updating avatar:', error);
       return false;
     }
   },
@@ -343,11 +343,11 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
         // No need to update local state for bio as it's managed by ProfileV2
         return true;
       } else {
-        console.error('🔴 [AUTH] Failed to update bio:', response.error);
+        if (__DEV__) console.error('🔴 [AUTH] Failed to update bio:', response.error);
         return false;
       }
     } catch (error) {
-      console.error('🔴 [AUTH] Exception updating bio:', error);
+      if (__DEV__) console.error('🔴 [AUTH] Exception updating bio:', error);
       return false;
     }
   },
@@ -358,7 +358,7 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
       set({ hasCompletedProfileSetup: true });
       if (__DEV__) console.log('✅ [AUTH] Profile setup marked as complete');
     } catch (error) {
-      console.error('🔴 [AUTH] Error marking profile setup complete:', error);
+      if (__DEV__) console.error('🔴 [AUTH] Error marking profile setup complete:', error);
     }
   },
 
@@ -372,7 +372,7 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
       });
       if (__DEV__) console.log('✅ [AUTH] Full onboarding marked as complete');
     } catch (error) {
-      console.error('🔴 [AUTH] Error marking onboarding complete:', error);
+      if (__DEV__) console.error('🔴 [AUTH] Error marking onboarding complete:', error);
     }
   }
 });

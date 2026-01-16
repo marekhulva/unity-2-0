@@ -33,7 +33,7 @@ export const createNotificationSlice: StateCreator<
       const notifications = await supabaseNotificationService.getNotifications();
       set({ notifications, notificationsLoading: false });
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      if (__DEV__) console.error('Error fetching notifications:', error);
       set({ notificationsLoading: false });
     }
   },
@@ -43,7 +43,7 @@ export const createNotificationSlice: StateCreator<
       const count = await supabaseNotificationService.getUnreadCount();
       set({ unreadCount: count });
     } catch (error) {
-      console.error('Error fetching unread count:', error);
+      if (__DEV__) console.error('Error fetching unread count:', error);
     }
   },
 

@@ -52,7 +52,7 @@ export const ChallengeLeaderboard: React.FC<ChallengeLeaderboardProps> = ({
       });
       setLeaderboard(data);
     } catch (error) {
-      console.error('Error loading leaderboard:', error);
+      if (__DEV__) console.error('Error loading leaderboard:', error);
     } finally {
       setLoading(false);
     }

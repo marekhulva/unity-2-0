@@ -43,7 +43,7 @@ export const TimeSetupModal: React.FC<TimeSetupModalProps> = ({
   onComplete,
   onBack,
 }) => {
-  console.log('🔴 [TIME FLOW] Step 3: TimeSetupModal rendered, visible:', visible);
+  if (__DEV__) console.log('🔴 [TIME FLOW] Step 3: TimeSetupModal rendered, visible:', visible);
   
   // Filter to only show NEW activities (not linked to existing)
   const newActivities = activities.filter(a => !a.linkedActionId);
@@ -57,7 +57,7 @@ export const TimeSetupModal: React.FC<TimeSetupModalProps> = ({
   // Initialize default times when activities change
   React.useEffect(() => {
     if (activities && activities.length > 0) {
-      console.log('🔴🔴🔴 [TIME SETUP] Initializing default times for', activities.length, 'activities');
+      if (__DEV__) console.log('🔴🔴🔴 [TIME SETUP] Initializing default times for', activities.length, 'activities');
       const defaultTimes: Record<string, Date> = {};
       activities.forEach(activity => {
         const defaultTime = new Date();
@@ -93,30 +93,30 @@ export const TimeSetupModal: React.FC<TimeSetupModalProps> = ({
   };
 
   const handleComplete = () => {
-    console.log('🔴🔴🔴 [CONTINUE] BUTTON CLICKED');
-    console.log('🔴🔴🔴 [CONTINUE] All activities:', activitiesToSetup);
-    console.log('🔴🔴🔴 [CONTINUE] Activity times state:', activityTimes);
+    if (__DEV__) console.log('🔴🔴🔴 [CONTINUE] BUTTON CLICKED');
+    if (__DEV__) console.log('🔴🔴🔴 [CONTINUE] All activities:', activitiesToSetup);
+    if (__DEV__) console.log('🔴🔴🔴 [CONTINUE] Activity times state:', activityTimes);
     
     // Convert Date objects to string format for NEW activities only
     const timeStrings: Record<string, string> = {};
     
     // Only include times for NEW activities (not linked to existing)
     const newActivities = activitiesToSetup.filter(a => !a.linkedActionId);
-    console.log('🔴🔴🔴 [CONTINUE] New activities after filter:', newActivities);
+    if (__DEV__) console.log('🔴🔴🔴 [CONTINUE] New activities after filter:', newActivities);
     
     newActivities.forEach(activity => {
       const date = activityTimes[activity.id];
-      console.log(`🔴🔴🔴 [CONTINUE] Activity ${activity.id}: date =`, date);
+      if (__DEV__) console.log(`🔴🔴🔴 [CONTINUE] Activity ${activity.id}: date =`, date);
       if (date) {
         const formattedTime = formatTime(date);
         timeStrings[activity.id] = formattedTime;
-        console.log(`🔴🔴🔴 [CONTINUE] Added time for ${activity.id}: ${formattedTime}`);
+        if (__DEV__) console.log(`🔴🔴🔴 [CONTINUE] Added time for ${activity.id}: ${formattedTime}`);
       } else {
-        console.log(`🔴🔴🔴 [CONTINUE] NO DATE for ${activity.id}`);
+        if (__DEV__) console.log(`🔴🔴🔴 [CONTINUE] NO DATE for ${activity.id}`);
       }
     });
     
-    console.log('🔴🔴🔴 [CONTINUE] FINAL timeStrings to save:', timeStrings);
+    if (__DEV__) console.log('🔴🔴🔴 [CONTINUE] FINAL timeStrings to save:', timeStrings);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onComplete(timeStrings);
   };
@@ -132,10 +132,10 @@ export const TimeSetupModal: React.FC<TimeSetupModalProps> = ({
   React.useEffect(() => {
     if (visible && !needsTimeSetup) {
       // All activities are linked to existing habits, skip time setup
-      console.log('🔴 [TIME FLOW] Step 4: All activities linked, skipping time setup');
+      if (__DEV__) console.log('🔴 [TIME FLOW] Step 4: All activities linked, skipping time setup');
       // Delay to ensure smooth transition
       const timer = setTimeout(() => {
-        console.log('🔴 [TIME FLOW] Calling onComplete with empty times for all-linked activities');
+        if (__DEV__) console.log('🔴 [TIME FLOW] Calling onComplete with empty times for all-linked activities');
         onComplete({});
       }, 200);
       return () => clearTimeout(timer);
@@ -272,12 +272,12 @@ export const TimeSetupModal: React.FC<TimeSetupModalProps> = ({
                               }
                             })()}
                             onChange={(e) => {
-                              console.log('🔴🔴🔴 [TIME INPUT] Time changed:', e.target.value, 'for activity:', activity.id);
+                              if (__DEV__) console.log('🔴🔴🔴 [TIME INPUT] Time changed:', e.target.value, 'for activity:', activity.id);
                               const [hours, minutes] = e.target.value.split(':');
                               const newTime = new Date();
                               newTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
                               handleTimeChange(activity.id, newTime);
-                              console.log('🔴🔴🔴 [TIME INPUT] New time set:', newTime);
+                              if (__DEV__) console.log('🔴🔴🔴 [TIME INPUT] New time set:', newTime);
                             }}
                             style={{
                               backgroundColor: 'rgba(255,255,255,0.05)',

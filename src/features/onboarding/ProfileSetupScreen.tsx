@@ -142,24 +142,24 @@ export const ProfileSetupScreen: React.FC<ProfileSetupScreenProps> = ({ onComple
       let savedSuccessfully = true;
 
       if (profileImage) {
-        console.log('🔵 [PROFILE-SETUP] Saving profile image...');
+        if (__DEV__) console.log('🔵 [PROFILE-SETUP] Saving profile image...');
         const avatarSuccess = await updateAvatar(profileImage);
         if (!avatarSuccess) {
-          console.log('🔴 [PROFILE-SETUP] Failed to save avatar');
+          if (__DEV__) console.log('🔴 [PROFILE-SETUP] Failed to save avatar');
           savedSuccessfully = false;
         } else {
-          console.log('✅ [PROFILE-SETUP] Avatar saved successfully');
+          if (__DEV__) console.log('✅ [PROFILE-SETUP] Avatar saved successfully');
         }
       }
 
       if (bio.trim()) {
-        console.log('🔵 [PROFILE-SETUP] Saving bio:', bio);
+        if (__DEV__) console.log('🔵 [PROFILE-SETUP] Saving bio:', bio);
         const bioSuccess = await updateBio(bio);
         if (!bioSuccess) {
-          console.log('🔴 [PROFILE-SETUP] Failed to save bio');
+          if (__DEV__) console.log('🔴 [PROFILE-SETUP] Failed to save bio');
           savedSuccessfully = false;
         } else {
-          console.log('✅ [PROFILE-SETUP] Bio saved successfully');
+          if (__DEV__) console.log('✅ [PROFILE-SETUP] Bio saved successfully');
         }
       }
 
@@ -169,10 +169,10 @@ export const ProfileSetupScreen: React.FC<ProfileSetupScreenProps> = ({ onComple
 
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      console.log('🟢 [PROFILE-SETUP] Profile setup complete, proceeding to onboarding');
+      if (__DEV__) console.log('🟢 [PROFILE-SETUP] Profile setup complete, proceeding to onboarding');
       onComplete();
     } catch (error) {
-      console.error('🔴 [PROFILE-SETUP] Error saving profile:', error);
+      if (__DEV__) console.error('🔴 [PROFILE-SETUP] Error saving profile:', error);
       Alert.alert('Error', 'Failed to save profile. You can update it later in your profile settings.');
       onComplete();
     } finally {
@@ -190,7 +190,7 @@ export const ProfileSetupScreen: React.FC<ProfileSetupScreenProps> = ({ onComple
         { 
           text: 'Skip', 
           onPress: () => {
-            console.log('🟡 [PROFILE-SETUP] User skipped profile setup');
+            if (__DEV__) console.log('🟡 [PROFILE-SETUP] User skipped profile setup');
             onComplete();
           }
         },

@@ -37,7 +37,7 @@ class FeatureFlagService {
         this.lastFetch = now;
       }
     } catch (err) {
-      console.log('Using default feature flags');
+      if (__DEV__) console.log('Using default feature flags');
     }
 
     return this.flags;

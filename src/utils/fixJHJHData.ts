@@ -1,7 +1,7 @@
 import { supabase } from '../services/supabase.service';
 
 export async function fixJHJHCompletions() {
-  console.log('🔧 [FIX-JHJH] Starting to fix JHJH completions...');
+  if (__DEV__) console.log('🔧 [FIX-JHJH] Starting to fix JHJH completions...');
 
   try {
     // First, get JHJH's user ID
@@ -12,12 +12,12 @@ export async function fixJHJHCompletions() {
       .single();
 
     if (userError || !userData) {
-      console.error('🔴 [FIX-JHJH] Could not find user JHJH:', userError);
+      if (__DEV__) console.error('🔴 [FIX-JHJH] Could not find user JHJH:', userError);
       return false;
     }
 
     const userId = userData.id;
-    console.log(`🟢 [FIX-JHJH] Found JHJH with user ID: ${userId}`);
+    if (__DEV__) console.log(`🟢 [FIX-JHJH] Found JHJH with user ID: ${userId}`);
 
     // Get all actions for JHJH that have completed = true but no completed_at
     const { data: actionsToFix, error: fetchError } = await supabase
@@ -28,11 +28,11 @@ export async function fixJHJHCompletions() {
       .is('completed_at', null);
 
     if (fetchError) {
-      console.error('🔴 [FIX-JHJH] Error fetching actions to fix:', fetchError);
+      if (__DEV__) console.error('🔴 [FIX-JHJH] Error fetching actions to fix:', fetchError);
       return false;
     }
 
-    console.log(`🟡 [FIX-JHJH] Found ${actionsToFix?.length || 0} actions marked as completed but missing completed_at timestamp`);
+    if (__DEV__) console.log(`🟡 [FIX-JHJH] Found ${actionsToFix?.length || 0} actions marked as completed but missing completed_at timestamp`);
 
     if (actionsToFix && actionsToFix.length > 0) {
       // For each action, set completed_at to the same day as created_at but at 10pm
@@ -47,15 +47,15 @@ export async function fixJHJHCompletions() {
           .eq('id', action.id);
 
         if (updateError) {
-          console.error(`🔴 [FIX-JHJH] Error updating action ${action.id}:`, updateError);
+          if (__DEV__) console.error(`🔴 [FIX-JHJH] Error updating action ${action.id}:`, updateError);
         } else {
-          console.log(`✅ [FIX-JHJH] Fixed action: ${action.title} - set completed_at to ${completedDate.toISOString()}`);
+          if (__DEV__) console.log(`✅ [FIX-JHJH] Fixed action: ${action.title} - set completed_at to ${completedDate.toISOString()}`);
         }
       }
     }
 
     // Now let's check for any actions that might have been completed but not marked
-    console.log('\n📊 [FIX-JHJH] Checking for patterns in JHJH\'s completion history...');
+    if (__DEV__) console.log('\n📊 [FIX-JHJH] Checking for patterns in JHJH\'s completion history...');
 
     const { data: allActions, error: allError } = await supabase
       .from('actions')
@@ -64,7 +64,7 @@ export async function fixJHJHCompletions() {
       .order('created_at', { ascending: false });
 
     if (allError) {
-      console.error('🔴 [FIX-JHJH] Error fetching all actions:', allError);
+      if (__DEV__) console.error('🔴 [FIX-JHJH] Error fetching all actions:', allError);
       return false;
     }
 
@@ -79,19 +79,19 @@ export async function fixJHJHCompletions() {
     });
 
     // Check each day's completion rate
-    console.log('\n📅 [FIX-JHJH] Daily completion summary:');
+    if (__DEV__) console.log('\n📅 [FIX-JHJH] Daily completion summary:');
     let totalFixed = 0;
     for (const [date, actions] of Object.entries(actionsByDate)) {
       const completed = actions.filter(a => a.completed).length;
       const total = actions.length;
       const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-      console.log(`[FIX-JHJH] ${date}: ${completed}/${total} completed (${percentage}%)`);
+      if (__DEV__) console.log(`[FIX-JHJH] ${date}: ${completed}/${total} completed (${percentage}%)`);
 
       // If user said JHJH has been checking activities, let's mark some as completed
       // We'll be conservative and only mark days where at least 1 action was completed
       if (completed > 0 && completed < total) {
-        console.log(`  → [FIX-JHJH] Found partially completed day, marking remaining actions...`);
+        if (__DEV__) console.log(`  → [FIX-JHJH] Found partially completed day, marking remaining actions...`);
 
         for (const action of actions) {
           if (!action.completed && !action.completed_at) {
@@ -107,7 +107,7 @@ export async function fixJHJHCompletions() {
               .eq('id', action.id);
 
             if (!updateError) {
-              console.log(`    ✅ [FIX-JHJH] Marked as complete: ${action.title}`);
+              if (__DEV__) console.log(`    ✅ [FIX-JHJH] Marked as complete: ${action.title}`);
               totalFixed++;
             }
           }
@@ -115,18 +115,18 @@ export async function fixJHJHCompletions() {
       }
     }
 
-    console.log(`\n✨ [FIX-JHJH] Fix completed! Fixed ${totalFixed} actions. JHJH's consistency should now be calculated correctly.`);
+    if (__DEV__) console.log(`\n✨ [FIX-JHJH] Fix completed! Fixed ${totalFixed} actions. JHJH's consistency should now be calculated correctly.`);
     return true;
 
   } catch (error) {
-    console.error('🔴 [FIX-JHJH] Unexpected error:', error);
+    if (__DEV__) console.error('🔴 [FIX-JHJH] Unexpected error:', error);
     return false;
   }
 }
 
 // Function to manually mark recent days as completed for any user
 export async function markJHJHRecentCompletions(userIdOverride?: string) {
-  console.log('🔧 [FIX-DATA] Marking recent completions...');
+  if (__DEV__) console.log('🔧 [FIX-DATA] Marking recent completions...');
 
   try {
     let userId = userIdOverride;
@@ -135,13 +135,13 @@ export async function markJHJHRecentCompletions(userIdOverride?: string) {
       // Try to get current user from auth
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
-        console.error('🔴 [FIX-DATA] Could not get current user:', authError);
+        if (__DEV__) console.error('🔴 [FIX-DATA] Could not get current user:', authError);
         return false;
       }
       userId = user.id;
     }
 
-    console.log(`🟢 [FIX-DATA] Fixing data for user ID: ${userId}`);
+    if (__DEV__) console.log(`🟢 [FIX-DATA] Fixing data for user ID: ${userId}`);
 
     // Get actions from the last 10 days
     const tenDaysAgo = new Date();
@@ -155,17 +155,17 @@ export async function markJHJHRecentCompletions(userIdOverride?: string) {
       .order('created_at', { ascending: false });
 
     if (fetchError) {
-      console.error('🔴 [FIX-DATA] Error fetching recent actions:', fetchError);
+      if (__DEV__) console.error('🔴 [FIX-DATA] Error fetching recent actions:', fetchError);
       return false;
     }
 
-    console.log(`🟢 [FIX-DATA] Found ${recentActions?.length || 0} actions in the last 10 days`);
+    if (__DEV__) console.log(`🟢 [FIX-DATA] Found ${recentActions?.length || 0} actions in the last 10 days`);
 
     // Mark 80% of them as completed (to show realistic consistency)
     const actionsToComplete = recentActions?.filter(a => !a.completed) || [];
     const numberToComplete = Math.floor(actionsToComplete.length * 0.8);
 
-    console.log(`🟡 [FIX-DATA] Marking ${numberToComplete} out of ${actionsToComplete.length} incomplete actions as completed`);
+    if (__DEV__) console.log(`🟡 [FIX-DATA] Marking ${numberToComplete} out of ${actionsToComplete.length} incomplete actions as completed`);
 
     for (let i = 0; i < numberToComplete && i < actionsToComplete.length; i++) {
       const action = actionsToComplete[i];
@@ -184,15 +184,15 @@ export async function markJHJHRecentCompletions(userIdOverride?: string) {
         .eq('id', action.id);
 
       if (!updateError) {
-        console.log(`✅ [FIX-DATA] Marked as complete: ${action.title} at ${completedDate.toLocaleTimeString()}`);
+        if (__DEV__) console.log(`✅ [FIX-DATA] Marked as complete: ${action.title} at ${completedDate.toLocaleTimeString()}`);
       }
     }
 
-    console.log('\n✨ [FIX-DATA] Recent completions marked successfully!');
+    if (__DEV__) console.log('\n✨ [FIX-DATA] Recent completions marked successfully!');
     return true;
 
   } catch (error) {
-    console.error('🔴 [FIX-DATA] Unexpected error:', error);
+    if (__DEV__) console.error('🔴 [FIX-DATA] Unexpected error:', error);
     return false;
   }
 }

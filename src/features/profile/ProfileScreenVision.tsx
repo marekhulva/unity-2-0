@@ -136,7 +136,7 @@ export const ProfileScreen: React.FC = () => {
       try {
         // Fetch challenges
         const activeChallenges = await supabaseChallengeService.getMyActiveChallenges();
-        console.log('[PROFILE-VISION] Active challenges:', activeChallenges);
+        if (__DEV__) console.log('[PROFILE-VISION] Active challenges:', activeChallenges);
         setChallenges(activeChallenges || []);
 
         // Fetch circles
@@ -152,7 +152,7 @@ export const ProfileScreen: React.FC = () => {
         // Load followers/following
         await loadFollowing();
       } catch (error) {
-        console.error('Error fetching profile data:', error);
+        if (__DEV__) console.error('Error fetching profile data:', error);
       } finally {
         setLoading(false);
       }

@@ -59,7 +59,7 @@ export const SocialSharePrompt: React.FC<SocialSharePromptProps> = ({
         title: 'Unity Progress',
       });
     } catch (error) {
-      console.error('Error sharing:', error);
+      if (__DEV__) console.error('Error sharing:', error);
     } finally {
       setIsSharing(false);
     }

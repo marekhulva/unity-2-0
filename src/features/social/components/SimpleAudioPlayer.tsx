@@ -14,12 +14,12 @@ export const SimpleAudioPlayer: React.FC<SimpleAudioPlayerProps> = ({ uri }) => 
   const [sound, setSound] = useState<Audio.Sound | null>(null);
 
   const togglePlayback = async () => {
-    console.log('SimpleAudioPlayer - Toggle playback called');
-    console.log('URI received:', uri);
-    console.log('URI type:', typeof uri);
-    console.log('URI starts with data:audio:', uri?.startsWith('data:audio'));
-    console.log('URI length:', uri?.length);
-    console.log('Is playing:', isPlaying);
+    if (__DEV__) console.log('SimpleAudioPlayer - Toggle playback called');
+    if (__DEV__) console.log('URI received:', uri);
+    if (__DEV__) console.log('URI type:', typeof uri);
+    if (__DEV__) console.log('URI starts with data:audio:', uri?.startsWith('data:audio'));
+    if (__DEV__) console.log('URI length:', uri?.length);
+    if (__DEV__) console.log('Is playing:', isPlaying);
     
     try {
       if (isPlaying && sound) {
@@ -38,16 +38,16 @@ export const SimpleAudioPlayer: React.FC<SimpleAudioPlayerProps> = ({ uri }) => 
 
         // Validate URI before trying to play
         if (!uri) {
-          console.error('No URI provided for audio playback');
+          if (__DEV__) console.error('No URI provided for audio playback');
           return;
         }
 
-        console.log('Creating audio sound from URI...');
+        if (__DEV__) console.log('Creating audio sound from URI...');
         const { sound: newSound } = await Audio.Sound.createAsync(
           { uri },
           { shouldPlay: true },
           (status) => {
-            console.log('Audio status update:', status);
+            if (__DEV__) console.log('Audio status update:', status);
             if (status.isLoaded && status.didJustFinish) {
               setIsPlaying(false);
             }
@@ -59,8 +59,8 @@ export const SimpleAudioPlayer: React.FC<SimpleAudioPlayerProps> = ({ uri }) => 
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
     } catch (error) {
-      console.error('Playback error:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
+      if (__DEV__) console.error('Playback error:', error);
+      if (__DEV__) console.error('Error details:', JSON.stringify(error, null, 2));
       setIsPlaying(false);
     }
   };

@@ -139,7 +139,7 @@ export const UnifiedActivityCard: React.FC<UnifiedActivityCardProps> = ({
             playThroughEarpieceAndroid: false
           });
         } catch (error) {
-          console.error('Error setting audio mode:', error);
+          if (__DEV__) console.error('Error setting audio mode:', error);
         }
       }
     };
@@ -185,7 +185,7 @@ export const UnifiedActivityCard: React.FC<UnifiedActivityCardProps> = ({
           }
         } else {
           // Load and play new audio
-          console.log('Loading audio from URI:', post.audioUri);
+          if (__DEV__) console.log('Loading audio from URI:', post.audioUri);
           
           // For iOS, ensure the URI is properly formatted
           let audioUri = post.audioUri;
@@ -226,7 +226,7 @@ export const UnifiedActivityCard: React.FC<UnifiedActivityCardProps> = ({
         }
       }
     } catch (error) {
-      console.error('Error playing audio:', error);
+      if (__DEV__) console.error('Error playing audio:', error);
       // Try alternative URI format for iOS
       if (Platform.OS === 'ios' && post.audioUri) {
         try {
@@ -241,7 +241,7 @@ export const UnifiedActivityCard: React.FC<UnifiedActivityCardProps> = ({
           setSound(newSound);
           setIsPlayingAudio(true);
         } catch (altError) {
-          console.error('Alternative audio playback also failed:', altError);
+          if (__DEV__) console.error('Alternative audio playback also failed:', altError);
         }
       }
     }
@@ -255,7 +255,7 @@ export const UnifiedActivityCard: React.FC<UnifiedActivityCardProps> = ({
     <Pressable
       style={styles.cardWrapper}
       onPress={() => {
-        console.log('🟢 [UnifiedActivityCard] Card clicked anywhere');
+        if (__DEV__) console.log('🟢 [UnifiedActivityCard] Card clicked anywhere');
       }}
     >
       {/* Silver metallic overlay for challenge cards */}
@@ -280,18 +280,18 @@ export const UnifiedActivityCard: React.FC<UnifiedActivityCardProps> = ({
             style={styles.headerLeft}
             onPress={() => {
               const userId = post.userId || post.user_id || post.user;
-              console.log('🔴 [UnifiedActivityCard] Profile click - postData:', {
+              if (__DEV__) console.log('🔴 [UnifiedActivityCard] Profile click - postData:', {
                 userId: post.userId,
                 user_id: post.user_id,
                 user: post.user,
                 actualUserId: userId
               });
-              console.log('🔴 [UnifiedActivityCard] Calling onProfilePress with:', userId);
+              if (__DEV__) console.log('🔴 [UnifiedActivityCard] Calling onProfilePress with:', userId);
               if (onProfilePress) {
-                console.log('🔴 [UnifiedActivityCard] onProfilePress exists, calling it');
+                if (__DEV__) console.log('🔴 [UnifiedActivityCard] onProfilePress exists, calling it');
                 onProfilePress(userId);
               } else {
-                console.log('🔴 [UnifiedActivityCard] onProfilePress is undefined!');
+                if (__DEV__) console.log('🔴 [UnifiedActivityCard] onProfilePress is undefined!');
               }
             }}
           >

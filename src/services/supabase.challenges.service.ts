@@ -33,7 +33,7 @@ class SupabaseChallengeService {
   }
 
   async getGlobalChallenges(): Promise<Challenge[]> {
-    console.log('🌍 [CHALLENGES] Fetching global challenges');
+    if (__DEV__) console.log('🌍 [CHALLENGES] Fetching global challenges');
 
     const { data, error } = await supabase
       .from('challenges')
@@ -43,7 +43,7 @@ class SupabaseChallengeService {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('🔴 [CHALLENGES] Error fetching global challenges:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching global challenges:', error);
       throw error;
     }
 
@@ -57,12 +57,12 @@ class SupabaseChallengeService {
       })
     );
 
-    console.log('🟢 [CHALLENGES] Found global challenges:', challengesWithCounts.length);
+    if (__DEV__) console.log('🟢 [CHALLENGES] Found global challenges:', challengesWithCounts.length);
     return challengesWithCounts;
   }
 
   async getCircleChallenges(circleId: string): Promise<Challenge[]> {
-    console.log('👥 [CHALLENGES] Fetching challenges for circle:', circleId);
+    if (__DEV__) console.log('👥 [CHALLENGES] Fetching challenges for circle:', circleId);
 
     const { data, error } = await supabase
       .from('challenges')
@@ -73,7 +73,7 @@ class SupabaseChallengeService {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('🔴 [CHALLENGES] Error fetching circle challenges:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching circle challenges:', error);
       throw error;
     }
 
@@ -87,16 +87,16 @@ class SupabaseChallengeService {
       })
     );
 
-    console.log('🟢 [CHALLENGES] Found circle challenges:', challengesWithCounts.length);
+    if (__DEV__) console.log('🟢 [CHALLENGES] Found circle challenges:', challengesWithCounts.length);
     return challengesWithCounts;
   }
 
   async getAllUserCircleChallenges(): Promise<Challenge[]> {
-    console.log('👥 [CHALLENGES] Fetching all challenges from user circles');
+    if (__DEV__) console.log('👥 [CHALLENGES] Fetching all challenges from user circles');
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.log('🔴 [CHALLENGES] No user found');
+      if (__DEV__) console.log('🔴 [CHALLENGES] No user found');
       return [];
     }
 
@@ -106,17 +106,17 @@ class SupabaseChallengeService {
       .eq('user_id', user.id);
 
     if (circleError) {
-      console.error('🔴 [CHALLENGES] Error fetching user circles:', circleError);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching user circles:', circleError);
       return [];
     }
 
     if (!circleData || circleData.length === 0) {
-      console.log('🟡 [CHALLENGES] User has no circles');
+      if (__DEV__) console.log('🟡 [CHALLENGES] User has no circles');
       return [];
     }
 
     const circleIds = circleData.map(c => c.circle_id);
-    console.log('🟢 [CHALLENGES] User is in', circleIds.length, 'circles');
+    if (__DEV__) console.log('🟢 [CHALLENGES] User is in', circleIds.length, 'circles');
 
     const { data, error } = await supabase
       .from('challenges')
@@ -127,7 +127,7 @@ class SupabaseChallengeService {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('🔴 [CHALLENGES] Error fetching all circle challenges:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching all circle challenges:', error);
       throw error;
     }
 
@@ -141,12 +141,12 @@ class SupabaseChallengeService {
       })
     );
 
-    console.log('🟢 [CHALLENGES] Found total circle challenges:', challengesWithCounts.length);
+    if (__DEV__) console.log('🟢 [CHALLENGES] Found total circle challenges:', challengesWithCounts.length);
     return challengesWithCounts;
   }
 
   async getChallenge(challengeId: string): Promise<ChallengeWithDetails | null> {
-    console.log('🔍 [CHALLENGES] Fetching challenge:', challengeId);
+    if (__DEV__) console.log('🔍 [CHALLENGES] Fetching challenge:', challengeId);
 
     const { data, error } = await supabase
       .from('challenges')
@@ -155,17 +155,17 @@ class SupabaseChallengeService {
       .single();
 
     if (error) {
-      console.error('🔴 [CHALLENGES] Error fetching challenge:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching challenge:', error);
       return null;
     }
 
-    console.log('🟢 [CHALLENGES] Challenge data loaded:', data?.name);
+    if (__DEV__) console.log('🟢 [CHALLENGES] Challenge data loaded:', data?.name);
 
     const participantCount = await this.getParticipantCount(challengeId);
-    console.log('🟢 [CHALLENGES] Participant count:', participantCount);
+    if (__DEV__) console.log('🟢 [CHALLENGES] Participant count:', participantCount);
 
     const myParticipation = await this.getMyParticipation(challengeId);
-    console.log('🟢 [CHALLENGES] My participation:', myParticipation ? 'Found' : 'Not found', myParticipation);
+    if (__DEV__) console.log('🟢 [CHALLENGES] My participation:', myParticipation ? 'Found' : 'Not found', myParticipation);
 
     return this.enrichChallengeWithActivityIds({
       ...data,
@@ -181,7 +181,7 @@ class SupabaseChallengeService {
       .eq('challenge_id', challengeId);
 
     if (error) {
-      console.error('🔴 [CHALLENGES] Error counting participants:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error counting participants:', error);
       return 0;
     }
 
@@ -200,7 +200,7 @@ class SupabaseChallengeService {
       .single();
 
     if (error && error.code !== 'PGRST116') {
-      console.error('🔴 [CHALLENGES] Error getting participation:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error getting participation:', error);
     }
 
     return data;
@@ -211,7 +211,7 @@ class SupabaseChallengeService {
     selectedActivityIds: string[],
     activityTimes: ActivityTime[]
   ): Promise<{ success: boolean; data?: ChallengeParticipant; error?: string }> {
-    console.log('🏆 [CHALLENGES] Joining challenge:', challengeId);
+    if (__DEV__) console.log('🏆 [CHALLENGES] Joining challenge:', challengeId);
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'Not authenticated' };
@@ -254,11 +254,11 @@ class SupabaseChallengeService {
       .single();
 
     if (error) {
-      console.error('🔴 [CHALLENGES] Error joining challenge:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error joining challenge:', error);
       return { success: false, error: error.message };
     }
 
-    console.log('🟢 [CHALLENGES] Successfully joined challenge with personal start date:', personalStartDate.toISOString());
+    if (__DEV__) console.log('🟢 [CHALLENGES] Successfully joined challenge with personal start date:', personalStartDate.toISOString());
     return { success: true, data };
   }
 
@@ -266,7 +266,7 @@ class SupabaseChallengeService {
     participantId: string,
     keepActivities: boolean
   ): Promise<{ success: boolean; error?: string }> {
-    console.log('🚪 [CHALLENGES] Leaving challenge:', participantId);
+    if (__DEV__) console.log('🚪 [CHALLENGES] Leaving challenge:', participantId);
 
     const { error } = await supabase
       .from('challenge_participants')
@@ -278,11 +278,11 @@ class SupabaseChallengeService {
       .eq('id', participantId);
 
     if (error) {
-      console.error('🔴 [CHALLENGES] Error leaving challenge:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error leaving challenge:', error);
       return { success: false, error: error.message };
     }
 
-    console.log('🟢 [CHALLENGES] Successfully left challenge');
+    if (__DEV__) console.log('🟢 [CHALLENGES] Successfully left challenge');
     return { success: true };
   }
 
@@ -292,7 +292,7 @@ class SupabaseChallengeService {
     linkedActionId?: string,
     photoUrl?: string
   ): Promise<{ success: boolean; error?: string }> {
-    console.log('✅ [CHALLENGES] Recording completion:', {
+    if (__DEV__) console.log('✅ [CHALLENGES] Recording completion:', {
       participantId,
       activityId,
       linkedActionId,
@@ -308,7 +308,7 @@ class SupabaseChallengeService {
       .single();
 
     if (participantError || !participant) {
-      console.error('🔴 [CHALLENGES] Error fetching participant:', participantError);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching participant:', participantError);
       return { success: false, error: 'Participant not found' };
     }
 
@@ -323,7 +323,7 @@ class SupabaseChallengeService {
       .maybeSingle();
 
     if (existing) {
-      console.log('⚠️ [CHALLENGES] Activity already completed today');
+      if (__DEV__) console.log('⚠️ [CHALLENGES] Activity already completed today');
       return { success: false, error: 'Already completed today' };
     }
 
@@ -349,18 +349,18 @@ class SupabaseChallengeService {
       .insert(completionData);
 
     if (error) {
-      console.error('🔴 [CHALLENGES] Error recording completion:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error recording completion:', error);
       return { success: false, error: error.message };
     }
 
     await this.updateParticipantProgress(participant.challenge_id, participant.user_id);
 
-    console.log('🟢 [CHALLENGES] Completion recorded successfully');
+    if (__DEV__) console.log('🟢 [CHALLENGES] Completion recorded successfully');
     return { success: true };
   }
 
   async updateParticipantProgress(challengeId: string, userId: string): Promise<void> {
-    console.log('📊 [CHALLENGES] Updating participant progress');
+    if (__DEV__) console.log('📊 [CHALLENGES] Updating participant progress');
 
     const { data: participant } = await supabase
       .from('challenge_participants')
@@ -430,7 +430,7 @@ class SupabaseChallengeService {
 
     await this.recalculateLeaderboardRanks(challengeId);
 
-    console.log('🟢 [CHALLENGES] Progress updated:', { completionPercentage, status, badgeEarned });
+    if (__DEV__) console.log('🟢 [CHALLENGES] Progress updated:', { completionPercentage, status, badgeEarned });
   }
 
   async awardBadge(
@@ -438,7 +438,7 @@ class SupabaseChallengeService {
     challengeId: string,
     badgeType: 'gold' | 'silver' | 'bronze'
   ): Promise<void> {
-    console.log('🏆 [CHALLENGES] Awarding badge:', badgeType);
+    if (__DEV__) console.log('🏆 [CHALLENGES] Awarding badge:', badgeType);
 
     const { data: challenge } = await supabase
       .from('challenges')
@@ -468,7 +468,7 @@ class SupabaseChallengeService {
     });
 
     if (error && !error.message.includes('duplicate')) {
-      console.error('🔴 [CHALLENGES] Error awarding badge:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error awarding badge:', error);
     }
   }
 
@@ -480,7 +480,7 @@ class SupabaseChallengeService {
       limit?: number;
     }
   ): Promise<LeaderboardEntry[]> {
-    console.log('🏆 [CHALLENGES] Fetching leaderboard for:', challengeId, options);
+    if (__DEV__) console.log('🏆 [CHALLENGES] Fetching leaderboard for:', challengeId, options);
 
     const { filter = 'all', sort = 'rank', limit = 100 } = options || {};
 
@@ -554,7 +554,7 @@ class SupabaseChallengeService {
     const { data, error } = await query;
 
     if (error) {
-      console.error('🔴 [CHALLENGES] Error fetching leaderboard:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching leaderboard:', error);
       throw error;
     }
 
@@ -575,7 +575,7 @@ class SupabaseChallengeService {
   }
 
   async recalculateLeaderboardRanks(challengeId: string): Promise<void> {
-    console.log('📊 [CHALLENGES] Recalculating leaderboard ranks for:', challengeId);
+    if (__DEV__) console.log('📊 [CHALLENGES] Recalculating leaderboard ranks for:', challengeId);
 
     const { data: participants, error } = await supabase
       .from('challenge_participants')
@@ -584,7 +584,7 @@ class SupabaseChallengeService {
       .neq('status', 'left');
 
     if (error || !participants || participants.length === 0) {
-      console.log('❌ [CHALLENGES] No participants to rank');
+      if (__DEV__) console.log('❌ [CHALLENGES] No participants to rank');
       return;
     }
 
@@ -627,11 +627,11 @@ class SupabaseChallengeService {
         .eq('id', ranked[i].id);
     }
 
-    console.log('🟢 [CHALLENGES] Ranks updated for', ranked.length, 'participants');
+    if (__DEV__) console.log('🟢 [CHALLENGES] Ranks updated for', ranked.length, 'participants');
   }
 
   async getMyActiveChallenges(): Promise<ChallengeWithDetails[]> {
-    console.log('📋 [CHALLENGES] Fetching my active challenges');
+    if (__DEV__) console.log('📋 [CHALLENGES] Fetching my active challenges');
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
@@ -646,7 +646,7 @@ class SupabaseChallengeService {
       .eq('status', 'active');
 
     if (error) {
-      console.error('🔴 [CHALLENGES] Error fetching active challenges:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching active challenges:', error);
       return [];
     }
 
@@ -665,7 +665,7 @@ class SupabaseChallengeService {
   }
 
   async getMyCompletedChallenges(): Promise<ChallengeWithDetails[]> {
-    console.log('✅ [CHALLENGES] Fetching my completed challenges');
+    if (__DEV__) console.log('✅ [CHALLENGES] Fetching my completed challenges');
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
@@ -680,7 +680,7 @@ class SupabaseChallengeService {
       .eq('status', 'completed');
 
     if (error) {
-      console.error('🔴 [CHALLENGES] Error fetching completed challenges:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching completed challenges:', error);
       return [];
     }
 
@@ -699,7 +699,7 @@ class SupabaseChallengeService {
   }
 
   async getMyBadges(): Promise<UserBadge[]> {
-    console.log('🏆 [CHALLENGES] Fetching my badges');
+    if (__DEV__) console.log('🏆 [CHALLENGES] Fetching my badges');
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
@@ -711,7 +711,7 @@ class SupabaseChallengeService {
       .order('earned_at', { ascending: false });
 
     if (error) {
-      console.error('🔴 [CHALLENGES] Error fetching badges:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching badges:', error);
       return [];
     }
 
@@ -719,7 +719,7 @@ class SupabaseChallengeService {
   }
 
   async getForumThreads(challengeId: string): Promise<ChallengeForumThread[]> {
-    console.log('💬 [CHALLENGES] Fetching forum threads for:', challengeId);
+    if (__DEV__) console.log('💬 [CHALLENGES] Fetching forum threads for:', challengeId);
 
     const { data, error } = await supabase
       .from('challenge_forum_threads')
@@ -729,7 +729,7 @@ class SupabaseChallengeService {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('🔴 [CHALLENGES] Error fetching forum threads:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching forum threads:', error);
       throw error;
     }
 
@@ -742,7 +742,7 @@ class SupabaseChallengeService {
     content: string,
     category?: string
   ): Promise<{ success: boolean; data?: ChallengeForumThread; error?: string }> {
-    console.log('💬 [CHALLENGES] Creating forum thread');
+    if (__DEV__) console.log('💬 [CHALLENGES] Creating forum thread');
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'Not authenticated' };
@@ -760,7 +760,7 @@ class SupabaseChallengeService {
       .single();
 
     if (error) {
-      console.error('🔴 [CHALLENGES] Error creating forum thread:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error creating forum thread:', error);
       return { success: false, error: error.message };
     }
 
@@ -768,7 +768,7 @@ class SupabaseChallengeService {
   }
 
   async getForumReplies(threadId: string): Promise<ChallengeForumReply[]> {
-    console.log('💬 [CHALLENGES] Fetching forum replies for:', threadId);
+    if (__DEV__) console.log('💬 [CHALLENGES] Fetching forum replies for:', threadId);
 
     const { data, error } = await supabase
       .from('challenge_forum_replies')
@@ -777,7 +777,7 @@ class SupabaseChallengeService {
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('🔴 [CHALLENGES] Error fetching forum replies:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching forum replies:', error);
       throw error;
     }
 
@@ -789,7 +789,7 @@ class SupabaseChallengeService {
     content: string,
     parentReplyId?: string
   ): Promise<{ success: boolean; data?: ChallengeForumReply; error?: string }> {
-    console.log('💬 [CHALLENGES] Creating forum reply');
+    if (__DEV__) console.log('💬 [CHALLENGES] Creating forum reply');
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'Not authenticated' };
@@ -806,7 +806,7 @@ class SupabaseChallengeService {
       .single();
 
     if (error) {
-      console.error('🔴 [CHALLENGES] Error creating forum reply:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error creating forum reply:', error);
       return { success: false, error: error.message };
     }
 
@@ -814,11 +814,11 @@ class SupabaseChallengeService {
   }
 
   async getUserChallengeActivities(): Promise<any[]> {
-    console.log('🏆 [CHALLENGES] Fetching user challenge activities for Daily page');
+    if (__DEV__) console.log('🏆 [CHALLENGES] Fetching user challenge activities for Daily page');
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.log('❌ [CHALLENGES] No user found');
+      if (__DEV__) console.log('❌ [CHALLENGES] No user found');
       return [];
     }
 
@@ -842,12 +842,12 @@ class SupabaseChallengeService {
       .eq('challenges.status', 'active');
 
     if (error) {
-      console.error('🔴 [CHALLENGES] Error fetching participations:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching participations:', error);
       return [];
     }
 
     if (!participations || participations.length === 0) {
-      console.log('📊 [CHALLENGES] No active challenge participations');
+      if (__DEV__) console.log('📊 [CHALLENGES] No active challenge participations');
       return [];
     }
 
@@ -887,7 +887,7 @@ class SupabaseChallengeService {
         }
       } else {
         // Fallback: include all activities from the challenge (for legacy participations)
-        console.log('🟡 [CHALLENGES] Using fallback: including all activities for participation', participation.id);
+        if (__DEV__) console.log('🟡 [CHALLENGES] Using fallback: including all activities for participation', participation.id);
         for (const activity of predeterminedActivities) {
           if (linkedIds.includes(activity.id)) continue;
 
@@ -908,12 +908,12 @@ class SupabaseChallengeService {
       }
     }
 
-    console.log('🟢 [CHALLENGES] Found', activities.length, 'unlinked activities');
+    if (__DEV__) console.log('🟢 [CHALLENGES] Found', activities.length, 'unlinked activities');
     return activities;
   }
 
   async getLinkedChallengeActivities(): Promise<any[]> {
-    console.log('🔗 [CHALLENGES] Fetching linked challenge activities');
+    if (__DEV__) console.log('🔗 [CHALLENGES] Fetching linked challenge activities');
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
@@ -956,7 +956,7 @@ class SupabaseChallengeService {
   }
 
   async getTodayUserCompletions(): Promise<any[]> {
-    console.log('✅ [CHALLENGES] Fetching today\'s completions');
+    if (__DEV__) console.log('✅ [CHALLENGES] Fetching today\'s completions');
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
@@ -971,7 +971,7 @@ class SupabaseChallengeService {
       .lt('completed_at', `${today}T23:59:59`);
 
     if (error) {
-      console.error('🔴 [CHALLENGES] Error fetching completions:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching completions:', error);
       return [];
     }
 
@@ -979,7 +979,7 @@ class SupabaseChallengeService {
   }
 
   async getUserParticipations(): Promise<any[]> {
-    console.log('📋 [CHALLENGES] Fetching user participations');
+    if (__DEV__) console.log('📋 [CHALLENGES] Fetching user participations');
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
@@ -999,7 +999,7 @@ class SupabaseChallengeService {
       .eq('status', 'active');
 
     if (error) {
-      console.error('🔴 [CHALLENGES] Error fetching participations:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching participations:', error);
       return [];
     }
 
@@ -1011,7 +1011,7 @@ class SupabaseChallengeService {
     activityId: string,
     linkedActionId?: string
   ): Promise<{ success: boolean; error?: string }> {
-    console.log('🏆 [CHALLENGES] Recording challenge activity completion:', {
+    if (__DEV__) console.log('🏆 [CHALLENGES] Recording challenge activity completion:', {
       participantId,
       activityId,
       linkedActionId,
@@ -1024,7 +1024,7 @@ class SupabaseChallengeService {
       .single();
 
     if (participantError || !participant) {
-      console.error('🔴 [CHALLENGES] Error fetching participant:', participantError);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error fetching participant:', participantError);
       return { success: false, error: 'Participant not found' };
     }
 
@@ -1039,7 +1039,7 @@ class SupabaseChallengeService {
       .maybeSingle();
 
     if (existing) {
-      console.log('⚠️ [CHALLENGES] Activity already completed today');
+      if (__DEV__) console.log('⚠️ [CHALLENGES] Activity already completed today');
       return { success: false, error: 'Already completed today' };
     }
 
@@ -1061,13 +1061,13 @@ class SupabaseChallengeService {
       .insert(completionData);
 
     if (insertError) {
-      console.error('🔴 [CHALLENGES] Error recording completion:', insertError);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error recording completion:', insertError);
       return { success: false, error: insertError.message };
     }
 
     await this.updateParticipantProgress(participant.challenge_id, participant.user_id);
 
-    console.log('🟢 [CHALLENGES] Activity completed successfully');
+    if (__DEV__) console.log('🟢 [CHALLENGES] Activity completed successfully');
     return { success: true };
   }
 
@@ -1081,7 +1081,7 @@ class SupabaseChallengeService {
     activities: PredeterminedActivity[];
   }): Promise<{ success: boolean; challengeId?: string; error?: string }> {
     try {
-      console.log('🎯 [CHALLENGES] Creating new circle challenge:', params.name);
+      if (__DEV__) console.log('🎯 [CHALLENGES] Creating new circle challenge:', params.name);
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -1107,14 +1107,14 @@ class SupabaseChallengeService {
         .single();
 
       if (error) {
-        console.error('🔴 [CHALLENGES] Error creating challenge:', error);
+        if (__DEV__) console.error('🔴 [CHALLENGES] Error creating challenge:', error);
         return { success: false, error: error.message };
       }
 
-      console.log('✅ [CHALLENGES] Challenge created successfully:', challenge.id);
+      if (__DEV__) console.log('✅ [CHALLENGES] Challenge created successfully:', challenge.id);
       return { success: true, challengeId: challenge.id };
     } catch (error: any) {
-      console.error('🔴 [CHALLENGES] Exception creating challenge:', error);
+      if (__DEV__) console.error('🔴 [CHALLENGES] Exception creating challenge:', error);
       return { success: false, error: error.message || 'Unknown error' };
     }
   }

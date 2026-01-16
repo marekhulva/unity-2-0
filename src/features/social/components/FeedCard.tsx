@@ -162,7 +162,7 @@ export const FeedCard: React.FC<FeedCardProps> = ({
               )}
               {(() => {
                 // Debug: Check what avatar data we have
-                console.log(`FeedCard - Post by ${post.user}, avatar:`, post.avatar?.substring(0, 50));
+                if (__DEV__) console.log(`FeedCard - Post by ${post.user}, avatar:`, post.avatar?.substring(0, 50));
                 const isImageAvatar = post.avatar && (
                   post.avatar.startsWith('data:') || 
                   post.avatar.startsWith('http') || 
