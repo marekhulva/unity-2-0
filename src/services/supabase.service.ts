@@ -702,6 +702,119 @@ class SupabaseService {
     return percentage;
   }
 
+  async getWeeklyCompletionStats(userId: string): Promise<number> {
+    if (__DEV__) console.log('📅 [SUPABASE] Calculating weekly completion stats');
+
+    try {
+      // Get all user actions
+      const { data: actions, error: actionsError } = await supabase
+        .from('actions')
+        .select('id, created_at, frequency, scheduled_days')
+        .eq('user_id', userId);
+
+      if (actionsError || !actions || actions.length === 0) {
+        if (__DEV__) console.log('No actions found for user or error:', actionsError);
+        return 0;
+      }
+
+      // Get start of current week (Monday at 00:00:00)
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const dayOfWeek = now.getDay();
+      const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust for Monday start
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - diff);
+      weekStart.setHours(0, 0, 0, 0);
+
+      const weekEnd = new Date();
+      weekEnd.setHours(23, 59, 59, 999);
+
+      if (__DEV__) console.log(`📅 Week range: ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
+
+      // Calculate expected completions for THIS WEEK
+      let totalExpected = 0;
+
+      for (const action of actions) {
+        const actionCreatedAt = new Date(action.created_at);
+        actionCreatedAt.setHours(0, 0, 0, 0);
+
+        // If action was created after week started, use action start date
+        const effectiveStart = actionCreatedAt > weekStart ? actionCreatedAt : weekStart;
+
+        // If action was created after this week, skip it
+        if (actionCreatedAt > weekEnd) {
+          continue;
+        }
+
+        const daysInWeek = Math.floor((weekEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        const frequency = action.frequency || 'daily';
+        const scheduledDays = action.scheduled_days;
+
+        let expectedForAction = 0;
+
+        switch (frequency) {
+          case 'daily':
+            expectedForAction = daysInWeek;
+            break;
+          case 'weekly':
+            expectedForAction = daysInWeek >= 7 ? 1 : 0;
+            break;
+          case 'weekdays':
+            expectedForAction = this.countWeekdaysInRange(effectiveStart, weekEnd);
+            break;
+          case 'weekends':
+            expectedForAction = this.countWeekendsInRange(effectiveStart, weekEnd);
+            break;
+          case 'every_other_day':
+            expectedForAction = Math.ceil(daysInWeek / 2);
+            break;
+          case 'three_per_week':
+            expectedForAction = Math.min(3, daysInWeek); // Up to 3 per week
+            break;
+          case 'custom':
+            if (scheduledDays && Array.isArray(scheduledDays)) {
+              expectedForAction = this.countScheduledDaysInRange(effectiveStart, weekEnd, scheduledDays);
+            } else {
+              expectedForAction = daysInWeek;
+            }
+            break;
+          default:
+            expectedForAction = daysInWeek;
+        }
+
+        totalExpected += expectedForAction;
+      }
+
+      if (totalExpected === 0) {
+        return 0;
+      }
+
+      // Get actual completions from THIS WEEK
+      const actionIds = actions.map(a => a.id);
+
+      const { count: totalCompleted, error: completionError } = await supabase
+        .from('action_completions')
+        .select('*', { count: 'exact', head: true })
+        .in('action_id', actionIds)
+        .gte('completed_at', weekStart.toISOString())
+        .lte('completed_at', weekEnd.toISOString());
+
+      if (completionError) {
+        if (__DEV__) console.error('Error fetching weekly completions:', completionError);
+        return 0;
+      }
+
+      const percentage = Math.round(((totalCompleted || 0) / totalExpected) * 100);
+
+      if (__DEV__) console.log(`📅 Weekly progress: ${totalCompleted || 0}/${totalExpected} = ${percentage}%`);
+
+      return percentage;
+    } catch (error) {
+      if (__DEV__) console.error('Error calculating weekly stats:', error);
+      return 0;
+    }
+  }
+
   async getBulkOverallCompletionStats(userIds: string[]) {
     if (__DEV__) console.log(`📊 [SUPABASE] Fetching bulk completion stats for ${userIds.length} users`);
 

@@ -11,6 +11,7 @@ import { LuxuryTheme } from '../../design/luxuryTheme';
 import { Target, Dumbbell, Brain, BookOpen } from 'lucide-react-native';
 import { HapticManager } from '../../utils/haptics';
 import ChallengeDebugV2 from '../../utils/challengeDebugV2';
+import { supabaseService } from '../../services/supabase.service';
 
 const getCategoryIcon = (title: string, goalTitle?: string) => {
   const text = `${title} ${goalTitle}`.toLowerCase();
@@ -47,9 +48,11 @@ export const DailyScreenOption2 = () => {
   const addCompletedAction = useStore(s => s.addCompletedAction);
   const addPost = useStore(s => s.addPost);
   const recordCompletion = useStore(s => s.recordCompletion);
+  const currentUser = useStore(s => s.user);
   const [showSharePrompt, setShowSharePrompt] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [selectedAction, setSelectedAction] = useState<any>(null);
+  const [weeklyProgress, setWeeklyProgress] = useState<number>(0);
 
   const completed = actions.filter(a => a.done).length;
   const progress = actions.length ? Math.round((completed / actions.length) * 100) : 0;
@@ -64,7 +67,16 @@ export const DailyScreenOption2 = () => {
   useEffect(() => {
     if (__DEV__) console.log('🟦 [DAILY-OPTION2] DailyScreenOption2 mounted');
     fetchDailyActions();
-  }, []);
+
+    // Fetch weekly progress
+    const loadWeeklyProgress = async () => {
+      if (currentUser?.id) {
+        const progress = await supabaseService.getWeeklyCompletionStats(currentUser.id);
+        setWeeklyProgress(progress);
+      }
+    };
+    loadWeeklyProgress();
+  }, [currentUser?.id]);
 
   const sortedActions = useMemo(() => {
     return [...actions].sort((a, b) => {
@@ -95,7 +107,7 @@ export const DailyScreenOption2 = () => {
   };
 
   const getWeekProgress = () => {
-    return 75;
+    return weeklyProgress;
   };
 
   const handleTaskToggle = (action: any) => {
