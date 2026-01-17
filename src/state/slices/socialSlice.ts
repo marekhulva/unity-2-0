@@ -622,7 +622,16 @@ export const createSocialSlice: StateCreator<
     // Toggle reaction - if user already reacted, remove it, otherwise add it
     const currentFeed = which === 'circle' ? 'circleFeed' : 'followFeed';
     const currentPost = get()[currentFeed].find(p => p.id === id) || get().unifiedFeed.find(p => p.id === id);
-    const hasReacted = currentPost?.userReacted || false;
+
+    // Early return if post not found
+    if (!currentPost) {
+      if (__DEV__) {
+        console.warn('Cannot react to post not in feed:', id);
+      }
+      return;
+    }
+
+    const hasReacted = currentPost.userReacted || false;
 
     // Helper to update a post in any feed
     const updatePost = (posts: Post[], add: boolean) =>
