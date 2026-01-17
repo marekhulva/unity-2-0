@@ -161,9 +161,18 @@ export const ProfileScreen: React.FC = () => {
     fetchData();
   }, [currentUser?.id]);
 
-  // Separate goals by type
-  const regularGoals = goals.filter(g => g.type === 'goal');
-  const routines = goals.filter(g => g.type === 'routine');
+  // Separate goals by type and add subtitles
+  const regularGoals = goals.filter(g => g.type === 'goal').map(goal => ({
+    ...goal,
+    subtitle: goal.metric || goal.deadline ?
+      `${goal.metric || 'Goal'}${goal.deadline ? ` • ${new Date(goal.deadline).toLocaleDateString()}` : ''}` :
+      'In progress'
+  }));
+
+  const routines = goals.filter(g => g.type === 'routine').map(routine => ({
+    ...routine,
+    subtitle: 'Daily routine'
+  }));
 
   // Transform challenges to match ActivityCard interface
   const transformedChallenges = challenges.map(challenge => ({

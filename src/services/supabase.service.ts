@@ -141,15 +141,31 @@ class SupabaseService {
       }
       
       if (__DEV__) console.log('🟢 [SUPABASE] Retrieved', data?.length || 0, 'goals from database');
-      
-      // Add calculated fields for frontend display
-      const goalsWithCalculatedFields = (data || []).map(goal => ({
-        ...goal,
-        consistency: 0, // This should be calculated based on actions completed
-        status: 'On Track' as const // Default status, should be calculated based on consistency
-      }));
-      
-      return goalsWithCalculatedFields;
+
+      // Calculate consistency for each goal
+      const goalsWithConsistency = await Promise.all(
+        (data || []).map(async (goal) => {
+          const consistency = await this.getGoalConsistency(goal.id, user.id);
+
+          // Determine status based on consistency
+          let status: 'On Track' | 'Needs Attention' | 'Critical';
+          if (consistency >= 70) {
+            status = 'On Track';
+          } else if (consistency >= 40) {
+            status = 'Needs Attention';
+          } else {
+            status = 'Critical';
+          }
+
+          return {
+            ...goal,
+            consistency,
+            status
+          };
+        })
+      );
+
+      return goalsWithConsistency;
     } catch (error) {
       if (__DEV__) console.error('🔴 [SUPABASE] getGoals exception:', error);
       return [];  // Return empty array on error
@@ -166,12 +182,34 @@ class SupabaseService {
       .single();
 
     if (error) throw error;
-    
-    // Add calculated fields for frontend display
+
+    // Get current user to calculate consistency
+    const { user } = await this.verifySession();
+    if (!user) {
+      return {
+        ...data,
+        consistency: 0,
+        status: 'On Track' as const
+      };
+    }
+
+    // Calculate consistency for updated goal
+    const consistency = await this.getGoalConsistency(id, user.id);
+
+    // Determine status based on consistency
+    let status: 'On Track' | 'Needs Attention' | 'Critical';
+    if (consistency >= 70) {
+      status = 'On Track';
+    } else if (consistency >= 40) {
+      status = 'Needs Attention';
+    } else {
+      status = 'Critical';
+    }
+
     return {
       ...data,
-      consistency: 0,
-      status: 'On Track' as const
+      consistency,
+      status
     };
   }
 
@@ -574,6 +612,94 @@ class SupabaseService {
     }
 
     return count;
+  }
+
+  async getGoalConsistency(goalId: string, userId: string) {
+    if (__DEV__) console.log('📊 [SUPABASE] Calculating consistency for goal:', goalId);
+
+    // Get all actions linked to this goal
+    const { data: actions, error: actionsError } = await supabase
+      .from('actions')
+      .select('id, created_at, title, frequency, scheduled_days')
+      .eq('user_id', userId)
+      .eq('goal_id', goalId);
+
+    if (actionsError || !actions || actions.length === 0) {
+      if (__DEV__) console.log('No actions found for goal or error:', actionsError);
+      return 0;
+    }
+
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
+    // Calculate total expected based on each action's frequency
+    let totalExpected = 0;
+
+    for (const action of actions) {
+      const actionCreatedAt = new Date(action.created_at);
+      actionCreatedAt.setHours(0, 0, 0, 0);
+      const daysForThisAction = Math.floor((today.getTime() - actionCreatedAt.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+      const frequency = action.frequency || 'daily';
+      const scheduledDays = action.scheduled_days;
+
+      let expectedForAction = 0;
+
+      switch (frequency) {
+        case 'daily':
+          expectedForAction = daysForThisAction;
+          break;
+        case 'weekly':
+          expectedForAction = Math.floor(daysForThisAction / 7);
+          break;
+        case 'weekdays':
+          expectedForAction = this.countWeekdaysInRange(actionCreatedAt, today);
+          break;
+        case 'weekends':
+          expectedForAction = this.countWeekendsInRange(actionCreatedAt, today);
+          break;
+        case 'every_other_day':
+          expectedForAction = Math.floor(daysForThisAction / 2);
+          break;
+        case 'three_per_week':
+          expectedForAction = Math.floor((daysForThisAction / 7) * 3);
+          break;
+        case 'custom':
+          if (scheduledDays && Array.isArray(scheduledDays)) {
+            expectedForAction = this.countScheduledDaysInRange(actionCreatedAt, today, scheduledDays);
+          } else {
+            expectedForAction = daysForThisAction;
+          }
+          break;
+        default:
+          expectedForAction = daysForThisAction;
+      }
+
+      totalExpected += expectedForAction;
+    }
+
+    if (totalExpected === 0) {
+      return 0;
+    }
+
+    // Get actual completions from action_completions table
+    const actionIds = actions.map(a => a.id);
+
+    const { count: totalCompleted, error: completionError } = await supabase
+      .from('action_completions')
+      .select('*', { count: 'exact', head: true })
+      .in('action_id', actionIds);
+
+    if (completionError) {
+      if (__DEV__) console.error('Error fetching completions for goal:', completionError);
+      return 0;
+    }
+
+    const percentage = Math.round(((totalCompleted || 0) / totalExpected) * 100);
+
+    if (__DEV__) console.log(`📊 Goal consistency: ${totalCompleted || 0}/${totalExpected} = ${percentage}%`);
+
+    return percentage;
   }
 
   async getBulkOverallCompletionStats(userIds: string[]) {
@@ -2025,12 +2151,34 @@ class SupabaseService {
       .single();
 
     if (error) throw error;
-    
-    // Add calculated fields for frontend display
+
+    // Get current user to calculate consistency
+    const { user } = await this.verifySession();
+    if (!user) {
+      return {
+        ...data,
+        consistency: 0,
+        status: 'On Track' as const
+      };
+    }
+
+    // Calculate consistency for updated goal
+    const consistency = await this.getGoalConsistency(id, user.id);
+
+    // Determine status based on consistency
+    let status: 'On Track' | 'Needs Attention' | 'Critical';
+    if (consistency >= 70) {
+      status = 'On Track';
+    } else if (consistency >= 40) {
+      status = 'Needs Attention';
+    } else {
+      status = 'Critical';
+    }
+
     return {
       ...data,
-      consistency: 0,
-      status: 'On Track' as const
+      consistency,
+      status
     };
   }
 
