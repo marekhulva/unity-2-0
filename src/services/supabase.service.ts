@@ -2076,37 +2076,6 @@ class SupabaseService {
       .subscribe();
   }
 
-  // Goal methods
-  async getGoals() {
-    if (__DEV__) console.log('🔵 [SUPABASE] Fetching goals for user:', (await this.verifySession()).user?.id);
-    const { user } = await this.verifySession();
-    if (!user) {
-      if (__DEV__) console.error('🔴 [SUPABASE] Not authenticated - cannot fetch goals!');
-      return [];
-    }
-
-    const { data, error } = await supabase
-      .from('goals')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      if (__DEV__) console.error('🔴 [SUPABASE] Error fetching goals:', error);
-      return [];
-    }
-
-    if (__DEV__) console.log('🟢 [SUPABASE] Retrieved', data?.length || 0, 'goals from database');
-    
-    // Add calculated fields for frontend display
-    const goalsWithCalculatedFields = (data || []).map(goal => ({
-      ...goal,
-      consistency: 0, // This should be calculated based on actions completed
-      status: 'On Track' as const // Default status, should be calculated based on consistency
-    }));
-    
-    return goalsWithCalculatedFields;
-  }
 
   async createGoal(goal: {
     title: string;
