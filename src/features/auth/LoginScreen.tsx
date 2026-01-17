@@ -128,11 +128,13 @@ export function LoginScreen({ navigation }: any) {
         </TouchableOpacity>
 
         {/* Test Account Info */}
-        <View style={styles.testInfo}>
-          <Text style={styles.testText}>Test Account:</Text>
-          <Text style={styles.testCredentials}>Email: first@user.com</Text>
-          <Text style={styles.testCredentials}>Password: test123</Text>
-        </View>
+        {__DEV__ && (
+          <View style={styles.testInfo}>
+            <Text style={styles.testText}>Test Account:</Text>
+            <Text style={styles.testCredentials}>Email: first@user.com</Text>
+            <Text style={styles.testCredentials}>Password: test123</Text>
+          </View>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
