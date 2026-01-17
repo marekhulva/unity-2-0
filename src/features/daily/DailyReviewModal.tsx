@@ -248,7 +248,7 @@ export const DailyReviewModal: React.FC = () => {
       animationType="slide"
       statusBarTranslucent
       onRequestClose={close}
-      if (__DEV__) onShow={() => console.log('🔴 [DAILY REVIEW MODAL] Modal onShow fired')}
+      onShow={() => { if (__DEV__) console.log('🔴 [DAILY REVIEW MODAL] Modal onShow fired'); }}
     >
       <View style={styles.modalOverlay}>
         <Animated.View style={[styles.modalContainer, modalAnimatedStyle]}>
