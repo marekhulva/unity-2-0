@@ -76,7 +76,11 @@ function MainTabs() {
         ]);
 
         // Load feeds in background (non-blocking)
-        if (__DEV__) fetchFeeds().catch(err => console.error('Feed load error:', err));
+        fetchFeeds().catch(err => {
+          if (__DEV__) {
+            console.error('Feed load error:', err);
+          }
+        });
       }
 
       console.timeEnd('⚡ Data loaded in');
