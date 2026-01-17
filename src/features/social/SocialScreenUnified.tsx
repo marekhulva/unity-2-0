@@ -320,12 +320,6 @@ export const SocialScreenUnified = () => {
             >
               <UserPlus size={20} color="#FFD700" />
             </Pressable>
-            <Pressable
-              style={styles.headerButton}
-              onPress={() => setShowMembersModal(true)}
-            >
-              <Users size={20} color="#FFD700" />
-            </Pressable>
           </View>
         </View>
 
