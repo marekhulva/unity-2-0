@@ -19,7 +19,7 @@ import * as Haptics from 'expo-haptics';
 import { useStore } from '../../state/rootStore';
 import { supabaseService } from '../../services/supabase.service';
 import { backendService } from '../../services/backend.service';
-import { ProfileScreen } from '../profile/ProfileScreen';
+import { ProfileScreen } from '../profile/ProfileScreenVision';
 import { CircleSelector } from '../circles/components/CircleSelector';
 import { JoinCircleModal } from '../social/JoinCircleModal';
 import { ChallengeDetailModal } from '../challenges/ChallengeDetailModal';

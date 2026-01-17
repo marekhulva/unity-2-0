@@ -37,7 +37,7 @@ import { CircleMembersModal } from './CircleMembersModal';
 import { JoinCircleModal } from './JoinCircleModal';
 import { DiscoverUsersModal } from './DiscoverUsersModal';
 import { UnifiedPostCard } from './UnifiedPostCard';
-import { ProfileScreen } from '../profile/ProfileScreen';
+import { ProfileScreen } from '../profile/ProfileScreenVision';
 import { CircleSelector, FEED_ALL, FEED_FOLLOWING } from '../circles/components/CircleSelector';
 import { ChallengeCard } from '../challenges/ChallengeCard';
 import { JoinChallengeModal } from '../challenges/JoinChallengeModal';
