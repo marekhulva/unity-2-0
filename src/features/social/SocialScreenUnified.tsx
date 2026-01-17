@@ -252,29 +252,9 @@ export const SocialScreenUnified = () => {
           )}
         </View>
 
-        {/* Active Challenges - only show when viewing a specific circle */}
-        {feedType && feedType !== FEED_ALL && feedType !== FEED_FOLLOWING && circleChallenges && circleChallenges.length > 0 && (
-          <View style={styles.challengesSection}>
-            <Text style={styles.sectionTitle}>Active Challenges</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {circleChallenges.slice(0, 3).map((challenge: any) => (
-                <Pressable
-                  key={challenge.id}
-                  style={styles.challengeChip}
-                  onPress={() => {
-                    setSelectedChallenge(challenge);
-                    setShowJoinChallengeModal(true);
-                  }}
-                >
-                  <Text style={styles.challengeChipText}>🏆 {challenge.name}</Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          </View>
-        )}
       </>
     );
-  }, [userCircles, feedType, user, postText, composerExpanded, postPhoto, isPosting, circleChallenges]);
+  }, [userCircles, feedType, user, postText, composerExpanded, postPhoto, isPosting]);
 
   // Render list footer with loading states
   const renderListFooter = useCallback(() => {
@@ -533,36 +513,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
     borderRadius: 12,
     padding: 4,
-  },
-  challengesSection: {
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: 8,
-  },
-  challengeChip: {
-    backgroundColor: 'transparent',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  challengeChipText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 13,
-    fontWeight: '500',
   },
   feedContainer: {
     gap: 16,
