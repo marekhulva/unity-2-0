@@ -26,6 +26,7 @@ best-backend/uploads/
 .DS_Store
 
 # local env files
+.env
 .env*.local
 
 # Testing
