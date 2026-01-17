@@ -73,7 +73,12 @@ export const ShareComposer: React.FC = () => {
       await rec.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
       await rec.startAsync();
       setRecording(rec);
-    if (__DEV__) } catch (e) { console.warn(e); }
+    } catch (e) {
+      if (__DEV__) {
+        console.warn('Audio recording error:', e);
+      }
+      Alert.alert('Recording Failed', 'Unable to record audio. Please try again.');
+    }
     setBusy(false);
   };
   const stopRecording = async () => {
@@ -105,7 +110,12 @@ export const ShareComposer: React.FC = () => {
       } else {
         setAudioUri(uri);
       }
-    if (__DEV__) } catch(e) { console.warn(e); }
+    } catch (e) {
+      if (__DEV__) {
+        console.warn('Audio stop error:', e);
+      }
+      Alert.alert('Stop Recording Failed', 'Unable to stop recording. Please try again.');
+    }
     setRecording(null);
     setBusy(false);
   };
