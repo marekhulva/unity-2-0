@@ -32,12 +32,19 @@ class SupabaseService {
       // CRITICAL: Also check what the app thinks the user is
       const storedUser = await AsyncStorage.getItem('user');
       if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        if (__DEV__) console.log('  - App cached user ID:', parsedUser.id);
-        if (user && parsedUser.id !== user.id) {
-          if (__DEV__) console.error('🔴 [AUTH] USER ID MISMATCH!');
-          if (__DEV__) console.error('  - Supabase user:', user.id);
-          if (__DEV__) console.error('  - Cached user:', parsedUser.id);
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          if (__DEV__) console.log('  - App cached user ID:', parsedUser.id);
+          if (user && parsedUser.id !== user.id) {
+            if (__DEV__) console.error('🔴 [AUTH] USER ID MISMATCH!');
+            if (__DEV__) console.error('  - Supabase user:', user.id);
+            if (__DEV__) console.error('  - Cached user:', parsedUser.id);
+          }
+        } catch (error) {
+          if (__DEV__) {
+            console.error('Failed to parse stored user:', error);
+          }
+          await AsyncStorage.removeItem('user');
         }
       }
       
