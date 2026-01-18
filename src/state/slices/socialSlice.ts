@@ -105,6 +105,7 @@ export type SocialSlice = {
   unifiedFeed: Post[];
   unifiedOffset: number;
   unifiedHasMore: boolean;
+  currentFeedFilter: string | null;  // Track the active filter for pagination
   // Circle data
   circleId: string | null;
   circleName: string | null;
@@ -154,6 +155,7 @@ export const createSocialSlice: StateCreator<
   unifiedFeed: [],
   unifiedOffset: 0,
   unifiedHasMore: true,
+  currentFeedFilter: null,
   // Circle data
   circleId: null,
   circleName: null,
@@ -453,15 +455,16 @@ export const createSocialSlice: StateCreator<
     if (__DEV__) console.log('🔵 [STORE] fetchUnifiedFeed called, refresh:', refresh, 'filter:', filter);
     set({ feedLoading: true, feedError: null });
 
+    // Use provided filter, or fall back to activeCircleId for backward compatibility
+    const feedFilter = filter !== undefined ? filter : (get() as any).activeCircleId;
+
     if (refresh) {
-      set({ unifiedFeed: [], unifiedOffset: 0, unifiedHasMore: true });
+      set({ unifiedFeed: [], unifiedOffset: 0, unifiedHasMore: true, currentFeedFilter: feedFilter });
     }
 
     try {
       const currentUser = get().user;
       const currentUserId = currentUser?.id;
-      // Use provided filter, or fall back to activeCircleId for backward compatibility
-      const feedFilter = filter !== undefined ? filter : (get() as any).activeCircleId;
 
       const response = await backendService.getUnifiedFeed(10, 0, feedFilter);
 
@@ -541,12 +544,12 @@ export const createSocialSlice: StateCreator<
     try {
       const currentUser = state.user;
       const currentUserId = currentUser?.id;
-      const activeCircleId = (state as any).activeCircleId;
+      const currentFilter = state.currentFeedFilter;
       const offset = state.unifiedOffset;
 
-      if (__DEV__) console.log('🔵 [STORE] Loading more unified feed from offset:', offset);
+      if (__DEV__) console.log('🔵 [STORE] Loading more unified feed from offset:', offset, 'filter:', currentFilter);
 
-      const response = await backendService.getUnifiedFeed(10, offset, activeCircleId);
+      const response = await backendService.getUnifiedFeed(10, offset, currentFilter);
 
       if (response.success) {
         const transformPost = (post: any): Post => {
