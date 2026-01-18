@@ -2382,10 +2382,45 @@ class SupabaseService {
     if (error) throw error;
   }
 
+  // Helper function to generate unique circle join code
+  private generateJoinCode(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  }
+
   // Circle methods
   async createCircle(name: string, emoji?: string, description?: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
+
+    // Generate a unique join code
+    let joinCode = this.generateJoinCode();
+    let isUnique = false;
+    let attempts = 0;
+
+    // Ensure join code is unique (retry up to 10 times if collision)
+    while (!isUnique && attempts < 10) {
+      const { data: existing } = await supabase
+        .from('circles')
+        .select('id')
+        .eq('join_code', joinCode)
+        .single();
+
+      if (!existing) {
+        isUnique = true;
+      } else {
+        joinCode = this.generateJoinCode();
+        attempts++;
+      }
+    }
+
+    if (!isUnique) {
+      throw new Error('Failed to generate unique join code');
+    }
 
     const { data, error } = await supabase
       .from('circles')
@@ -2393,16 +2428,19 @@ class SupabaseService {
         name,
         emoji: emoji || '🔵',  // Default to blue circle if no emoji provided
         description,
-        created_by: user.id
+        created_by: user.id,
+        join_code: joinCode
       })
       .select()
       .single();
 
     if (error) throw error;
-    
+
+    if (__DEV__) console.log(`🟢 [CIRCLE] Created circle "${name}" with join code: ${joinCode}`);
+
     // Auto-join creator to circle
     await this.joinCircle(data.id);
-    
+
     return data;
   }
 
