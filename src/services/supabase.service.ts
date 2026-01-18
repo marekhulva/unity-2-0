@@ -142,28 +142,19 @@ class SupabaseService {
       
       if (__DEV__) console.log('🟢 [SUPABASE] Retrieved', data?.length || 0, 'goals from database');
 
-      // Calculate consistency for each goal
-      const goalsWithConsistency = await Promise.all(
-        (data || []).map(async (goal) => {
-          const consistency = await this.getGoalConsistency(goal.id, user.id);
+      // Calculate consistency for ALL goals in one batch (2 queries total)
+      const consistencyResults = await this.getBulkGoalConsistency(user.id);
 
-          // Determine status based on consistency
-          let status: 'On Track' | 'Needs Attention' | 'Critical';
-          if (consistency >= 70) {
-            status = 'On Track';
-          } else if (consistency >= 40) {
-            status = 'Needs Attention';
-          } else {
-            status = 'Critical';
-          }
+      // Map consistency results to goals
+      const goalsWithConsistency = (data || []).map((goal) => {
+        const result = consistencyResults[goal.id] || { consistency: 0, status: 'On Track' as const };
 
-          return {
-            ...goal,
-            consistency,
-            status
-          };
-        })
-      );
+        return {
+          ...goal,
+          consistency: result.consistency,
+          status: result.status
+        };
+      });
 
       return goalsWithConsistency;
     } catch (error) {
@@ -612,6 +603,124 @@ class SupabaseService {
     }
 
     return count;
+  }
+
+  async getBulkGoalConsistency(userId: string): Promise<Record<string, { consistency: number; status: 'On Track' | 'Needs Attention' | 'Critical' }>> {
+    if (__DEV__) console.log('📊 [SUPABASE] Calculating bulk goal consistency');
+
+    const results: Record<string, { consistency: number; status: 'On Track' | 'Needs Attention' | 'Critical' }> = {};
+
+    try {
+      // Get ALL actions for user in ONE query
+      const { data: allActions, error: actionsError } = await supabase
+        .from('actions')
+        .select('id, created_at, goal_id, frequency, scheduled_days')
+        .eq('user_id', userId);
+
+      if (actionsError || !allActions || allActions.length === 0) {
+        if (__DEV__) console.log('No actions found for user');
+        return {};
+      }
+
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+
+      // Get ALL completions in ONE query
+      const actionIds = allActions.map(a => a.id);
+      const { data: allCompletions, error: completionError } = await supabase
+        .from('action_completions')
+        .select('action_id')
+        .in('action_id', actionIds);
+
+      if (completionError) {
+        if (__DEV__) console.error('Error fetching completions:', completionError);
+        return {};
+      }
+
+      // Group actions by goal_id
+      const actionsByGoal = allActions.reduce((acc, action) => {
+        if (!action.goal_id) return acc;
+        if (!acc[action.goal_id]) acc[action.goal_id] = [];
+        acc[action.goal_id].push(action);
+        return acc;
+      }, {} as Record<string, typeof allActions>);
+
+      // Count completions by action_id for fast lookup
+      const completionCountByAction: Record<string, number> = {};
+      (allCompletions || []).forEach(completion => {
+        completionCountByAction[completion.action_id] = (completionCountByAction[completion.action_id] || 0) + 1;
+      });
+
+      // Calculate consistency for each goal
+      for (const [goalId, actions] of Object.entries(actionsByGoal)) {
+        let totalExpected = 0;
+        let totalCompleted = 0;
+
+        for (const action of actions) {
+          const actionCreatedAt = new Date(action.created_at);
+          actionCreatedAt.setHours(0, 0, 0, 0);
+          const daysForThisAction = Math.floor((today.getTime() - actionCreatedAt.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+          const frequency = action.frequency || 'daily';
+          const scheduledDays = action.scheduled_days;
+
+          let expectedForAction = 0;
+
+          switch (frequency) {
+            case 'daily':
+              expectedForAction = daysForThisAction;
+              break;
+            case 'weekly':
+              expectedForAction = Math.floor(daysForThisAction / 7);
+              break;
+            case 'weekdays':
+              expectedForAction = this.countWeekdaysInRange(actionCreatedAt, today);
+              break;
+            case 'weekends':
+              expectedForAction = this.countWeekendsInRange(actionCreatedAt, today);
+              break;
+            case 'every_other_day':
+              expectedForAction = Math.floor(daysForThisAction / 2);
+              break;
+            case 'three_per_week':
+              expectedForAction = Math.floor((daysForThisAction / 7) * 3);
+              break;
+            case 'custom':
+              if (scheduledDays && Array.isArray(scheduledDays)) {
+                expectedForAction = this.countScheduledDaysInRange(actionCreatedAt, today, scheduledDays);
+              } else {
+                expectedForAction = daysForThisAction;
+              }
+              break;
+            default:
+              expectedForAction = daysForThisAction;
+          }
+
+          totalExpected += expectedForAction;
+          totalCompleted += completionCountByAction[action.id] || 0;
+        }
+
+        const percentage = totalExpected > 0 ? Math.round((totalCompleted / totalExpected) * 100) : 0;
+
+        let status: 'On Track' | 'Needs Attention' | 'Critical';
+        if (percentage >= 70) {
+          status = 'On Track';
+        } else if (percentage >= 40) {
+          status = 'Needs Attention';
+        } else {
+          status = 'Critical';
+        }
+
+        results[goalId] = { consistency: percentage, status };
+
+        if (__DEV__) console.log(`📊 Goal ${goalId}: ${totalCompleted}/${totalExpected} = ${percentage}%`);
+      }
+
+      return results;
+    } catch (error) {
+      if (__DEV__) console.error('Error calculating bulk goal consistency:', error);
+      return {};
+    }
   }
 
   async getGoalConsistency(goalId: string, userId: string) {
