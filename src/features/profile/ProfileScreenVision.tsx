@@ -120,6 +120,8 @@ export const ProfileScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const currentUser = useStore(s => s.user);
   const goals = useStore(s => s.goals);
+  const activeChallenges = useStore(s => s.activeChallenges);
+  const fetchMyActiveChallenges = useStore(s => s.fetchMyActiveChallenges);
   const following = useStore(s => s.following);
   const followers = useStore(s => s.followers);
   const loadFollowing = useStore(s => s.loadFollowing);
@@ -127,17 +129,15 @@ export const ProfileScreen: React.FC = () => {
 
   const [circles, setCircles] = useState<any[]>([]);
   const [userPosts, setUserPosts] = useState<any[]>([]);
-  const [challenges, setChallenges] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch user circles, posts, and challenges
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch challenges
-        const activeChallenges = await supabaseChallengeService.getMyActiveChallenges();
-        if (__DEV__) console.log('[PROFILE-VISION] Active challenges:', activeChallenges);
-        setChallenges(activeChallenges || []);
+        // Fetch challenges from store
+        await fetchMyActiveChallenges();
+        if (__DEV__) console.log('[PROFILE-VISION] Active challenges loaded from store');
 
         // Fetch circles
         const userCircles = await supabaseService.getUserCircles();
@@ -175,7 +175,7 @@ export const ProfileScreen: React.FC = () => {
   }));
 
   // Transform challenges to match ActivityCard interface
-  const transformedChallenges = challenges.map(challenge => ({
+  const transformedChallenges = activeChallenges.map(challenge => ({
     id: challenge.id,
     title: challenge.name,
     subtitle: challenge.my_participation

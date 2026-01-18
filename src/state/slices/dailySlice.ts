@@ -302,6 +302,12 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
           get().fetchGoals().catch(err => {
             if (__DEV__) console.error('🔴 [ACTIONS] Failed to refetch goals:', err);
           });
+
+          // Refetch challenges to update consistency in Profile
+          if (__DEV__) console.log('🔄 [ACTIONS] Refetching challenges to update consistency...');
+          get().fetchMyActiveChallenges().catch(err => {
+            if (__DEV__) console.error('🔴 [ACTIONS] Failed to refetch challenges:', err);
+          });
         } else {
           if (__DEV__) console.error('🔴 [ACTIONS] Challenge completion failed:', response.error);
         }
@@ -337,6 +343,12 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
               action.challengeParticipantId,
               action.challengeActivityId
             );
+
+            // Refetch challenges since we just completed a challenge activity
+            if (__DEV__) console.log('🔄 [ACTIONS] Refetching challenges after linked action completion...');
+            get().fetchMyActiveChallenges().catch(err => {
+              if (__DEV__) console.error('🔴 [ACTIONS] Failed to refetch challenges:', err);
+            });
           }
 
           // Refetch goals to update consistency in Profile
