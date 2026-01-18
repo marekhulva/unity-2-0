@@ -1639,6 +1639,7 @@ class SupabaseService {
           .eq('follower_id', user.id);
         followingIds = following?.map(f => f.following_id).filter(Boolean) || [];
         if (__DEV__) console.log('🔵 [UNIFIED FEED] Following:', followingIds.length);
+        if (__DEV__ && isFollowingOnly) console.log('🔍 [DEBUG] Following IDs:', followingIds);
       }
 
       // If Following-only feed, just use followingIds
@@ -1680,6 +1681,8 @@ class SupabaseService {
           .from('profiles')
           .select('id, name, avatar_url')
           .in('id', postUserIds);
+
+        if (__DEV__) console.log('🔍 [DEBUG] Post authors:', profiles?.map(p => ({ name: p.name, id: p.id })));
 
         // Transform posts
         const postsWithProfiles = posts?.map(post => {
