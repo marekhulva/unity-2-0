@@ -379,7 +379,7 @@ class SupabaseChallengeService {
 
     if (!challenge) return;
 
-    const { count: completedDays } = await supabase
+    const { count: completedActivities } = await supabase
       .from('challenge_completions')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
@@ -393,14 +393,17 @@ class SupabaseChallengeService {
         (1000 * 60 * 60 * 24)
     ) + 1;
 
-    // Calculate consistency: (completed / expected so far) × 100
-    // Expected = currentDay (capped at totalDays)
-    const expectedSoFar = Math.min(currentDay, totalDays);
-    const completionPercentage = expectedSoFar > 0
-      ? Math.round(((completedDays || 0) / expectedSoFar) * 100)
+    // Calculate consistency: (completed activities / expected activities so far) × 100
+    // Get number of activities user selected for this challenge
+    const activitiesPerDay = participant.selected_activity_ids?.length || 1;
+    const daysSoFar = Math.min(currentDay, totalDays);
+    const expectedActivities = daysSoFar * activitiesPerDay;
+
+    const completionPercentage = expectedActivities > 0
+      ? Math.round(((completedActivities || 0) / expectedActivities) * 100)
       : 0;
 
-    if (__DEV__) console.log(`📊 Challenge consistency: ${completedDays || 0}/${expectedSoFar} = ${completionPercentage}%`);
+    if (__DEV__) console.log(`📊 Challenge consistency: ${completedActivities || 0}/${expectedActivities} activities (${daysSoFar} days × ${activitiesPerDay} activities/day) = ${completionPercentage}%`);
 
     const daysTaken = currentDay > totalDays ? totalDays : currentDay;
 
@@ -419,10 +422,23 @@ class SupabaseChallengeService {
       }
     }
 
+    // Calculate unique days with completions (for display purposes only)
+    // This is SEPARATE from consistency % which is activity-based
+    // Shows "X / Y days completed" in UI to indicate engagement
+    const { data: uniqueDays } = await supabase
+      .from('challenge_completions')
+      .select('completion_date')
+      .eq('user_id', userId)
+      .eq('challenge_id', challengeId);
+
+    const completedDaysCount = uniqueDays
+      ? new Set(uniqueDays.map(d => d.completion_date)).size
+      : 0;
+
     await supabase
       .from('challenge_participants')
       .update({
-        completed_days: completedDays || 0,
+        completed_days: completedDaysCount,
         current_day: currentDay,
         completion_percentage: completionPercentage,
         days_taken: daysTaken,
