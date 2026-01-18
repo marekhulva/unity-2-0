@@ -29,6 +29,22 @@ import { TimeSetupModal } from './TimeSetupModal';
 
 const { width, height } = Dimensions.get('window');
 
+// Helper function to convert 12-hour time to 24-hour format
+const convertTo24Hour = (time12h: string): string => {
+  const [time, modifier] = time12h.split(' ');
+  let [hours, minutes] = time.split(':');
+
+  if (hours === '12') {
+    hours = '00';
+  }
+
+  if (modifier === 'PM') {
+    hours = String(parseInt(hours, 10) + 12);
+  }
+
+  return `${hours.padStart(2, '0')}:${minutes}:00`;
+};
+
 interface JoinChallengeModalProps {
   visible: boolean;
   challenge: any;
@@ -202,10 +218,52 @@ export const JoinChallengeModal: React.FC<JoinChallengeModalProps> = ({
         } else {
           if (__DEV__) console.log('🔴🔴🔴 [SAVING] WARNING: No times to save at all!');
         }
+
+        // CREATE ACTIONS FOR UNLINKED CHALLENGE ACTIVITIES
+        const unlinkedActivities = selectedForLinking.filter(a => !activityLinks[a.id]);
+        if (unlinkedActivities.length > 0) {
+          if (__DEV__) console.log('🔴🔴🔴 [CREATING ACTIONS] Creating actions for', unlinkedActivities.length, 'unlinked activities');
+
+          for (const activity of unlinkedActivities) {
+            const time = times[activity.id] || allActivityTimes[activity.id] || '9:00 AM';
+
+            // Convert 12h to 24h format
+            const time24h = time.includes('AM') || time.includes('PM')
+              ? convertTo24Hour(time)
+              : time;
+
+            if (__DEV__) console.log(`🔴🔴🔴 [CREATING ACTIONS] Creating action for "${activity.title}" at ${time24h}`);
+
+            try {
+              const { data: newAction, error: actionError } = await supabase
+                .from('actions')
+                .insert({
+                  title: activity.title,
+                  time: time24h,
+                  frequency: 'daily',
+                  challenge_ids: [challenge.id],
+                  user_id: participant.user_id,
+                  date: new Date().toISOString().split('T')[0],
+                  completed: false,
+                  visibility: 'public'
+                })
+                .select()
+                .single();
+
+              if (actionError) {
+                if (__DEV__) console.error(`🔴🔴🔴 [CREATING ACTIONS] Error creating action for ${activity.title}:`, actionError);
+              } else {
+                if (__DEV__) console.log(`🟢 [CREATING ACTIONS] Created action for ${activity.title}:`, newAction.id);
+              }
+            } catch (err) {
+              if (__DEV__) console.error(`🔴🔴🔴 [CREATING ACTIONS] Exception creating action for ${activity.title}:`, err);
+            }
+          }
+        }
       } else {
         if (__DEV__) console.log('🔴🔴🔴 [SAVING] NO PARTICIPANT FOUND!');
       }
-      
+
       // Add a small delay to ensure database has committed all changes
       await new Promise(resolve => setTimeout(resolve, 1000));
       if (__DEV__) console.log('🔄 [JOIN MODAL] Waited for database to commit');
