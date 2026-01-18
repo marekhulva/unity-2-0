@@ -386,12 +386,21 @@ class SupabaseChallengeService {
       .eq('challenge_id', challengeId);
 
     const totalDays = challenge.duration_days;
-    const completionPercentage = ((completedDays || 0) / totalDays) * 100;
 
+    // Calculate current day (days since personal start)
     const currentDay = Math.floor(
       (new Date().getTime() - new Date(participant.personal_start_date).getTime()) /
         (1000 * 60 * 60 * 24)
     ) + 1;
+
+    // Calculate consistency: (completed / expected so far) × 100
+    // Expected = currentDay (capped at totalDays)
+    const expectedSoFar = Math.min(currentDay, totalDays);
+    const completionPercentage = expectedSoFar > 0
+      ? Math.round(((completedDays || 0) / expectedSoFar) * 100)
+      : 0;
+
+    if (__DEV__) console.log(`📊 Challenge consistency: ${completedDays || 0}/${expectedSoFar} = ${completionPercentage}%`);
 
     const daysTaken = currentDay > totalDays ? totalDays : currentDay;
 
