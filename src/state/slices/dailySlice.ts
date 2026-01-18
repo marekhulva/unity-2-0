@@ -296,6 +296,12 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
             )
           }));
           if (__DEV__) console.log('🟢 [ACTIONS] Challenge activity completed successfully');
+
+          // Refetch goals to update consistency in Profile
+          if (__DEV__) console.log('🔄 [ACTIONS] Refetching goals to update consistency...');
+          get().fetchGoals().catch(err => {
+            if (__DEV__) console.error('🔴 [ACTIONS] Failed to refetch goals:', err);
+          });
         } else {
           if (__DEV__) console.error('🔴 [ACTIONS] Challenge completion failed:', response.error);
         }
@@ -332,6 +338,12 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
               action.challengeActivityId
             );
           }
+
+          // Refetch goals to update consistency in Profile
+          if (__DEV__) console.log('🔄 [ACTIONS] Refetching goals to update consistency...');
+          get().fetchGoals().catch(err => {
+            if (__DEV__) console.error('🔴 [ACTIONS] Failed to refetch goals:', err);
+          });
         } else {
           if (__DEV__) console.error('🔴 [ACTIONS] Failed to complete action:', response);
         }
