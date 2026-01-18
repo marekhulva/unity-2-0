@@ -1639,16 +1639,6 @@ class SupabaseService {
           .eq('follower_id', user.id);
         followingIds = following?.map(f => f.following_id).filter(Boolean) || [];
         if (__DEV__) console.log('🔵 [UNIFIED FEED] Following:', followingIds.length);
-
-        // DEBUG: Get names of followed users
-        if (__DEV__ && isFollowingOnly && followingIds.length > 0) {
-          const { data: followedProfiles } = await supabase
-            .from('profiles')
-            .select('id, name')
-            .in('id', followingIds);
-          console.log('🔍 [DEBUG] You are following these users:');
-          followedProfiles?.forEach(p => console.log(`  - ${p.name} (${p.id})`));
-        }
       }
 
       // If Following-only feed, just use followingIds
@@ -1690,12 +1680,6 @@ class SupabaseService {
           .from('profiles')
           .select('id, name, avatar_url')
           .in('id', postUserIds);
-
-        // DEBUG: Show post authors clearly
-        if (__DEV__) {
-          console.log('🔍 [DEBUG] Posts are from these users:');
-          profiles?.forEach(p => console.log(`  - ${p.name} (${p.id})`));
-        }
 
         // Transform posts
         const postsWithProfiles = posts?.map(post => {
