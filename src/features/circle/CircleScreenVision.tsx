@@ -47,7 +47,6 @@ import { CreateCircleModal } from '../social/CreateCircleModal';
 
 type TabType = 'overview' | 'community';
 type MemberFilter = 'all' | 'admins' | 'mostActive';
-type LeaderboardPeriod = 'today' | 'month' | 'allTime';
 
 interface Post {
   id: string;
@@ -93,7 +92,6 @@ export const CircleScreenVision = () => {
 
   const [memberFilter, setMemberFilter] = useState<MemberFilter>('all');
   const [memberSearch, setMemberSearch] = useState('');
-  const [leaderboardPeriod, setLeaderboardPeriod] = useState<LeaderboardPeriod>('allTime');
 
   const [circlePosts, setCirclePosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
@@ -560,35 +558,6 @@ export const CircleScreenVision = () => {
             {/* Full Leaderboard Section */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>🏆 Leaderboard</Text>
-
-              {/* Period Filter Pills */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.filterPills}
-                contentContainerStyle={styles.filterPillsContent}
-              >
-                {(['today', 'month', 'allTime'] as LeaderboardPeriod[]).map(period => (
-                  <Pressable
-                    key={period}
-                    style={[styles.filterPill, leaderboardPeriod === period && styles.filterPillActive]}
-                    onPress={() => setLeaderboardPeriod(period)}
-                  >
-                    <Text style={[styles.filterPillText, leaderboardPeriod === period && styles.filterPillTextActive]}>
-                      {period === 'today' ? 'Today' : period === 'month' ? 'This Month' : 'All Time'}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-
-              {/* Coming Soon Banner for period filtering */}
-              {leaderboardPeriod !== 'allTime' && (
-                <View style={styles.comingSoonBanner}>
-                  <Text style={styles.comingSoonText}>
-                    🚧 {leaderboardPeriod === 'today' ? 'Today' : 'Monthly'} filtering coming soon - showing all time for now
-                  </Text>
-                </View>
-              )}
 
               {/* Full Rankings */}
               {isLoading ? (
@@ -2099,23 +2068,6 @@ const styles = StyleSheet.create({
   podiumPoints: {
     fontSize: 12,
     color: 'rgba(255,255,255,0.6)',
-    textAlign: 'center',
-  },
-
-  comingSoonBanner: {
-    backgroundColor: 'rgba(231,180,58,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(231,180,58,0.3)',
-    borderRadius: 12,
-    padding: 12,
-    marginVertical: 8,
-    alignItems: 'center',
-  },
-
-  comingSoonText: {
-    fontSize: 13,
-    color: '#E7B43A',
-    fontWeight: '600',
     textAlign: 'center',
   },
 });
