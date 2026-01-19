@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Dimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronDown, Check, Plus, Users } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
@@ -158,6 +159,8 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
   loading,
   error,
 }) => {
+  const insets = useSafeAreaInsets();
+
   if (!visible) return null;
 
   return (
@@ -172,7 +175,13 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
 
         <Animated.View
           entering={SlideInDown.springify().damping(20)}
-          style={styles.bottomSheet}
+          style={[
+            styles.bottomSheet,
+            {
+              maxHeight: height * 0.7,
+              paddingBottom: insets.bottom || 20,
+            }
+          ]}
         >
           <LinearGradient
             colors={['#1a1a1a', '#000']}
@@ -190,7 +199,10 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
 
           <ScrollView
             style={styles.sheetContent}
-            contentContainerStyle={styles.sheetContentContainer}
+            contentContainerStyle={[
+              styles.sheetContentContainer,
+              { paddingBottom: 20 }
+            ]}
             showsVerticalScrollIndicator={false}
           >
             {/* All and Following options */}
@@ -391,7 +403,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   bottomSheet: {
-    maxHeight: height * 0.75,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: 'hidden',
@@ -429,7 +440,6 @@ const styles = StyleSheet.create({
   },
   sheetContentContainer: {
     padding: 20,
-    paddingBottom: 40,
   },
   circleItem: {
     marginBottom: 12,
