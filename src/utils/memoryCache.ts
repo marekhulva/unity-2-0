@@ -12,7 +12,7 @@ type CacheItem<T> = {
 
 class MemoryCache {
   private cache: Map<string, CacheItem<any>> = new Map();
-  private defaultTTL = 60 * 1000; // 1 minute default (very short, very safe)
+  private defaultTTL = 10 * 60 * 1000; // 10 minutes (allows better caching with persistence)
   
   /**
    * Get data from cache if it exists and isn't too old

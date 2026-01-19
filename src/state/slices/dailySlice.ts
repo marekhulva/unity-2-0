@@ -65,11 +65,26 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
     try {
       // Clear any stale cache to ensure fresh data
       if (__DEV__) console.log('🟦 [ACTIONS] Fetching fresh data from backend');
-      
-      // Fetch regular daily actions
-      const response = await backendService.getDailyActions();
+
+      // PARALLEL FETCH: Run all independent queries at once
+      const [
+        response,
+        challengeResponse,
+        linkedResponse,
+        todayCompletions,
+        participations,
+        completedResponse
+      ] = await Promise.all([
+        backendService.getDailyActions(),
+        backendService.getUserChallengeActivities(),
+        backendService.getLinkedChallengeActivities(),
+        backendService.getTodayChallengeCompletions(),
+        backendService.getUserChallengeParticipations(),
+        backendService.getTodaysCompletedActions()
+      ]);
+
       const regularActions: ActionItem[] = [];
-      
+
       if (response.success) {
         if (__DEV__) console.log('🟦 [ACTIONS] Response received:', response.data?.length || 0, 'regular actions');
 
@@ -113,16 +128,13 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
         if (__DEV__) console.log(`🟦 [ACTIONS] After frequency filtering: ${mappedActions.length} actions for today`);
         regularActions.push(...mappedActions);
       }
-      
-      // Fetch challenge activities (already filtered - linked ones are excluded)
-      if (__DEV__) console.log('🏆 [ACTIONS] Fetching challenge activities...');
-      const challengeResponse = await backendService.getUserChallengeActivities();
+
+      // Process challenge activities
       if (__DEV__) console.log('🏆 [ACTIONS] Challenge response:', challengeResponse);
       if (__DEV__) console.log('🏆 [ACTIONS] Raw challenge data:', JSON.stringify(challengeResponse.data, null, 2));
       const challengeActions: ActionItem[] = [];
-      
-      // Also get linked activities to merge with regular actions
-      const linkedResponse = await backendService.getLinkedChallengeActivities();
+
+      // Process linked activities
       if (__DEV__) console.log('🔗 [ACTIONS] Linked activities:', linkedResponse);
       
       // Process linked activities - merge challenge info into regular actions
@@ -143,7 +155,7 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
           }
         });
       }
-      
+
       if (challengeResponse.success && challengeResponse.data) {
         if (__DEV__) console.log('🏆 [ACTIONS] Found', challengeResponse.data.length, 'non-linked challenge activities');
         challengeResponse.data.forEach((activity: any, index: number) => {
@@ -154,16 +166,14 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
             allFields: Object.keys(activity)
           });
         });
-        
-        // Check which activities are already completed today
-        const todayCompletions = await backendService.getTodayChallengeCompletions();
+
+        // Use already-fetched completion data
         const completedActivityIds = new Set(
           todayCompletions.data?.map((c: any) => c.challenge_activity_id) || []
         );
         if (__DEV__) console.log('✅ [ACTIONS] Already completed today:', completedActivityIds);
-        
-        // Get participant data for activity times
-        const participations = await backendService.getUserChallengeParticipations();
+
+        // Use already-fetched participation data for activity times
         const activityTimeMappings: Map<string, string> = new Map();
         
         if (participations.success && participations.data) {
@@ -227,10 +237,8 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
       
       set({ actions: allActions, actionsLoading: false });
       if (__DEV__) console.log('🟢 [ACTIONS] Daily actions loaded successfully');
-      
-      // Also fetch today's completed actions
-      if (__DEV__) console.log('🟦 [ACTIONS] Fetching today\'s completed actions...');
-      const completedResponse = await backendService.getTodaysCompletedActions();
+
+      // Use already-fetched completed actions data
       if (completedResponse.success) {
         if (__DEV__) console.log('🟢 [ACTIONS] Found', completedResponse.data?.length || 0, 'completed actions today');
         set({ completedActions: completedResponse.data || [] });
@@ -299,13 +307,13 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
 
           // Refetch goals to update consistency in Profile
           if (__DEV__) console.log('🔄 [ACTIONS] Refetching goals to update consistency...');
-          get().fetchGoals().catch(err => {
+          (get() as any).fetchGoals().catch(err => {
             if (__DEV__) console.error('🔴 [ACTIONS] Failed to refetch goals:', err);
           });
 
           // Refetch challenges to update consistency in Profile
           if (__DEV__) console.log('🔄 [ACTIONS] Refetching challenges to update consistency...');
-          get().fetchMyActiveChallenges().catch(err => {
+          (get() as any).fetchMyActiveChallenges().catch(err => {
             if (__DEV__) console.error('🔴 [ACTIONS] Failed to refetch challenges:', err);
           });
         } else {
@@ -346,14 +354,14 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
 
             // Refetch challenges since we just completed a challenge activity
             if (__DEV__) console.log('🔄 [ACTIONS] Refetching challenges after linked action completion...');
-            get().fetchMyActiveChallenges().catch(err => {
+            (get() as any).fetchMyActiveChallenges().catch(err => {
               if (__DEV__) console.error('🔴 [ACTIONS] Failed to refetch challenges:', err);
             });
           }
 
           // Refetch goals to update consistency in Profile
           if (__DEV__) console.log('🔄 [ACTIONS] Refetching goals to update consistency...');
-          get().fetchGoals().catch(err => {
+          (get() as any).fetchGoals().catch(err => {
             if (__DEV__) console.error('🔴 [ACTIONS] Failed to refetch goals:', err);
           });
         } else {

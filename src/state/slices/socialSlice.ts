@@ -172,8 +172,8 @@ export const createSocialSlice: StateCreator<
       const currentUser = get().user;
       const currentUserId = currentUser?.id;
 
-      // Get activeCircleId from the store (accessing circlesSlice)
-      const activeCircleId = (get() as any).activeCircleId;
+      // Use null for all circles (removed activeCircleId dependency)
+      const activeCircleId = null;
       if (__DEV__) console.log('🔵 [FEED] Using activeCircleId:', activeCircleId);
 
       // Create unique cache keys based on circle
@@ -189,8 +189,6 @@ export const createSocialSlice: StateCreator<
           circleFeed: [],
           followFeed: []
         });
-        memoryCache.clear(circleCacheKey);
-        memoryCache.clear('feed:follow');
       }
 
       // Check if we have cached feeds for instant display (only for initial load)
@@ -355,8 +353,8 @@ export const createSocialSlice: StateCreator<
       const currentUserId = currentUser?.id;
       const offset = type === 'circle' ? state.circleOffset : state.followOffset;
 
-      // Get activeCircleId for circle feed pagination
-      const activeCircleId = type === 'circle' ? (state as any).activeCircleId : undefined;
+      // Use null for circle feed (removed activeCircleId dependency)
+      const activeCircleId = type === 'circle' ? null : undefined;
 
       if (__DEV__) console.log(`Loading more ${type} posts from offset ${offset}, activeCircleId: ${activeCircleId}`);
 
@@ -454,8 +452,8 @@ export const createSocialSlice: StateCreator<
     if (__DEV__) console.log('🔵 [STORE] fetchUnifiedFeed called, refresh:', refresh, 'filter:', filter);
     set({ feedLoading: true, feedError: null });
 
-    // Use provided filter, or fall back to activeCircleId for backward compatibility
-    const feedFilter = filter !== undefined ? filter : (get() as any).activeCircleId;
+    // Use provided filter, or default to null (all circles)
+    const feedFilter = filter !== undefined ? filter : null;
 
     if (refresh) {
       set({ unifiedFeed: [], unifiedOffset: 0, unifiedHasMore: true, currentFeedFilter: feedFilter });
@@ -740,7 +738,7 @@ export const createSocialSlice: StateCreator<
     try {
       // Get circle ID if posting to circle feed
       // Use activeCircleId from circlesSlice to know which circle to post to
-      const activeCircleId = get().activeCircleId;
+      const activeCircleId = (get() as any).activeCircleId;
       const circleId = postData.visibility === 'circle' ? activeCircleId : null;
 
       if (__DEV__) console.log('🎯 [POST] Creating post with visibility:', postData.visibility, 'to circle:', circleId);
@@ -813,18 +811,14 @@ export const createSocialSlice: StateCreator<
               p.id === optimisticPost.id ? realPost : p
             );
             if (__DEV__) console.log('📊 [FEED] Circle feed after replacement:', updatedFeed.length, 'posts');
-            // Clear cache for this feed so next refresh gets fresh data
-            setTimeout(() => memoryCache.clear('feed:circle'), 100);
-            return { 
+            return {
               circleFeed: updatedFeed
             };
           }
-          const updatedFeed = s.followFeed.map(p => 
+          const updatedFeed = s.followFeed.map(p =>
             p.id === optimisticPost.id ? realPost : p
           );
           if (__DEV__) console.log('📊 [FEED] Follow feed after replacement:', updatedFeed.length, 'posts');
-          // Clear cache for this feed so next refresh gets fresh data
-          setTimeout(() => memoryCache.clear('feed:follow'), 100);
           return { 
             followFeed: updatedFeed
           };
@@ -1132,9 +1126,6 @@ export const createSocialSlice: StateCreator<
   followUser: async (userId) => {
     try {
       await backendService.followUser(userId);
-      // Clear cache to force fresh feed fetch
-      memoryCache.clear('feed:follow');
-      memoryCache.clear('feed:circle');
       // Update following list
       await get().loadFollowing();
       // Refresh feeds to show their content (force refresh)
@@ -1143,13 +1134,10 @@ export const createSocialSlice: StateCreator<
       if (__DEV__) console.error('Failed to follow user:', error);
     }
   },
-  
+
   unfollowUser: async (userId) => {
     try {
       await backendService.unfollowUser(userId);
-      // Clear cache to force fresh feed fetch
-      memoryCache.clear('feed:follow');
-      memoryCache.clear('feed:circle');
       // Update following list
       await get().loadFollowing();
       // Refresh feeds (force refresh)

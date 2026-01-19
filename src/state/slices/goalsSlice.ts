@@ -48,10 +48,6 @@ export const createGoalsSlice: StateCreator<GoalsSlice> = (set, get) => ({
     if (__DEV__) console.log('🟦 [GOALS] fetchGoals called');
     set({ goalsLoading: true, goalsError: null });
     try {
-      // ALWAYS fetch fresh data - cache causes sync issues
-      memoryCache.clear('goals');
-      if (__DEV__) console.log('🟦 [GOALS] Cache cleared, fetching fresh data from backend')
-      
       if (__DEV__) console.log('🟦 [GOALS] Fetching from backend...');
       const response = await backendService.getGoals();
       if (response.success) {
@@ -84,8 +80,7 @@ export const createGoalsSlice: StateCreator<GoalsSlice> = (set, get) => ({
       
       if (response.success && response.data) {
         if (__DEV__) console.log('🟢 [GOALS] Goal added to store:', response.data.title, 'ID:', response.data.id);
-        memoryCache.clear('goals'); // Clear cache when goals change
-        
+
         // Prevent duplicates - check if goal already exists
         set((state) => {
           const existingGoal = state.goals.find(g => g.id === response.data.id);

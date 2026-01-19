@@ -108,11 +108,8 @@ export const SocialScreenUnified = () => {
     // Pass the filter directly - FEED_ALL, FEED_FOLLOWING, or a specific circleId
     fetchUnifiedFeed(true, feedType || FEED_ALL);
     fetchUserCircles();
-  }, []);
 
-  useEffect(() => {
-    // Pass the filter directly - FEED_ALL, FEED_FOLLOWING, or a specific circleId
-    fetchUnifiedFeed(true, feedType || FEED_ALL);
+    // Fetch challenges only if specific circle selected
     if (feedType && feedType !== FEED_ALL && feedType !== FEED_FOLLOWING) {
       fetchCircleChallenges(feedType);
     }

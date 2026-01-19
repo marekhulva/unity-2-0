@@ -8,16 +8,49 @@ import { createChallengeSlice, ChallengeSlice } from './slices/challengeSlice';
 import { createDailyReviewSlice, DailyReviewSlice } from './slices/dailyReviewSlice';
 import { createCirclesSlice, CirclesSlice } from './slices/circlesSlice';
 import { createNotificationSlice, NotificationSlice } from './slices/notificationSlice';
+import { createPersist, PersistencePatterns, createMigration } from './persistence';
 
 type RootState = AuthSlice & DailySlice & GoalsSlice & SocialSlice & UiSlice & ChallengeSlice & DailyReviewSlice & CirclesSlice & NotificationSlice;
-export const useStore = create<RootState>()((...a) => ({
-  ...createAuthSlice(...a),
-  ...createUiSlice(...a),
-  ...createGoalsSlice(...a),
-  ...createDailySlice(...a),
-  ...createSocialSlice(...a),
-  ...createChallengeSlice(...a),
-  ...createDailyReviewSlice(...a),
-  ...createCirclesSlice(...a),
-  ...createNotificationSlice(...a),
-}));
+export const useStore = create<RootState>()(
+  createPersist(
+    {
+      name: 'unity-store',
+      version: 2,
+      whitelist: [
+        // Auth data
+        'token', 'user', 'isAuthenticated',
+        // Goals data
+        'goals',
+        // Daily actions data
+        'actions', 'completedActions',
+        // Social feeds
+        'circleFeed', 'followFeed', 'posts',
+        // UI preferences
+        'feedView',
+        // Circles
+        'circles', 'activeCircleId'
+      ],
+      migrate: createMigration({
+        2: (state) => ({
+          ...state,
+          goals: state.goals?.map((goal: any) => ({
+            ...goal,
+            consistency: goal.consistency || 0,
+            status: goal.status || 'On Track',
+          })) || [],
+        }),
+      }),
+    },
+    (...a) => ({
+      ...createAuthSlice(...a),
+      ...createUiSlice(...a),
+      ...createGoalsSlice(...a),
+      ...createDailySlice(...a),
+      ...createSocialSlice(...a),
+      ...createChallengeSlice(...a),
+      ...createDailyReviewSlice(...a),
+      ...createCirclesSlice(...a),
+      ...createNotificationSlice(...a),
+    })
+  )
+);
