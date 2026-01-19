@@ -94,15 +94,13 @@ export const createCirclesSlice: StateCreator<CirclesSlice> = (set, get) => ({
       if (response.success && response.data) {
         if (__DEV__) console.log('✅ [CIRCLES] Successfully joined circle:', response.data.name);
 
-        // Add the new circle to the list
-        set((state) => ({
-          userCircles: [...state.userCircles, response.data],
-          circlesLoading: false,
-          joinModalVisible: false
-        }));
+        // Refresh all circles to get accurate member counts
+        await get().fetchUserCircles();
 
-        // Optionally set as active circle
+        // Set the newly joined circle as active
         get().setActiveCircle(response.data.id);
+
+        set({ joinModalVisible: false });
 
         return { success: true };
       } else {

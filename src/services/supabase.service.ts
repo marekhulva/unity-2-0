@@ -2516,7 +2516,22 @@ class SupabaseService {
     }
 
     if (__DEV__) console.log('🟢 [CIRCLE] Successfully joined circle!');
-    return { success: true, error: null, data: circle };
+
+    // Get the member count for the circle
+    const { count: memberCount } = await supabase
+      .from('circle_members')
+      .select('*', { count: 'exact', head: true })
+      .eq('circle_id', circle.id);
+
+    // Return circle with member count
+    return {
+      success: true,
+      error: null,
+      data: {
+        ...circle,
+        member_count: memberCount || 0
+      }
+    };
   }
 
   async joinCircle(circleId: string) {
