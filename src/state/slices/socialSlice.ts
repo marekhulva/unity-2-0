@@ -126,8 +126,7 @@ export type SocialSlice = {
   addComment: (postId: string, content: string, which: Visibility) => Promise<void>;
   loadComments: (postId: string, which: Visibility) => Promise<void>;
   clearCheckinPosts: () => void;
-  // Circle actions
-  joinCircle: (inviteCode: string) => Promise<boolean>;
+  // Circle actions (joinCircle moved to circlesSlice)
   loadCircleData: () => Promise<void>;
   // Following actions
   followUser: (userId: string) => Promise<void>;
@@ -1105,50 +1104,8 @@ export const createSocialSlice: StateCreator<
       if (__DEV__) console.error('❌ Failed to load comments:', error);
     }
   },
-  
-  // Circle actions
-  joinCircle: async (inviteCode) => {
-    if (__DEV__) console.log('Store: Joining circle with code:', inviteCode);
-    try {
-      const result = await backendService.joinCircleWithCode(inviteCode);
-      if (__DEV__) console.log('Store: Join circle result:', result);
-      
-      if (result.success) {
-        if (__DEV__) console.log('Successfully joined circle, loading data...');
-        
-        // CRITICAL: Clear feed cache when joining a new circle
-        memoryCache.clear('feed:circle');
-        memoryCache.clear('feed:follow');
-        
-        // CRITICAL: Refresh user profile to get updated circle_id
-        const profileResult = await backendService.getProfile();
-        if (profileResult.success && profileResult.data) {
-          // Update the user in auth state with new circle_id
-          const currentUser = get().user;
-          if (currentUser) {
-            set({ 
-              user: { 
-                ...currentUser, 
-                circleId: profileResult.data.circle_id 
-              } 
-            });
-          }
-        }
-        
-        // Load circle data after joining
-        await get().loadCircleData();
-        // Refresh feeds to show circle content
-        await get().fetchFeeds();
-        return true;
-      }
-      if (__DEV__) console.log('Join circle failed:', result.error);
-      return false;
-    } catch (error) {
-      if (__DEV__) console.error('Failed to join circle:', error);
-      return false;
-    }
-  },
-  
+
+  // Circle actions (joinCircle moved to circlesSlice)
   loadCircleData: async () => {
     try {
       const circleResult = await backendService.getMyCircle();
