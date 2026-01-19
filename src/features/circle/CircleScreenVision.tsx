@@ -809,6 +809,19 @@ export const CircleScreenVision = () => {
                 )}
               </Pressable>
             ))}
+
+            {/* Join Another Circle Button */}
+            <Pressable
+              style={styles.joinAnotherButton}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setShowCircleSwitcher(false);
+                setShowJoinCircleModal(true);
+              }}
+            >
+              <Plus size={20} color="#FFD700" />
+              <Text style={styles.joinAnotherText}>Join Another Circle</Text>
+            </Pressable>
           </View>
         </Pressable>
       </Modal>
@@ -1980,6 +1993,27 @@ const styles = StyleSheet.create({
   dropdownCheck: {
     fontSize: 20,
     color: '#E7B43A',
+  },
+
+  joinAnotherButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.3)',
+    borderStyle: 'dashed',
+    backgroundColor: 'rgba(255,215,0,0.05)',
+  },
+
+  joinAnotherText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFD700',
   },
 
   tabBar: {
