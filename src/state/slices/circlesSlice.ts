@@ -27,7 +27,7 @@ export interface CirclesSlice {
   // Actions
   fetchUserCircles: () => Promise<void>;
   setActiveCircle: (circleId: string | null) => void;
-  joinCircle: (inviteCode: string) => Promise<{ success: boolean; error?: string }>;
+  joinCircle: (inviteCode: string) => Promise<boolean>;
   leaveCircle: (circleId: string) => Promise<boolean>;
   createCircle: (name: string, emoji?: string, description?: string) => Promise<{ success: boolean; data?: Circle; error?: string }>;
   setJoinModalVisible: (visible: boolean) => void;
@@ -102,16 +102,13 @@ export const createCirclesSlice: StateCreator<CirclesSlice> = (set, get) => ({
 
         set({ joinModalVisible: false });
 
-        return { success: true };
+        return true;
       } else {
         set({
           circlesError: response.error || 'Invalid invite code',
           circlesLoading: false
         });
-        return {
-          success: false,
-          error: response.error || 'Invalid invite code'
-        };
+        return false;
       }
     } catch (error: any) {
       if (__DEV__) console.error('🔴 [CIRCLES] Error joining circle:', error);
@@ -119,10 +116,7 @@ export const createCirclesSlice: StateCreator<CirclesSlice> = (set, get) => ({
         circlesError: error.message,
         circlesLoading: false
       });
-      return {
-        success: false,
-        error: error.message
-      };
+      return false;
     }
   },
 
