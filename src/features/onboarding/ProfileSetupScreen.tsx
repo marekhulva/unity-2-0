@@ -271,7 +271,7 @@ export const ProfileSetupScreen: React.FC<ProfileSetupScreenProps> = ({ onComple
             <View style={styles.bioInputContainer}>
               <TextInput
                 style={styles.bioInput}
-                placeholder="Building my best self, one day at a time ✨"
+                placeholder="Tell us about yourself... (optional)"
                 placeholderTextColor="rgba(255,255,255,0.3)"
                 value={bio}
                 onChangeText={setBio}
