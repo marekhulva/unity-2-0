@@ -12,7 +12,8 @@ import {
   Platform,
   KeyboardAvoidingView,
   ActivityIndicator,
-  Modal
+  Modal,
+  Image
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -37,12 +38,17 @@ import { CircleMembersModal } from './CircleMembersModal';
 import { JoinCircleModal } from './JoinCircleModal';
 import { DiscoverUsersModal } from './DiscoverUsersModal';
 import { UnifiedPostCard } from './UnifiedPostCard';
+import { UnifiedPostCardTimeline } from './UnifiedPostCardTimeline';
 import { ProfileScreen } from '../profile/ProfileScreenVision';
 import { CircleSelector, FEED_ALL, FEED_FOLLOWING } from '../circles/components/CircleSelector';
 import { ChallengeCard } from '../challenges/ChallengeCard';
 import { JoinChallengeModal } from '../challenges/JoinChallengeModal';
 
 const { width } = Dimensions.get('window');
+
+// FEATURE TOGGLE: Switch between old and new card styles
+// Set to false for safety - flip to true to enable Timeline cards
+const USE_TIMELINE_CARDS = true;
 
 export const SocialScreenUnified = () => {
   const insets = useSafeAreaInsets();
@@ -122,9 +128,12 @@ export const SocialScreenUnified = () => {
     setIsPosting(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
+    const postType = postPhoto ? 'photo' : postAudio ? 'audio' : 'status';
+    if (__DEV__) console.log('📸 [COMPOSER] handlePost - type:', postType, 'photoUri:', postPhoto);
+
     try {
       await addPost({
-        type: postPhoto ? 'photo' : postAudio ? 'audio' : 'status',
+        type: postType,
         content: postText,
         visibility: 'circle' as Visibility,
         photoUri: postPhoto || undefined,
@@ -154,8 +163,12 @@ export const SocialScreenUnified = () => {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setPostPhoto(result.assets[0].uri);
+      const uri = result.assets[0].uri;
+      if (__DEV__) console.log('📸 [IMAGE-PICKER] Selected image:', uri);
+      setPostPhoto(uri);
       setComposerExpanded(true);
+    } else {
+      if (__DEV__) console.log('📸 [IMAGE-PICKER] Image selection canceled');
     }
   };
 
@@ -169,17 +182,30 @@ export const SocialScreenUnified = () => {
     }
   };
 
-  // Render post card - unified design for all post types
+  const handleReact = useCallback((id: string, emoji: string) => {
+    react(id, emoji, 'circle');
+  }, [react]);
+
+  const handleComment = useCallback((id: string, text: string) => {
+    addComment(id, text, 'circle');
+  }, [addComment]);
+
+  const handleProfilePress = useCallback((userId: string) => {
+    setSelectedUserId(userId);
+  }, []);
+
   const renderPost = useCallback(({ item }: { item: Post }) => {
+    const CardComponent = USE_TIMELINE_CARDS ? UnifiedPostCardTimeline : UnifiedPostCard;
+
     return (
-      <UnifiedPostCard
+      <CardComponent
         post={item}
-        onReact={(id, emoji) => react(id, emoji, 'circle')}
-        onComment={(id, text) => addComment(id, text, 'circle')}
-        onProfilePress={(userId) => setSelectedUserId(userId)}
+        onReact={handleReact}
+        onComment={handleComment}
+        onProfilePress={handleProfilePress}
       />
     );
-  }, [react, addComment]);
+  }, [handleReact, handleComment, handleProfilePress]);
 
   // Render list header with composer and challenges
   const renderListHeader = useCallback(() => {
@@ -239,9 +265,17 @@ export const SocialScreenUnified = () => {
 
           {postPhoto && (
             <View style={styles.photoPreview}>
+              <Image
+                source={{ uri: postPhoto }}
+                style={styles.photoPreviewImage}
+                resizeMode="cover"
+              />
               <Pressable
                 style={styles.removePhoto}
-                onPress={() => setPostPhoto(null)}
+                onPress={() => {
+                  if (__DEV__) console.log('📸 [COMPOSER] Removing photo');
+                  setPostPhoto(null);
+                }}
               >
                 <X size={16} color="#fff" />
               </Pressable>
@@ -498,10 +532,15 @@ const styles = StyleSheet.create({
   },
   photoPreview: {
     marginTop: 12,
-    height: 100,
+    height: 200,
     backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 12,
     position: 'relative',
+    overflow: 'hidden',
+  },
+  photoPreviewImage: {
+    width: '100%',
+    height: '100%',
   },
   removePhoto: {
     position: 'absolute',

@@ -16,18 +16,18 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { MessageCircle, Send, Check, Flame } from 'lucide-react-native';
+import { MessageCircle, Send, Check, Flame, Clock } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { Post } from '../../state/slices/socialSlice';
 
-interface UnifiedPostCardProps {
+interface UnifiedPostCardTimelineProps {
   post: Post;
   onReact: (id: string, emoji: string) => void;
   onComment: (id: string, text: string) => void;
   onProfilePress?: (userId: string) => void;
 }
 
-export const UnifiedPostCard: React.FC<UnifiedPostCardProps> = React.memo(({
+export const UnifiedPostCardTimeline: React.FC<UnifiedPostCardTimelineProps> = React.memo(({
   post,
   onReact,
   onComment,
@@ -42,17 +42,17 @@ export const UnifiedPostCard: React.FC<UnifiedPostCardProps> = React.memo(({
   const isPhoto = post.type === 'photo' || !!post.mediaUrl;
   const isCelebration = post.is_celebration;
 
-  // Debug logging for photo posts
-  if (post.mediaUrl && __DEV__) {
-    console.log('📸 [POST-CARD] Rendering post with media - type:', post.type, 'isPhoto:', isPhoto, 'mediaUrl:', post.mediaUrl.substring(0, 50), 'photoUri:', post.photoUri?.substring(0, 50));
+  if (__DEV__) {
+    console.log('📸 [TIMELINE-CARD] Rendering post:', {
+      id: post.id.substring(0, 8),
+      type: post.type,
+      user: post.user,
+      goal: post.goal,
+      actionTitle: post.actionTitle,
+      content: post.content,
+      hasMedia: !!post.mediaUrl
+    });
   }
-
-  // Derive postType for visual differentiation
-  type FeedPostType = 'ACTIVITY_CHALLENGE' | 'ACTIVITY_PERSONAL' | 'REGULAR_POST';
-  const postType: FeedPostType = isCheckin
-    ? (isChallenge ? 'ACTIVITY_CHALLENGE' : 'ACTIVITY_PERSONAL')
-    : 'REGULAR_POST';
-  const isActivityChallenge = postType === 'ACTIVITY_CHALLENGE';
 
   const handleReact = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -79,7 +79,13 @@ export const UnifiedPostCard: React.FC<UnifiedPostCardProps> = React.memo(({
   const hasReactions = (post.reactionCount || 0) > 0;
   const hasComments = (post.commentCount || 0) > 0;
 
-  // Celebration - minimal inline style
+  // Get accent color from goal color or default to purple
+  const accentColor = post.goalColor || '#B366FF';
+
+  // Extract streak if available
+  const streak = post.streak || 0;
+
+  // Celebration - keep same style as original
   if (isCelebration) {
     return (
       <View style={styles.item}>
@@ -94,7 +100,7 @@ export const UnifiedPostCard: React.FC<UnifiedPostCardProps> = React.memo(({
             </Text>
             {post.goal && post.goal.trim() && post.goal.trim() !== '.' && (
               <View style={styles.goalRow}>
-                <View style={[styles.goalDot, { backgroundColor: post.goalColor || '#10B981' }]} />
+                <View style={[styles.goalDot, { backgroundColor: accentColor }]} />
                 <Text style={styles.metaText}>{post.goal}</Text>
               </View>
             )}
@@ -108,25 +114,23 @@ export const UnifiedPostCard: React.FC<UnifiedPostCardProps> = React.memo(({
 
   return (
     <View style={styles.item}>
-      {/* Left accent rail for Challenge activity posts - inset capsule */}
-      {isActivityChallenge && (
-        <View style={styles.accentRailWrap}>
-          <LinearGradient
-            colors={['#E5C158', '#B8962E']}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-            style={styles.accentRail}
-          />
-        </View>
-      )}
+      {/* Vertical accent line on the left */}
+      <View style={styles.accentLineWrap}>
+        <LinearGradient
+          colors={[accentColor, `${accentColor}50`]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.accentLine}
+        />
+      </View>
 
-      {/* Header row */}
+      {/* Header with avatar and username */}
       <View style={styles.header}>
         <Pressable
           onPress={() => post.userId && onProfilePress?.(post.userId)}
           style={styles.avatarWrap}
         >
-          <View style={[styles.avatar, isActivityChallenge && styles.avatarGold]}>
+          <View style={styles.avatar}>
             {post.avatar && post.avatar.startsWith('http') ? (
               <Image source={{ uri: post.avatar }} style={styles.avatarImage} />
             ) : (
@@ -136,35 +140,35 @@ export const UnifiedPostCard: React.FC<UnifiedPostCardProps> = React.memo(({
         </Pressable>
 
         <View style={styles.headerText}>
-          <View style={styles.nameRow}>
-            <Text style={styles.userName}>{post.user}</Text>
-            {isActivityChallenge && (
-              <View style={styles.challengeChip}>
-                <Text style={styles.challengeChipText}>
-                  🏆 {post.challengeName || 'Challenge'}
-                </Text>
-              </View>
-            )}
-          </View>
-          <Text style={styles.timeText}>{formatTime(post.time)}</Text>
+          <Text style={styles.userName}>{post.user && post.user.trim() !== '.' ? post.user : 'User'}</Text>
+          {isChallenge && post.challengeName && post.challengeName.trim() && post.challengeName.trim() !== '.' && (
+            <View style={styles.challengeChip}>
+              <Text style={styles.challengeChipText}>
+                🏆 {post.challengeName}
+              </Text>
+            </View>
+          )}
         </View>
       </View>
 
       {/* Content */}
       <View style={styles.content}>
-        {isCheckin && (
+        {/* Check-in display */}
+        {isCheckin && post.actionTitle && post.actionTitle.trim() && post.actionTitle.trim() !== '.' && (
           <View style={styles.checkinRow}>
-            <View style={styles.checkIcon}>
+            <View style={[styles.checkIcon, { backgroundColor: accentColor }]}>
               <Check size={14} color="#000" strokeWidth={3} />
             </View>
-            <Text style={styles.actionTitle}>{post.actionTitle || 'Completed action'}</Text>
+            <Text style={styles.actionTitle}>{post.actionTitle}</Text>
           </View>
         )}
 
+        {/* Regular text post */}
         {post.content && post.content.trim() && post.content.trim() !== '.' && !isCheckin && (
           <Text style={styles.postText}>{post.content}</Text>
         )}
 
+        {/* Photo */}
         {isPhoto && post.mediaUrl && (
           <View style={styles.mediaWrap}>
             <Image
@@ -175,16 +179,34 @@ export const UnifiedPostCard: React.FC<UnifiedPostCardProps> = React.memo(({
           </View>
         )}
 
+        {/* Photo caption */}
         {isPhoto && post.content && post.content.trim() && post.content.trim() !== '.' && (
           <Text style={styles.caption}>{post.content}</Text>
         )}
 
-        {post.goal && post.goal.trim() && post.goal.trim() !== '.' && !isCheckin && (
-          <View style={styles.goalRow}>
-            <View style={[styles.goalDot, { backgroundColor: post.goalColor || '#10B981' }]} />
-            <Text style={styles.metaText}>{post.goal}</Text>
-          </View>
-        )}
+        {/* Meta info row - time, streak, goal badge */}
+        <View style={styles.metaRow}>
+          {post.time && (
+            <View style={styles.metaBadge}>
+              <Clock size={12} color="rgba(255,255,255,0.5)" />
+              <Text style={styles.metaBadgeText}>{formatTime(post.time)}</Text>
+            </View>
+          )}
+
+          {streak > 0 && (
+            <View style={styles.metaBadge}>
+              <Flame size={12} color={accentColor} />
+              <Text style={styles.metaBadgeText}>{streak} days</Text>
+            </View>
+          )}
+
+          {post.goal && post.goal.trim() && post.goal.trim() !== '.' && (
+            <View style={[styles.goalBadge, { borderColor: `${accentColor}50` }]}>
+              <View style={[styles.goalDot, { backgroundColor: accentColor }]} />
+              <Text style={[styles.goalBadgeText, { color: accentColor }]}>{post.goal}</Text>
+            </View>
+          )}
+        </View>
       </View>
 
       {/* Engagement */}
@@ -261,71 +283,68 @@ export const UnifiedPostCard: React.FC<UnifiedPostCardProps> = React.memo(({
       <View style={styles.divider} />
     </View>
   );
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.post.id === nextProps.post.id &&
+    prevProps.post.reactionCount === nextProps.post.reactionCount &&
+    prevProps.post.commentCount === nextProps.post.commentCount &&
+    prevProps.post.userReacted === nextProps.post.userReacted &&
+    prevProps.post.comments?.length === nextProps.post.comments?.length
+  );
 });
 
 const styles = StyleSheet.create({
-  // Card container with background and border (matches Profile activity cards)
   item: {
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
     borderRadius: 24,
-    padding: 16,
+    padding: 20,
+    paddingLeft: 28,
     marginHorizontal: 8,
     marginBottom: 12,
     position: 'relative',
   },
 
-  // Left accent rail wrapper - positions the capsule
-  accentRailWrap: {
+  // Vertical accent line on left
+  accentLineWrap: {
     position: 'absolute',
-    left: 4,
-    top: 12,
-    bottom: 12,
+    left: 12,
+    top: 20,
+    bottom: 20,
     width: 4,
-    shadowColor: '#D4AF37',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 4,
   },
 
-  // Accent rail gradient capsule
-  accentRail: {
+  accentLine: {
     flex: 1,
     width: 4,
-    borderRadius: 10,
+    borderRadius: 2,
   },
 
-  // Divider line (hidden now that we have card borders)
   divider: {
     height: 0,
   },
 
-  // Header
+  // Header - compact with avatar + username
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: 12,
+    gap: 10,
   },
 
   avatarWrap: {
-    marginRight: 12,
+    marginRight: 2,
   },
 
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
-  },
-
-  avatarGold: {
-    borderWidth: 2,
-    borderColor: '#D4AF37',
   },
 
   avatarImage: {
@@ -334,19 +353,15 @@ const styles = StyleSheet.create({
   },
 
   avatarEmoji: {
-    fontSize: 20,
+    fontSize: 16,
   },
 
   headerText: {
     flex: 1,
-    paddingTop: 2,
-  },
-
-  nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
     gap: 8,
+    flexWrap: 'wrap',
   },
 
   userName: {
@@ -355,27 +370,20 @@ const styles = StyleSheet.create({
     color: '#F5F5F5',
   },
 
-  // Premium challenge chip
   challengeChip: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: 'rgba(212,175,55,0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(212,175,55,0.25)',
+    borderColor: 'rgba(212,175,55,0.3)',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 12,
+    borderRadius: 10,
   },
 
   challengeChipText: {
     fontSize: 10,
-    color: 'rgba(212,175,55,0.7)',
+    color: '#D4AF37',
     fontWeight: '600',
     letterSpacing: 0.2,
-  },
-
-  timeText: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.35)',
-    marginTop: 2,
   },
 
   // Content
@@ -386,13 +394,13 @@ const styles = StyleSheet.create({
   checkinRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 8,
   },
 
   checkIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#D4AF37',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
@@ -409,10 +417,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: 'rgba(255,255,255,0.9)',
     lineHeight: 22,
+    marginBottom: 8,
   },
 
   mediaWrap: {
-    marginTop: 12,
+    marginTop: 8,
+    marginBottom: 8,
     borderRadius: 16,
     overflow: 'hidden',
   },
@@ -426,21 +436,63 @@ const styles = StyleSheet.create({
   caption: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.7)',
-    marginTop: 10,
+    marginTop: 6,
     lineHeight: 20,
   },
 
-  goalRow: {
+  // Meta info row
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 10,
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+
+  metaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+
+  metaBadgeText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.5)',
+    fontWeight: '500',
+  },
+
+  goalBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 1,
   },
 
   goalDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    marginRight: 8,
+  },
+
+  goalBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+
+  timeText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.35)',
+  },
+
+  goalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
   },
 
   metaText: {
@@ -448,7 +500,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.4)',
   },
 
-  // Engagement - minimal
+  // Engagement
   engagement: {
     flexDirection: 'row',
     gap: 20,
@@ -531,7 +583,7 @@ const styles = StyleSheet.create({
     opacity: 0.25,
   },
 
-  // Celebration - inline minimal
+  // Celebration
   celebrationRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -568,4 +620,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default UnifiedPostCard;
+export default UnifiedPostCardTimeline;

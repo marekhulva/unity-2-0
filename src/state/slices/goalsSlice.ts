@@ -52,7 +52,7 @@ export const createGoalsSlice: StateCreator<GoalsSlice> = (set, get) => ({
       const response = await backendService.getGoals();
       if (response.success) {
         const goals = response.data || [];
-        if (__DEV__) console.log('🟢 [GOALS] Fetched', goals.length, 'goals:', goals.map(g => g.title));
+        if (__DEV__) console.log('🟢 [GOALS] Fetched', goals.length, 'goals:', goals.map(g => `${g.title} (${g.id.substring(0, 8)})`));
         memoryCache.set('goals', goals); // Save for next time
         set({ goals, goalsLoading: false });
       } else {

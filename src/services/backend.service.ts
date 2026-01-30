@@ -547,15 +547,24 @@ class BackendService {
     }
   }
 
-  async getAllUsers() {
+  async getAllUsers(limit?: number) {
     if (isSupabaseBackend()) {
-      const users = await supabaseService.getAllUsers();
+      const users = await supabaseService.getAllUsers(limit);
       return { success: true, data: users };
     } else {
       throw new Error('Get all users not implemented in custom backend');
     }
   }
-  
+
+  async searchUsers(query: string, limit?: number) {
+    if (isSupabaseBackend()) {
+      const users = await supabaseService.searchUsers(query, limit);
+      return { success: true, data: users };
+    } else {
+      throw new Error('Search users not implemented in custom backend');
+    }
+  }
+
   // Challenge methods
   async getCircleChallenges(circleId: string) {
     if (isSupabaseBackend()) {

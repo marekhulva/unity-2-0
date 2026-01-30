@@ -136,18 +136,28 @@ class SupabaseService {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
+      const seenIds = new Set<string>();
+      const uniqueData = (data || []).filter(goal => {
+        if (seenIds.has(goal.id)) {
+          if (__DEV__) console.warn('🟡 [SUPABASE] Duplicate goal ID detected:', goal.id, goal.title);
+          return false;
+        }
+        seenIds.add(goal.id);
+        return true;
+      });
+
       if (error) {
         if (__DEV__) console.error('🔴 [SUPABASE] Error fetching goals:', error);
         throw error;
       }
-      
-      if (__DEV__) console.log('🟢 [SUPABASE] Retrieved', data?.length || 0, 'goals from database');
+
+      if (__DEV__) console.log('🟢 [SUPABASE] Retrieved', uniqueData?.length || 0, 'unique goals from database');
 
       // Calculate consistency for ALL goals in one batch (2 queries total)
       const consistencyResults = await this.getBulkGoalConsistency(user.id);
 
       // Map consistency results to goals
-      const goalsWithConsistency = (data || []).map((goal) => {
+      const goalsWithConsistency = uniqueData.map((goal) => {
         const result = consistencyResults[goal.id] || { consistency: 0, status: 'On Track' as const };
 
         return {
@@ -240,9 +250,6 @@ class SupabaseService {
         if (__DEV__) console.error('Error fetching daily actions:', error);
         throw error;
       }
-
-      // LOG RAW DATABASE RESPONSE TO DEBUG
-      if (__DEV__) console.log('🔴 [RAW DB RESPONSE] First action:', JSON.stringify(data?.[0], null, 2));
 
       // Check if completed_at is TODAY for each action
       const today = new Date();
@@ -2124,6 +2131,17 @@ class SupabaseService {
 
     if (__DEV__) console.log(`✅ [SUPABASE] Found ${posts?.length || 0} posts for user`);
 
+    // Debug: Log posts with media_url
+    posts?.forEach(post => {
+      if (post.media_url) {
+        if (__DEV__) console.log('📸 [SUPABASE] getUserPosts - Found post with media:', {
+          id: post.id,
+          type: post.type,
+          media_url: post.media_url?.substring(0, 50)
+        });
+      }
+    });
+
     // Get reactions and comments for these posts
     const postIds = posts?.map(p => p.id) || [];
 
@@ -2857,7 +2875,7 @@ class SupabaseService {
     return data || [];
   }
 
-  async getAllUsers() {
+  async getAllUsers(limit: number = 15) {
     const { data, error } = await supabase
       .from('profiles')
       .select(`
@@ -2870,11 +2888,40 @@ class SupabaseService {
           name
         )
       `)
-      .order('name');
+      .order('created_at', { ascending: false })
+      .limit(limit);
 
     if (error) throw error;
 
-    // Map the data to include circle_name
+    return (data || []).map(user => ({
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      avatar_url: user.avatar_url,
+      circle_name: user.circles?.name || null
+    }));
+  }
+
+  async searchUsers(query: string, limit: number = 20) {
+    const searchTerm = `%${query}%`;
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select(`
+        id,
+        name,
+        username,
+        avatar_url,
+        circle_id,
+        circles (
+          name
+        )
+      `)
+      .or(`name.ilike.${searchTerm},username.ilike.${searchTerm}`)
+      .limit(limit);
+
+    if (error) throw error;
+
     return (data || []).map(user => ({
       id: user.id,
       name: user.name,

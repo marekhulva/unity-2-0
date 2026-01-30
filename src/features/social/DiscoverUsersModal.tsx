@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Modal, StyleSheet, FlatList, Pressable, Image, TextInput, Platform, Dimensions } from 'react-native';
+import { View, Text, Modal, StyleSheet, FlatList, Pressable, Image, TextInput, Platform, Dimensions, ActivityIndicator } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Search, UserPlus, UserCheck, Users } from 'lucide-react-native';
@@ -23,63 +23,73 @@ interface DiscoverUsersModalProps {
   onClose: () => void;
 }
 
-export const DiscoverUsersModal: React.FC<DiscoverUsersModalProps> = ({ 
-  visible, 
-  onClose 
+export const DiscoverUsersModal: React.FC<DiscoverUsersModalProps> = ({
+  visible,
+  onClose
 }) => {
   const [users, setUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
-  
+
   const currentUserId = useStore(s => s.user?.id);
   const followUser = useStore(s => s.followUser);
   const unfollowUser = useStore(s => s.unfollowUser);
 
   useEffect(() => {
     if (visible) {
-      loadDiscoverableUsers();
+      loadSuggestedUsers();
+      setSearchQuery('');
     }
   }, [visible]);
 
   useEffect(() => {
-    // Filter users based on search query
-    if (searchQuery.trim() === '') {
-      setFilteredUsers(users);
-    } else {
-      const query = searchQuery.toLowerCase();
-      const filtered = users.filter(user => 
-        user.name?.toLowerCase().includes(query) ||
-        user.username?.toLowerCase().includes(query) ||
-        user.circle_name?.toLowerCase().includes(query)
-      );
-      setFilteredUsers(filtered);
+    if (!searchQuery.trim()) {
+      loadSuggestedUsers();
+      return;
     }
-  }, [searchQuery, users]);
 
-  const loadDiscoverableUsers = async () => {
+    const timer = setTimeout(() => {
+      handleSearch(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const loadSuggestedUsers = async () => {
     setLoading(true);
     try {
-      // Get all users except current user
-      const usersResult = await backendService.getAllUsers();
+      const usersResult = await backendService.getAllUsers(15);
       if (usersResult.success && usersResult.data) {
-        // Filter out current user
         const otherUsers = usersResult.data.filter(u => u.id !== currentUserId);
         setUsers(otherUsers);
-        setFilteredUsers(otherUsers);
       }
 
-      // Get current user's following list
       const followingResult = await backendService.getFollowing();
       if (followingResult.success && followingResult.data) {
         const ids = new Set(followingResult.data.map(f => f.following_id));
         setFollowingIds(ids);
       }
     } catch (error) {
-      if (__DEV__) console.error('Failed to load users:', error);
+      if (__DEV__) console.error('Failed to load suggested users:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSearch = async (query: string) => {
+    setSearching(true);
+    try {
+      const searchResult = await backendService.searchUsers(query, 20);
+      if (searchResult.success && searchResult.data) {
+        const otherUsers = searchResult.data.filter(u => u.id !== currentUserId);
+        setUsers(otherUsers);
+      }
+    } catch (error) {
+      if (__DEV__) console.error('Failed to search users:', error);
+    } finally {
+      setSearching(false);
     }
   };
 
@@ -186,18 +196,21 @@ export const DiscoverUsersModal: React.FC<DiscoverUsersModalProps> = ({
             <Search size={18} color="rgba(255,255,255,0.4)" />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search by name or circle..."
+              placeholder="Search by name or username..."
               placeholderTextColor="rgba(255,255,255,0.3)"
               value={searchQuery}
               onChangeText={setSearchQuery}
               autoCapitalize="none"
               autoCorrect={false}
             />
+            {searching && (
+              <ActivityIndicator size="small" color="#FFD700" />
+            )}
           </View>
 
           {/* Users List */}
           <FlatList
-            data={filteredUsers}
+            data={users}
             renderItem={renderUser}
             keyExtractor={(item) => item.id}
             style={styles.list}
@@ -206,8 +219,8 @@ export const DiscoverUsersModal: React.FC<DiscoverUsersModalProps> = ({
             ListEmptyComponent={
               <View style={styles.emptyState}>
                 <Text style={styles.emptyText}>
-                  {loading ? 'Loading users...' : 
-                   searchQuery ? 'No users found' : 'No users to discover'}
+                  {loading || searching ? 'Loading...' :
+                   searchQuery ? 'No users found. Try a different search.' : 'Start typing to search for users'}
                 </Text>
               </View>
             }
