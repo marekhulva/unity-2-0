@@ -335,6 +335,59 @@ class BackendService {
     }
   }
 
+  async findOrCreateDailyProgressPost(userId: string) {
+    if (isSupabaseBackend()) {
+      try {
+        const post = await supabaseService.findOrCreateDailyProgressPost(userId);
+        return { success: true, data: post };
+      } catch (error: any) {
+        if (__DEV__) console.error('🔴 [BACKEND] findOrCreateDailyProgressPost error:', error.message);
+        return { success: false, error: error.message };
+      }
+    } else {
+      return { success: false, error: 'Living Progress Cards not implemented in custom backend' };
+    }
+  }
+
+  async updateDailyProgressPost(
+    postId: string,
+    actionData: {
+      actionId: string;
+      title: string;
+      goalTitle?: string;
+      goalColor?: string;
+      completedAt: string;
+      streak: number;
+    },
+    totalActions: number
+  ) {
+    if (isSupabaseBackend()) {
+      try {
+        const updatedPost = await supabaseService.updateDailyProgressPost(postId, actionData, totalActions);
+        return { success: true, data: updatedPost };
+      } catch (error: any) {
+        if (__DEV__) console.error('🔴 [BACKEND] updateDailyProgressPost error:', error.message);
+        return { success: false, error: error.message };
+      }
+    } else {
+      return { success: false, error: 'Living Progress Cards not implemented in custom backend' };
+    }
+  }
+
+  async removeActionFromDailyProgress(postId: string, actionId: string) {
+    if (isSupabaseBackend()) {
+      try {
+        const result = await supabaseService.removeActionFromDailyProgress(postId, actionId);
+        return { success: true, data: result };
+      } catch (error: any) {
+        if (__DEV__) console.error('🔴 [BACKEND] removeActionFromDailyProgress error:', error.message);
+        return { success: false, error: error.message };
+      }
+    } else {
+      return { success: false, error: 'Living Progress Cards not implemented in custom backend' };
+    }
+  }
+
   async reactToPost(postId: string, emoji: string) {
     if (isSupabaseBackend()) {
       const reaction = await supabaseService.reactToPost(postId, emoji);

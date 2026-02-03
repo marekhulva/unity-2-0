@@ -4,7 +4,7 @@ import { AuthSlice } from './authSlice';
 import { memoryCache } from '../../utils/memoryCache';
 import ChallengeDebugV2 from '../../utils/challengeDebugV2';
 
-export type PostType = 'checkin'|'status'|'photo'|'audio'|'goal'|'celebration';
+export type PostType = 'checkin'|'status'|'photo'|'audio'|'goal'|'celebration'|'daily_progress';
 
 // New visibility model supporting multi-circle posts and Explore
 export interface PostVisibility {
@@ -88,6 +88,20 @@ export type Post = {
     completionTime?: string;
     actionCount?: number;
   };
+  // Living Progress Card fields
+  isDailyProgress?: boolean;
+  progressDate?: string;
+  completedActions?: Array<{
+    actionId: string;
+    title: string;
+    goalTitle?: string;
+    goalColor?: string;
+    completedAt: string;
+    streak: number;
+    order: number;
+  }>;
+  totalActions?: number;
+  actionsToday?: number;
 };
 
 export type SocialSlice = {
@@ -296,7 +310,13 @@ export const createSocialSlice: StateCreator<
           // MAP CELEBRATION FIELDS
           is_celebration: post.is_celebration || false,
           celebration_type: post.celebration_type,
-          metadata: post.metadata ? (typeof post.metadata === 'string' ? JSON.parse(post.metadata) : post.metadata) : undefined
+          metadata: post.metadata ? (typeof post.metadata === 'string' ? JSON.parse(post.metadata) : post.metadata) : undefined,
+          // MAP LIVING PROGRESS CARD FIELDS
+          isDailyProgress: post.is_daily_progress || false,
+          progressDate: post.progress_date,
+          completedActions: post.completed_actions || [],
+          totalActions: post.total_actions,
+          actionsToday: post.actions_today
         };
       };
       
@@ -403,10 +423,27 @@ export const createSocialSlice: StateCreator<
             actionTitle: post.action_title || post.actionTitle,
             goal: post.goal_title || post.goalTitle,
             streak: post.streak,
-            goalColor: post.goal_color || post.goalColor
+            goalColor: post.goal_color || post.goalColor,
+            // MAP CHALLENGE FIELDS
+            isChallenge: post.is_challenge || false,
+            challengeName: post.challenge_name,
+            challengeId: post.challenge_id,
+            challengeProgress: post.challenge_progress,
+            leaderboardPosition: post.leaderboard_position,
+            totalParticipants: post.total_participants,
+            // MAP CELEBRATION FIELDS
+            is_celebration: post.is_celebration || false,
+            celebration_type: post.celebration_type,
+            metadata: post.metadata ? (typeof post.metadata === 'string' ? JSON.parse(post.metadata) : post.metadata) : undefined,
+            // MAP LIVING PROGRESS CARD FIELDS
+            isDailyProgress: post.is_daily_progress || false,
+            progressDate: post.progress_date,
+            completedActions: post.completed_actions || [],
+            totalActions: post.total_actions,
+            actionsToday: post.actions_today
           };
         };
-        
+
         const newPosts = (response.data || []).map(transformPost);
         
         if (type === 'circle') {
@@ -450,13 +487,26 @@ export const createSocialSlice: StateCreator<
   // NEW: Unified feed (circle + following combined)
   fetchUnifiedFeed: async (refresh = false, filter?: string) => {
     if (__DEV__) console.log('🔵 [STORE] fetchUnifiedFeed called, refresh:', refresh, 'filter:', filter);
-    set({ feedLoading: true, feedError: null });
 
     // Use provided filter, or default to null (all circles)
     const feedFilter = filter !== undefined ? filter : null;
 
+    // Check if we have cached feed data
+    const currentFeed = get().unifiedFeed;
+    const hasCachedData = currentFeed.length > 0;
+
     if (refresh) {
-      set({ unifiedFeed: [], unifiedOffset: 0, unifiedHasMore: true, currentFeedFilter: feedFilter });
+      // If we have cached data, keep it visible while loading fresh data
+      // Only set loading=true if we don't have cached data (will show skeleton)
+      if (hasCachedData) {
+        if (__DEV__) console.log('🔄 [STORE] Refreshing feed with cached data visible');
+        set({ unifiedOffset: 0, unifiedHasMore: true, currentFeedFilter: feedFilter });
+      } else {
+        if (__DEV__) console.log('🔄 [STORE] No cached data, showing loading state');
+        set({ feedLoading: true, feedError: null, unifiedFeed: [], unifiedOffset: 0, unifiedHasMore: true, currentFeedFilter: feedFilter });
+      }
+    } else {
+      set({ feedLoading: true, feedError: null });
     }
 
     try {
@@ -510,7 +560,13 @@ export const createSocialSlice: StateCreator<
             totalParticipants: post.total_participants,
             is_celebration: post.is_celebration,
             celebration_type: post.celebration_type,
-            metadata: post.metadata
+            metadata: post.metadata,
+            // MAP LIVING PROGRESS CARD FIELDS
+            isDailyProgress: post.is_daily_progress || false,
+            progressDate: post.progress_date,
+            completedActions: post.completed_actions || [],
+            totalActions: post.total_actions,
+            actionsToday: post.actions_today
           };
         };
 
@@ -593,7 +649,13 @@ export const createSocialSlice: StateCreator<
             totalParticipants: post.total_participants,
             is_celebration: post.is_celebration,
             celebration_type: post.celebration_type,
-            metadata: post.metadata
+            metadata: post.metadata,
+            // MAP LIVING PROGRESS CARD FIELDS
+            isDailyProgress: post.is_daily_progress || false,
+            progressDate: post.progress_date,
+            completedActions: post.completed_actions || [],
+            totalActions: post.total_actions,
+            actionsToday: post.actions_today
           };
         };
 
@@ -769,18 +831,21 @@ export const createSocialSlice: StateCreator<
           circleIds: postData.circleIds,
         })
       };
-      
+
+      if (__DEV__) console.log('📸 [SOCIAL-SLICE] Sending to backend - type:', backendData.type, 'mediaUrl:', backendData.mediaUrl?.substring(0, 50));
       ChallengeDebugV2.checkpoint('CP4-BACKEND-CALL', 'Data sent to backendService.createPost', backendData);
       
       if (__DEV__) console.log('📤 [FEED] Calling backendService.createPost with circleId:', circleId, 'isChallenge:', postData.isChallenge);
       const response = await backendService.createPost(backendData);
       
-      if (__DEV__) console.log('📥 [FEED] Backend response:', { 
-        success: response.success, 
+      if (__DEV__) console.log('📥 [FEED] Backend response:', {
+        success: response.success,
         dataId: response.data?.id,
-        error: response.error 
+        type: response.data?.type,
+        mediaUrl: response.data?.media_url?.substring(0, 50),
+        error: response.error
       });
-      
+
       if (response.success && response.data) {
         // Don't clear cache immediately - we're handling the update optimistically
         
@@ -803,6 +868,8 @@ export const createSocialSlice: StateCreator<
           streak: response.data.streak,
           goalColor: response.data.goalColor || response.data.goal_color
         };
+
+        if (__DEV__) console.log('📸 [SOCIAL-SLICE] Created realPost - type:', realPost.type, 'photoUri:', realPost.photoUri?.substring(0, 50), 'mediaUrl:', realPost.mediaUrl?.substring(0, 50));
         
         if (__DEV__) console.log('🔄 [FEED] Replacing optimistic post', optimisticPost.id, 'with real post', realPost.id);
         set((s) => {

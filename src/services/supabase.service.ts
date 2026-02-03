@@ -1668,6 +1668,7 @@ class SupabaseService {
             is_challenge, challenge_name, challenge_id, challenge_progress,
             leaderboard_position, total_participants,
             is_celebration, celebration_type, metadata,
+            is_daily_progress, progress_date, completed_actions, total_actions, actions_today, updated_at,
             post_reactions!left(user_id),
             post_comments!left(id, content, user_id, created_at)
           `)
@@ -1765,6 +1766,7 @@ class SupabaseService {
           is_challenge, challenge_name, challenge_id, challenge_progress,
           leaderboard_position, total_participants,
           is_celebration, celebration_type, metadata,
+          is_daily_progress, progress_date, completed_actions, total_actions, actions_today, updated_at,
           post_reactions!left(user_id),
           post_comments!left(id, content, user_id, created_at)
         `)
@@ -2105,6 +2107,199 @@ class SupabaseService {
       leaderboardPosition: data.leaderboard_position,
       totalParticipants: data.total_participants
     };
+  }
+
+  async findOrCreateDailyProgressPost(userId: string) {
+    if (__DEV__) console.log(`📊 [SUPABASE] Finding or creating daily progress post for user: ${userId}`);
+
+    const today = new Date().toISOString().split('T')[0];
+    if (__DEV__) console.log(`📅 [SUPABASE] Today's date: ${today}`);
+
+    if (__DEV__) console.log(`🔍 [SUPABASE] Searching for existing daily progress post...`);
+    const { data: existing, error: findError } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('progress_date', today)
+      .eq('is_daily_progress', true)
+      .single();
+
+    if (__DEV__) console.log(`🔍 [SUPABASE] Search result - data:`, existing ? 'FOUND' : 'NOT FOUND', 'error:', findError);
+
+    if (existing && !findError) {
+      if (__DEV__) console.log(`✅ [SUPABASE] Found existing daily progress post:`, existing.id);
+      return existing;
+    }
+
+    if (__DEV__) console.log(`📝 [SUPABASE] Creating new daily progress post for ${today}`);
+
+    const insertData = {
+      user_id: userId,
+      type: 'daily_progress',
+      is_daily_progress: true,
+      progress_date: today,
+      completed_actions: [],
+      total_actions: 0,
+      actions_today: 0,
+      content: '',
+      visibility: 'circle',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    if (__DEV__) console.log(`📤 [SUPABASE] Insert payload:`, JSON.stringify(insertData, null, 2));
+
+    const { data: newPost, error: createError } = await supabase
+      .from('posts')
+      .insert(insertData)
+      .select()
+      .single();
+
+    if (__DEV__) console.log(`📥 [SUPABASE] Insert response - data:`, newPost ? 'SUCCESS' : 'NULL', 'error:', createError);
+
+    if (createError) {
+      if (__DEV__) console.error('❌ [SUPABASE] Error creating daily progress post:', createError);
+      if (__DEV__) console.error('❌ [SUPABASE] Error details:', JSON.stringify(createError, null, 2));
+      throw createError;
+    }
+
+    if (__DEV__) console.log(`✅ [SUPABASE] Created new daily progress post:`, newPost.id);
+    if (__DEV__) console.log(`✅ [SUPABASE] New post data:`, JSON.stringify(newPost, null, 2));
+    return newPost;
+  }
+
+  async updateDailyProgressPost(
+    postId: string,
+    actionData: {
+      actionId: string;
+      title: string;
+      goalTitle?: string;
+      goalColor?: string;
+      completedAt: string;
+      streak: number;
+    },
+    totalActions: number
+  ) {
+    if (__DEV__) console.log(`🔄 [SUPABASE] Updating daily progress post ${postId} with action:`, actionData.title);
+    if (__DEV__) console.log(`🔄 [SUPABASE] Action data:`, JSON.stringify(actionData, null, 2));
+    if (__DEV__) console.log(`🔄 [SUPABASE] Total actions: ${totalActions}`);
+
+    if (__DEV__) console.log(`🔍 [SUPABASE] Fetching current post data...`);
+    const { data: currentPost, error: fetchError } = await supabase
+      .from('posts')
+      .select('completed_actions')
+      .eq('id', postId)
+      .single();
+
+    if (fetchError) {
+      if (__DEV__) console.error('❌ [SUPABASE] Error fetching current post:', fetchError);
+    }
+
+    const completedActions = currentPost?.completed_actions || [];
+    if (__DEV__) console.log(`📊 [SUPABASE] Current completed actions count: ${completedActions.length}`);
+
+    const existingIndex = completedActions.findIndex(
+      (a: any) => a.actionId === actionData.actionId
+    );
+
+    let updatedActions;
+    if (existingIndex >= 0) {
+      if (__DEV__) console.log(`🔄 [SUPABASE] Action already exists at index ${existingIndex}, updating...`);
+      updatedActions = [...completedActions];
+      updatedActions[existingIndex] = {
+        ...actionData,
+        order: Date.now()
+      };
+    } else {
+      if (__DEV__) console.log(`➕ [SUPABASE] Adding new action to list`);
+      updatedActions = [
+        ...completedActions,
+        {
+          ...actionData,
+          order: Date.now()
+        }
+      ];
+    }
+
+    if (__DEV__) console.log(`📊 [SUPABASE] Updated actions count: ${updatedActions.length}`);
+    if (__DEV__) console.log(`📤 [SUPABASE] Updating post with new data...`);
+
+    const updatePayload = {
+      completed_actions: updatedActions,
+      actions_today: updatedActions.length,
+      total_actions: totalActions,
+      updated_at: new Date().toISOString()
+    };
+    if (__DEV__) console.log(`📤 [SUPABASE] Update payload:`, JSON.stringify(updatePayload, null, 2));
+
+    const { data, error } = await supabase
+      .from('posts')
+      .update(updatePayload)
+      .eq('id', postId)
+      .select()
+      .single();
+
+    if (__DEV__) console.log(`📥 [SUPABASE] Update response - data:`, data ? 'SUCCESS' : 'NULL', 'error:', error);
+
+    if (error) {
+      if (__DEV__) console.error('❌ [SUPABASE] Error updating daily progress post:', error);
+      if (__DEV__) console.error('❌ [SUPABASE] Error details:', JSON.stringify(error, null, 2));
+      throw error;
+    }
+
+    if (__DEV__) console.log(`✅ [SUPABASE] Updated daily progress post. Actions: ${updatedActions.length}/${totalActions}`);
+    if (__DEV__) console.log(`✅ [SUPABASE] Updated post data:`, JSON.stringify(data, null, 2));
+    return data;
+  }
+
+  async removeActionFromDailyProgress(postId: string, actionId: string) {
+    if (__DEV__) console.log(`🗑️ [SUPABASE] Removing action ${actionId} from daily progress post ${postId}`);
+
+    const { data: currentPost } = await supabase
+      .from('posts')
+      .select('completed_actions, total_actions')
+      .eq('id', postId)
+      .single();
+
+    const completedActions = currentPost?.completed_actions || [];
+    const updatedActions = completedActions.filter(
+      (a: any) => a.actionId !== actionId
+    );
+
+    if (updatedActions.length === 0) {
+      if (__DEV__) console.log(`🗑️ [SUPABASE] No actions left, deleting daily progress post`);
+
+      const { error: deleteError } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId);
+
+      if (deleteError) {
+        if (__DEV__) console.error('❌ [SUPABASE] Error deleting daily progress post:', deleteError);
+        throw deleteError;
+      }
+
+      if (__DEV__) console.log(`✅ [SUPABASE] Deleted empty daily progress post`);
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('posts')
+      .update({
+        completed_actions: updatedActions,
+        actions_today: updatedActions.length,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', postId)
+      .select()
+      .single();
+
+    if (error) {
+      if (__DEV__) console.error('❌ [SUPABASE] Error removing action from daily progress:', error);
+      throw error;
+    }
+
+    if (__DEV__) console.log(`✅ [SUPABASE] Removed action. Remaining: ${updatedActions.length}`);
+    return data;
   }
 
   async getUserPosts(userId: string, limit: number = 5) {

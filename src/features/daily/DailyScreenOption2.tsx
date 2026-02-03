@@ -12,6 +12,8 @@ import { Target, Dumbbell, Brain, BookOpen } from 'lucide-react-native';
 import { HapticManager } from '../../utils/haptics';
 import ChallengeDebugV2 from '../../utils/challengeDebugV2';
 import { supabaseService } from '../../services/supabase.service';
+import { featureFlags } from '../../services/featureFlags.service';
+import { backendService } from '../../services/backend.service';
 
 const getCategoryIcon = (title: string, goalTitle?: string) => {
   const text = `${title} ${goalTitle}`.toLowerCase();
@@ -66,7 +68,18 @@ export const DailyScreenOption2 = () => {
 
   useEffect(() => {
     if (__DEV__) console.log('🟦 [DAILY-OPTION2] DailyScreenOption2 mounted');
-    fetchDailyActions();
+
+    // Force refresh feature flags to get latest Living Progress Card setting
+    featureFlags.clearCache();
+    if (__DEV__) console.log('🔄 [DAILY-OPTION2] Cleared feature flags cache');
+
+    // Only fetch if we don't have data yet (already loaded on app init)
+    if (actions.length === 0 && !actionsLoading) {
+      if (__DEV__) console.log('🟦 [DAILY-OPTION2] No actions cached, fetching...');
+      fetchDailyActions();
+    } else {
+      if (__DEV__) console.log('🟦 [DAILY-OPTION2] Using cached actions:', actions.length);
+    }
 
     // Fetch weekly progress
     const loadWeeklyProgress = async () => {
@@ -76,7 +89,7 @@ export const DailyScreenOption2 = () => {
       }
     };
     loadWeeklyProgress();
-  }, [currentUser?.id]);
+  }, [currentUser?.id, actions.length, actionsLoading]);
 
   const sortedActions = useMemo(() => {
     return [...actions].sort((a, b) => {
@@ -133,31 +146,84 @@ export const DailyScreenOption2 = () => {
       circleIds: string[];
     }
   ) => {
+    if (__DEV__) console.log('🎯 [DailyScreen] handlePrivacySelect called:', { selectedAction, visibility, contentType });
     ChallengeDebugV2.startNewFlow();
     ChallengeDebugV2.checkpoint('CP1-DAILY-START', 'Selected action in Daily screen', selectedAction);
 
     if (!selectedAction) return;
 
-    if (selectedAction.isFromChallenge && selectedAction.challengeActivityId) {
-      const isLinkedActivity = selectedAction.id && !selectedAction.id.startsWith('challenge-');
-      const linkedActionId = isLinkedActivity ? selectedAction.id : undefined;
+    // CLOSE MODAL IMMEDIATELY for instant feedback
+    HapticManager.context.actionCompleted();
+    setShowPrivacyModal(false);
+    const actionToComplete = selectedAction; // Capture before clearing
+    setSelectedAction(null);
 
-      const success = await recordCompletion(
-        selectedAction.challengeParticipantId,
-        selectedAction.challengeActivityId,
+    // Check if Living Progress Cards feature is enabled
+    const useLivingProgressCards = await featureFlags.isEnabled('use_living_progress_cards');
+    const user = useStore.getState().user;
+    if (__DEV__) console.log('🎯 [DailyScreen] Feature flag check:', { useLivingProgressCards, userId: user?.id, visibility });
+
+    // DO ALL BACKEND WORK IN BACKGROUND (non-blocking)
+    if (actionToComplete.isFromChallenge && actionToComplete.challengeActivityId) {
+      const isLinkedActivity = actionToComplete.id && !actionToComplete.id.startsWith('challenge-');
+      const linkedActionId = isLinkedActivity ? actionToComplete.id : undefined;
+
+      // Fire and forget - don't await
+      recordCompletion(
+        actionToComplete.challengeParticipantId,
+        actionToComplete.challengeActivityId,
         linkedActionId,
         mediaUri
-      );
+      ).then(success => {
+        if (success) {
+          fetchDailyActions();
+        }
+      });
 
-      if (success) {
-        await fetchDailyActions();
-      }
+      // Still need to create post for challenge completions (legacy flow)
+      // This will also run in background via the code below
+    } else if (useLivingProgressCards && user?.id && visibility !== 'private') {
+      // LIVING PROGRESS CARD FLOW
+      if (__DEV__) console.log('📊 [DailyScreen] Using Living Progress Card flow');
+
+      // Mark action as complete locally (optimistic update)
+      toggleAction(actionToComplete.id);
+
+      // Update Living Progress Card in background
+      backendService.findOrCreateDailyProgressPost(user.id).then(progressPost => {
+        if (progressPost.success && progressPost.data) {
+          const totalActions = actions.length;
+
+          backendService.updateDailyProgressPost(
+            progressPost.data.id,
+            {
+              actionId: actionToComplete.id,
+              title: actionToComplete.title,
+              goalTitle: actionToComplete.goalTitle,
+              goalColor: actionToComplete.goalColor,
+              completedAt: new Date().toISOString(),
+              streak: (actionToComplete.streak || 0) + 1,
+            },
+            totalActions
+          ).then(() => {
+            if (__DEV__) console.log('✅ [DailyScreen] Updated Living Progress Card');
+            useStore.getState().fetchUnifiedFeed(true);
+            if (__DEV__) console.log('🔄 [DailyScreen] Refreshed unified feed');
+          }).catch(error => {
+            if (__DEV__) console.error('❌ [DailyScreen] Failed to update Living Progress Card:', error);
+          });
+        }
+      });
+
+      // Skip legacy post creation for Living Progress Cards
+      return;
     } else {
-      toggleAction(selectedAction.id);
+      // LEGACY FLOW - non-challenge action
+      if (__DEV__) console.log('📝 [DailyScreen] Using legacy individual post flow');
+      toggleAction(actionToComplete.id);
     }
 
-    HapticManager.context.actionCompleted();
-
+    // Legacy post creation (for non-Living Progress Card actions)
     const actionType = contentType === 'text' ? 'milestone' : 'check';
     const finalMediaUrl = mediaUri || (contentType === 'photo'
       ? `https://picsum.photos/400/400?random=${Date.now()}`
@@ -165,52 +231,50 @@ export const DailyScreenOption2 = () => {
     const isPrivate = newVisibility ? newVisibility.isPrivate : visibility === 'private';
 
     addCompletedAction({
-      id: `${selectedAction.id}-${Date.now()}`,
-      actionId: selectedAction.id,
-      title: selectedAction.title,
-      goalTitle: selectedAction.goalTitle,
+      id: `${actionToComplete.id}-${Date.now()}`,
+      actionId: actionToComplete.id,
+      title: actionToComplete.title,
+      goalTitle: actionToComplete.goalTitle,
       completedAt: new Date(),
       isPrivate,
-      streak: selectedAction.streak || 0,
+      streak: actionToComplete.streak || 0,
       type: actionType,
       mediaUrl: finalMediaUrl,
       category: 'fitness',
     });
 
+    // Post creation happens in background with optimistic updates
     if (!isPrivate) {
-      try {
-        const postData = {
-          type: actionType === 'check' ? 'checkin' : 'milestone',
-          visibility: visibility,
-          content: content || `Completed: ${selectedAction.title}`,
-          actionTitle: selectedAction.title,
-          goal: selectedAction.goalTitle,
-          goalColor: selectedAction.goalColor,
-          streak: selectedAction.streak || 0,
-          photoUri: contentType === 'photo' ? finalMediaUrl : undefined,
-          audioUri: contentType === 'audio' ? finalMediaUrl : undefined,
-          mediaUrl: finalMediaUrl,
-          isChallenge: selectedAction.isFromChallenge || false,
-          challengeName: selectedAction.challengeName,
-          challengeId: selectedAction.challengeId,
-          challengeActivityId: selectedAction.challengeActivityId,
-          ...(newVisibility && {
-            isPrivate: newVisibility.isPrivate,
-            isExplore: newVisibility.isExplore,
-            isNetwork: newVisibility.isNetwork,
-            circleIds: newVisibility.circleIds,
-          }),
-        };
+      const postData = {
+        type: actionType === 'check' ? 'checkin' : 'milestone',
+        visibility: visibility,
+        content: content || `Completed: ${actionToComplete.title}`,
+        actionTitle: actionToComplete.title,
+        goal: actionToComplete.goalTitle,
+        goalColor: actionToComplete.goalColor,
+        streak: actionToComplete.streak || 0,
+        photoUri: contentType === 'photo' ? finalMediaUrl : undefined,
+        audioUri: contentType === 'audio' ? finalMediaUrl : undefined,
+        mediaUrl: finalMediaUrl,
+        isChallenge: actionToComplete.isFromChallenge || false,
+        challengeName: actionToComplete.challengeName,
+        challengeId: actionToComplete.challengeId,
+        challengeActivityId: actionToComplete.challengeActivityId,
+        ...(newVisibility && {
+          isPrivate: newVisibility.isPrivate,
+          isExplore: newVisibility.isExplore,
+          isNetwork: newVisibility.isNetwork,
+          circleIds: newVisibility.circleIds,
+        }),
+      };
 
-        ChallengeDebugV2.checkpoint('CP2-POST-DATA', 'Post data created in Daily', postData);
-        await addPost(postData);
-      } catch (error) {
+      ChallengeDebugV2.checkpoint('CP2-POST-DATA', 'Post data created in Daily', postData);
+
+      // Don't await - let it happen in background
+      addPost(postData).catch((error) => {
         if (__DEV__) console.error('❌ Failed to save post to database:', error);
-      }
+      });
     }
-
-    setShowPrivacyModal(false);
-    setSelectedAction(null);
   };
 
   const handleRetry = async () => {

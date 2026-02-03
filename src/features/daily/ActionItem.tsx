@@ -16,8 +16,9 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { LuxuryTheme } from '../../design/luxuryTheme';
-// Using the main three-way privacy modal
 import { PrivacySelectionModal } from './PrivacySelectionModal';
+import { featureFlags } from '../../services/featureFlags.service';
+import { backendService } from '../../services/backend.service';
 
 interface ActionItemProps {
   id: string;
@@ -47,22 +48,24 @@ const formatTime = (time?: string) => {
   return `${hours}:${minutes} ${period}`;
 };
 
-export const ActionItem: React.FC<ActionItemProps> = ({ 
-  id, 
-  title, 
-  goalTitle, 
-  done = false, 
+export const ActionItem: React.FC<ActionItemProps> = ({
+  id,
+  title,
+  goalTitle,
+  done = false,
   streak,
   time,
   type = 'goal',
   goalColor
 }) => {
-  if (__DEV__) console.log('ActionItem rendering:', { title, goalTitle, goalColor });
+  if (__DEV__) console.log('🎯 [ActionItem] Rendering:', { id, title, done, goalTitle, goalColor });
   const toggle = useStore(s => s.toggleAction);
   const updateAction = useStore(s => s.updateAction);
   const deleteAction = useStore(s => s.deleteAction);
   const openShare = useStore(s => s.openShare);
   const addCompletedAction = useStore(s => s.addCompletedAction);
+  const user = useStore(s => s.user);
+  const actions = useStore(s => s.actions);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const scaleAnimation = useSharedValue(1);
@@ -107,25 +110,60 @@ export const ActionItem: React.FC<ActionItemProps> = ({
     return <Flame size={12} color={LuxuryTheme.colors.primary.gold} />;
   };
 
-  const handleToggle = () => {
+  const handleToggle = async () => {
+    if (__DEV__) console.log('🎯 [ActionItem] handleToggle called:', { id, title, done });
+
     if (!done) {
       // Show privacy modal when completing an action
-      if (__DEV__) console.log('Opening privacy modal for action:', title);
+      if (__DEV__) console.log('🎯 [ActionItem] Opening privacy modal for action:', title);
       setShowPrivacyModal(true);
       HapticManager.interaction.premiumPress();
+      if (__DEV__) console.log('🎯 [ActionItem] Modal state set to true');
     } else {
-      // Allow unchecking
+      // UNCOMPLETE FLOW
+      if (__DEV__) console.log('🎯 [ActionItem] Uncompleting action');
+      const useLivingProgressCards = await featureFlags.isEnabled('use_living_progress_cards');
+
+      if (useLivingProgressCards && user?.id) {
+        // Find today's Living Progress Card and remove this action
+        if (__DEV__) console.log('📊 [ACTION] Removing action from Living Progress Card');
+
+        try {
+          const progressPost = await backendService.findOrCreateDailyProgressPost(user.id);
+
+          if (progressPost.success && progressPost.data) {
+            await backendService.removeActionFromDailyProgress(
+              progressPost.data.id,
+              id
+            );
+
+            if (__DEV__) console.log('✅ [ACTION] Removed from Living Progress Card');
+          }
+        } catch (error) {
+          if (__DEV__) console.error('❌ [ACTION] Failed to remove from Living Progress Card:', error);
+        }
+      }
+
+      // Standard toggle (works for both flows)
       toggle(id);
       HapticManager.interaction.tap();
     }
   };
 
-  const handlePrivacySelect = (
+  const handlePrivacySelect = async (
     visibility: 'private' | 'public' | 'circle' | 'followers',
     contentType: 'photo' | 'audio' | 'text' | 'check',
     content?: string,
-    mediaUri?: string
+    mediaUri?: string,
+    newVisibility?: {
+      isPrivate: boolean;
+      isExplore: boolean;
+      isNetwork: boolean;
+      circleIds: string[];
+    }
   ) => {
+    if (__DEV__) console.log('🎯 [ActionItem] handlePrivacySelect called:', { id, title, visibility, contentType, content, mediaUri, newVisibility });
+
     // Mark action as complete
     toggle(id);
     if (streak >= 7) {
@@ -133,52 +171,86 @@ export const ActionItem: React.FC<ActionItemProps> = ({
     } else {
       HapticManager.context.actionCompleted();
     }
-    
-    // Map content type to action type
-    const actionType = contentType === 'photo' ? 'photo' :
-                      contentType === 'audio' ? 'audio' :
-                      contentType === 'text' ? 'milestone' : // Text becomes milestone type for variety
-                      'check';
 
-    // Use actual media URI if provided, otherwise generate mock for photos
-    const mediaUrl = mediaUri || (contentType === 'photo'
-      ? `https://picsum.photos/400/400?random=${Date.now()}`
-      : undefined);
-    
-    // Store the completed action with privacy setting and content type
-    // Map 'public' to 'circle' for backward compatibility
-    const mappedVisibility = visibility === 'public' ? 'circle' : visibility;
-    
-    addCompletedAction({
-      id: `${id}-${Date.now()}`,
-      actionId: id,
-      title,
-      goalTitle,
-      completedAt: new Date(),
-      isPrivate: visibility === 'private',
-      visibility: mappedVisibility as any, // Store mapped visibility for social feed
-      streak: streak + 1,
-      type: actionType,
-      mediaUrl,
-      content, // Include any comment/caption provided
-      category: 'fitness', // Could be dynamic based on goal
-    });
-    
-    // If sharing (not private) and not just a check, trigger share modal
-    if (visibility !== 'private' && contentType !== 'check') {
-      setTimeout(() => {
-        openShare({
-          type: 'checkin',
-          visibility: mappedVisibility,
-          actionTitle: title,
-          goal: goalTitle,
-          streak: streak + 1,
-          goalColor: goalColor || LuxuryTheme.colors.primary.gold,
-          contentType,
-        });
-      }, 500);
+    // Check if Living Progress Cards feature is enabled
+    const useLivingProgressCards = await featureFlags.isEnabled('use_living_progress_cards');
+    if (__DEV__) console.log('🎯 [ActionItem] Feature flag check:', { useLivingProgressCards, userId: user?.id, visibility });
+
+    if (useLivingProgressCards && user?.id && visibility !== 'private') {
+      // LIVING PROGRESS CARD FLOW
+      if (__DEV__) console.log('📊 [ACTION] Using Living Progress Card flow');
+
+      try {
+        const progressPost = await backendService.findOrCreateDailyProgressPost(user.id);
+
+        if (progressPost.success && progressPost.data) {
+          const totalActions = actions.length;
+
+          await backendService.updateDailyProgressPost(
+            progressPost.data.id,
+            {
+              actionId: id,
+              title,
+              goalTitle,
+              goalColor,
+              completedAt: new Date().toISOString(),
+              streak: streak + 1,
+            },
+            totalActions
+          );
+
+          if (__DEV__) console.log('✅ [ACTION] Updated Living Progress Card');
+          useStore.getState().fetchUnifiedFeed(true);
+          if (__DEV__) console.log('🔄 [ACTION] Refreshed unified feed');
+        }
+      } catch (error) {
+        if (__DEV__) console.error('❌ [ACTION] Failed to update Living Progress Card:', error);
+      }
+    } else {
+      // LEGACY FLOW - create individual posts
+      if (__DEV__) console.log('📝 [ACTION] Using legacy individual post flow');
+
+      const actionType = contentType === 'photo' ? 'photo' :
+                        contentType === 'audio' ? 'audio' :
+                        contentType === 'text' ? 'milestone' :
+                        'check';
+
+      const mediaUrl = mediaUri || (contentType === 'photo'
+        ? `https://picsum.photos/400/400?random=${Date.now()}`
+        : undefined);
+
+      const mappedVisibility = visibility === 'public' ? 'circle' : visibility;
+
+      addCompletedAction({
+        id: `${id}-${Date.now()}`,
+        actionId: id,
+        title,
+        goalTitle,
+        completedAt: new Date(),
+        isPrivate: visibility === 'private',
+        visibility: mappedVisibility as any,
+        streak: streak + 1,
+        type: actionType,
+        mediaUrl,
+        content,
+        category: 'fitness',
+      });
+
+      if (visibility !== 'private' && contentType !== 'check') {
+        setTimeout(() => {
+          openShare({
+            type: 'checkin',
+            visibility: mappedVisibility,
+            actionTitle: title,
+            goal: goalTitle,
+            streak: streak + 1,
+            goalColor: goalColor || LuxuryTheme.colors.primary.gold,
+            contentType,
+          });
+        }, 500);
+      }
     }
-    
+
     setShowPrivacyModal(false);
   };
 

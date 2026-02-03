@@ -39,6 +39,7 @@ import { JoinCircleModal } from './JoinCircleModal';
 import { DiscoverUsersModal } from './DiscoverUsersModal';
 import { UnifiedPostCard } from './UnifiedPostCard';
 import { UnifiedPostCardTimeline } from './UnifiedPostCardTimeline';
+import { LivingProgressCard } from './components/LivingProgressCard';
 import { ProfileScreen } from '../profile/ProfileScreenVision';
 import { CircleSelector, FEED_ALL, FEED_FOLLOWING } from '../circles/components/CircleSelector';
 import { ChallengeCard } from '../challenges/ChallengeCard';
@@ -195,6 +196,12 @@ export const SocialScreenUnified = () => {
   }, []);
 
   const renderPost = useCallback(({ item }: { item: Post }) => {
+    // Render Living Progress Card for daily_progress posts
+    if (item.type === 'daily_progress' && item.isDailyProgress) {
+      return <LivingProgressCard post={item} />;
+    }
+
+    // Render regular post cards
     const CardComponent = USE_TIMELINE_CARDS ? UnifiedPostCardTimeline : UnifiedPostCard;
 
     return (
