@@ -261,9 +261,26 @@ export const ChallengesScreenVision = () => {
   } = useStore();
 
   useEffect(() => {
-    fetchGlobalChallenges();
-    fetchAllUserCircleChallenges();
-    fetchMyActiveChallenges();
+    // Check if we have cached data
+    const hasCachedData = globalChallenges.length > 0 || activeChallenges.length > 0;
+
+    if (hasCachedData) {
+      if (__DEV__) console.log('🟢 [CHALLENGES] Using cached data - Global:', globalChallenges.length, 'Active:', activeChallenges.length);
+      // Fetch fresh data in background without showing loading state
+      Promise.all([
+        fetchGlobalChallenges(),
+        fetchAllUserCircleChallenges(),
+        fetchMyActiveChallenges(),
+      ]).then(() => {
+        if (__DEV__) console.log('✅ [CHALLENGES] Background refresh complete');
+      });
+    } else {
+      if (__DEV__) console.log('🔄 [CHALLENGES] No cached data, fetching...');
+      // First load - will show loading state
+      fetchGlobalChallenges();
+      fetchAllUserCircleChallenges();
+      fetchMyActiveChallenges();
+    }
   }, []);
 
   useEffect(() => {

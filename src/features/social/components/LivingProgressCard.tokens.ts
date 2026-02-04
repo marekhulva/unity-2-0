@@ -80,6 +80,11 @@ export const LivingProgressCardTokens = {
       background: 'rgba(255, 255, 255, 0.15)',
       progress: '#E7B43A',
     },
+    // Breathing room for visual alignment with header
+    containerMargin: {
+      top: -2,
+      right: 4,
+    },
   },
 
   // Perfect Day - HTML values 1:1
@@ -161,9 +166,10 @@ export const LivingProgressCardTokens = {
     strokeWidth: 2,
   },
 
-  // Debug outlines
+  // Debug outlines - set enabled to true during development only
+  // IMPORTANT: Must be false for production builds
   debug: {
-    enabled: true,
+    enabled: __DEV__ && false, // Change to true to enable debug borders
     colors: {
       card: 'red',
       header: 'blue',

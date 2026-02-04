@@ -24,7 +24,9 @@ export const useStore = create<RootState>()(
         // Daily actions data
         'actions', 'completedActions',
         // Social feeds
-        'circleFeed', 'followFeed', 'posts',
+        'circleFeed', 'followFeed', 'posts', 'unifiedFeed',
+        // Challenges
+        'globalChallenges', 'circleChallenges', 'activeChallenges',
         // UI preferences
         'feedView',
         // Circles

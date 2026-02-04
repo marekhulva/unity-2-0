@@ -134,7 +134,8 @@ export const createPersist = <T extends object>(
     // Load initial state
     loadPersistedState().then(persistedState => {
       if (persistedState) {
-        set(persistedState as any, true);
+        // Merge persisted state with initial state (don't replace functions)
+        set(persistedState as any, false);
       }
     });
 

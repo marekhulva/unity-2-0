@@ -244,7 +244,12 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({ post }) 
         <View
           style={[
             styles.progressRingContainer,
-            { width: ringConfig.size, height: ringConfig.size },
+            {
+              width: ringConfig.size,
+              height: ringConfig.size,
+              marginTop: tokens.progressRing.containerMargin.top,
+              marginRight: tokens.progressRing.containerMargin.right,
+            },
             debugBorder(tokens.debug.colors.ring)
           ]}
         >

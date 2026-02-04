@@ -1,11 +1,12 @@
 import React from 'react';
-import { Modal, View, Text, StyleSheet, Pressable, TextInput, Image, Platform, Dimensions, KeyboardAvoidingView, ScrollView } from 'react-native';
+import { Modal, View, Text, StyleSheet, Pressable, TextInput, Image, Platform, Dimensions, KeyboardAvoidingView, ScrollView, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
 import { GlassSurface } from '../../ui/GlassSurface';
 import { useStore } from '../../state/rootStore';
 import { Visibility } from '../../state/slices/socialSlice';
 import { getVisibilityLabel, getVisibilityIcon } from '../../utils/visibilityMapper';
+import { FEED_ALL } from '../circles/components/CircleSelector';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -161,11 +162,14 @@ export const ShareComposer: React.FC = () => {
     
     // Call the async addPost function to save to backend
     await addPost(post as any);
-    
-    // Fetch updated feeds to show the new post
-    const fetchFeeds = useStore.getState().fetchFeeds;
-    await fetchFeeds();
-    
+
+    // Fetch updated unified feed to show the new post
+    const fetchUnifiedFeed = useStore.getState().fetchUnifiedFeed;
+    const activeCircleId = useStore.getState().activeCircleId;
+    await fetchUnifiedFeed(true, activeCircleId || FEED_ALL);
+
+    if (__DEV__) console.log('✅ [SHARE-COMPOSER] Post published and feed refreshed');
+
     // show in selected tab
     setFeedView(visibility);
     close();

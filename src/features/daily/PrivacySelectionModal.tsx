@@ -55,6 +55,15 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
     }
   }, [visible, TEST_NEW_UI, fetchUserCircles]);
 
+  // Initialize all circles as checked when modal opens
+  useEffect(() => {
+    if (visible && userCircles && userCircles.length > 0) {
+      const allCircleIds = new Set(userCircles.map(c => c.id));
+      setSelectedCircleIds(allCircleIds);
+      if (__DEV__) console.log('🔵 Initialized all circles as checked:', allCircleIds);
+    }
+  }, [visible, userCircles]);
+
   const [selectedMedia, setSelectedMedia] = useState<'photo' | 'audio' | null>(null);
   const [showCommentInput, setShowCommentInput] = useState(false);
   const [selectedPrivacy, setSelectedPrivacy] = useState<'private' | 'circle' | 'followers'>('circle');
@@ -67,15 +76,14 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
   const recordingRef = useRef<Audio.Recording | null>(null);
 
   // NEW: State for integrated circle selection
-  const [isPrivate, setIsPrivate] = useState(false);
-  const [isNetwork, setIsNetwork] = useState(false);
-  const [isExplore, setIsExplore] = useState(false);
   const [selectedCircleIds, setSelectedCircleIds] = useState<Set<string>>(new Set());
+  const [includeFollowers, setIncludeFollowers] = useState(true); // Default: followers included
+  const [isSubmitting, setIsSubmitting] = useState(false); // Prevent duplicate submissions
 
   // Keyboard toolbar hook for Android/Web
   const { keyboardHeight, isKeyboardVisible, toolbarStyle } = useKeyboardToolbar();
 
-  const handleContentSelect = async (content: 'photo' | 'audio' | 'text' | 'check') => {
+  const handleContentSelect = async (content: 'photo' | 'check') => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -97,50 +105,27 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
         }
       }
 
-      // For iOS, we might want to use camera instead of library for better compatibility
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: Platform.OS === 'ios' ? 0.5 : 0.8, // Lower quality on iOS to avoid memory issues
-        base64: false, // Don't include base64 to save memory
-        exif: false, // Don't include EXIF data
+        quality: Platform.OS === 'ios' ? 0.5 : 0.8,
+        base64: false,
+        exif: false,
       });
 
       if (!result.canceled && result.assets[0]) {
-        // On iOS, ensure the URI is properly formatted
         let photoUri = result.assets[0].uri;
-        if (Platform.OS === 'ios') {
-          // iOS URIs sometimes need adjustment
-          if (__DEV__) console.log('iOS Photo URI:', photoUri);
+        if (Platform.OS === 'ios' && __DEV__) {
+          console.log('iOS Photo URI:', photoUri);
         }
         setPhotoUri(photoUri);
         setSelectedMedia('photo');
-        setShowCommentInput(true); // Show comment input with photo
       }
     }
-    // Handle audio selection
-    else if (content === 'audio') {
-      if (isRecording) {
-        // Stop recording
-        await stopRecording();
-      } else {
-        // Start recording
-        await startRecording();
-      }
-      setSelectedMedia('audio');
-      setShowCommentInput(true); // Show comment input with audio
-    }
-    // Handle text-only comment
-    else if (content === 'text') {
-      setSelectedMedia(null);
-      setShowCommentInput(true);
-    }
-    // Handle just check (no media, no comment)
+    // Handle just check
     else {
       setSelectedMedia(null);
-      setShowCommentInput(false);
-      setCommentText('');
     }
   };
 
@@ -259,17 +244,25 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
   };
 
   const handleConfirm = () => {
+    if (__DEV__) console.log('🎯 [PrivacyModal] handleConfirm called');
+
+    // Prevent duplicate submissions
+    if (isSubmitting) {
+      if (__DEV__) console.log('⚠️ [PrivacyModal] Already submitting, ignoring click');
+      return;
+    }
+
+    setIsSubmitting(true);
+
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
 
-    // Determine contentType for backend based on what's selected
-    let contentType: 'photo' | 'audio' | 'text' | 'check';
+    // Determine contentType based on what's selected
+    let contentType: 'photo' | 'text' | 'check';
     if (selectedMedia === 'photo') {
       contentType = 'photo';
-    } else if (selectedMedia === 'audio') {
-      contentType = 'audio';
-    } else if (showCommentInput && commentText.trim()) {
+    } else if (commentText.trim()) {
       contentType = 'text';
     } else {
       contentType = 'check';
@@ -277,50 +270,48 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
 
     // Pass both comment AND media (if they exist)
     const content = commentText.trim() || undefined;
-    const mediaUri = selectedMedia === 'photo' ? photoUri :
-                    selectedMedia === 'audio' ? audioUri :
-                    undefined;
+    const mediaUri = selectedMedia === 'photo' ? photoUri : undefined;
 
     // If using new UI, pass the new visibility model
     const newVisibility = TEST_NEW_UI ? {
-      isPrivate,
-      isExplore,
-      isNetwork,
-      circleIds: Array.from(selectedCircleIds)
+      isPrivate: false, // Removed "Only Me" option
+      isExplore: false, // Removed from UI
+      isNetwork: false, // Not using network-wide sharing
+      circleIds: Array.from(selectedCircleIds),
+      includeFollowers, // Whether to include followers
     } : undefined;
+
+    if (__DEV__) console.log('🎯 [PrivacyModal] Calling onSelect with:', {
+      privacy: selectedPrivacy,
+      contentType,
+      content,
+      mediaUri: mediaUri || undefined,
+      newVisibility
+    });
 
     onSelect(selectedPrivacy, contentType, content, mediaUri || undefined, newVisibility);
 
     // Reset for next time
     setTimeout(() => {
       setSelectedMedia(null);
-      setShowCommentInput(false);
       setSelectedPrivacy('circle');
       setCommentText('');
       setPhotoUri(null);
-      setAudioUri(null);
-      // Reset new UI state
-      setIsPrivate(false);
-      setIsNetwork(false);
-      setIsExplore(false);
-      setSelectedCircleIds(new Set());
+      setIsSubmitting(false);
+      // Don't reset selectedCircleIds or includeFollowers - they'll be re-initialized when modal opens
     }, 200);
   };
 
   const handleClose = () => {
-    // Stop recording if active
-    if (isRecording) {
-      stopRecording();
-    }
     onClose();
     // Reset state after close
     setTimeout(() => {
       setSelectedMedia(null);
-      setShowCommentInput(false);
       setSelectedPrivacy('circle');
       setCommentText('');
       setPhotoUri(null);
-      setAudioUri(null);
+      setIsSubmitting(false);
+      // Don't reset selectedCircleIds or includeFollowers - they'll be re-initialized when modal opens
     }, 200);
   };
 
@@ -328,8 +319,6 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
 
   const contentOptions = [
     { id: 'photo', icon: Camera, label: 'Photo', color: '#FFD700' },
-    { id: 'audio', icon: Mic, label: 'Audio', color: '#C0C0C0' },
-    { id: 'text', icon: MessageSquare, label: 'Comment', color: '#E5E4E2' },
     { id: 'check', icon: Check, label: 'Just Check', color: '#06FFA5' },
   ];
 
@@ -365,9 +354,7 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
                   // Determine if this option is selected
                   const isSelected =
                     (option.id === 'photo' && selectedMedia === 'photo') ||
-                    (option.id === 'audio' && selectedMedia === 'audio') ||
-                    (option.id === 'text' && selectedMedia === null && showCommentInput) ||
-                    (option.id === 'check' && selectedMedia === null && !showCommentInput);
+                    (option.id === 'check' && selectedMedia === null);
                   return (
                     <Pressable
                       key={option.id}
@@ -394,27 +381,24 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
               </View>
             </View>
 
-            {/* Comment Input - Shows for photo, audio, or text */}
-            {showCommentInput && (
-              <View style={styles.commentSection}>
-                <TextInput
-                  style={styles.commentInput}
-                  placeholder={
-                    selectedMedia === 'photo' ? "Add a caption for your photo..." :
-                    selectedMedia === 'audio' ? "Add a caption for your audio..." :
-                    "Add a note about your progress..."
-                  }
-                  placeholderTextColor="rgba(255,255,255,0.3)"
-                  value={commentText}
-                  onChangeText={setCommentText}
-                  multiline
-                  maxLength={200}
-                  autoFocus={!selectedMedia} // Only auto-focus for text-only
-                  inputAccessoryViewID={Platform.OS === 'ios' ? 'privacy-modal-toolbar' : undefined}
-                />
-                <Text style={styles.charCount}>{commentText.length}/200</Text>
-              </View>
-            )}
+            {/* Comment Input - Always visible, optional */}
+            <View style={styles.commentSection}>
+              <TextInput
+                style={styles.commentInput}
+                placeholder={
+                  selectedMedia === 'photo'
+                    ? "Add a caption... (optional)"
+                    : "Add a note... (optional)"
+                }
+                placeholderTextColor="rgba(255,255,255,0.3)"
+                value={commentText}
+                onChangeText={setCommentText}
+                multiline
+                maxLength={200}
+                inputAccessoryViewID={Platform.OS === 'ios' ? 'privacy-modal-toolbar' : undefined}
+              />
+              <Text style={styles.charCount}>{commentText.length}/200</Text>
+            </View>
 
             {/* Photo Preview - Shows when photo is selected */}
             {selectedMedia === 'photo' && photoUri && (
@@ -425,7 +409,6 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
                   onPress={() => {
                     setPhotoUri(null);
                     setSelectedMedia(null);
-                    setShowCommentInput(false);
                   }}
                 >
                   <X size={16} color="#FFFFFF" />
@@ -433,48 +416,6 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
               </View>
             )}
 
-            {/* Audio Recording UI - Shows when audio is selected */}
-            {selectedMedia === 'audio' && (
-              <View style={styles.mediaSection}>
-                {isRecording ? (
-                  <View style={styles.recordingContainer}>
-                    <View style={styles.recordingIndicator}>
-                      <View style={styles.recordingDot} />
-                      <Text style={styles.recordingText}>Recording... {recordingDuration}s</Text>
-                    </View>
-                    <Pressable
-                      style={styles.stopButton}
-                      onPress={() => stopRecording()}
-                    >
-                      <Text style={styles.stopButtonText}>Stop</Text>
-                    </Pressable>
-                  </View>
-                ) : audioUri ? (
-                  <View style={styles.audioPreview}>
-                    <Mic size={20} color="#C0C0C0" />
-                    <Text style={styles.audioText}>Audio recorded ({recordingDuration}s)</Text>
-                    <Pressable
-                      style={styles.removeMediaButton}
-                      onPress={() => {
-                        setAudioUri(null);
-                        setSelectedMedia(null);
-                        setShowCommentInput(false);
-                      }}
-                    >
-                      <X size={16} color="#FFFFFF" />
-                    </Pressable>
-                  </View>
-                ) : (
-                  <Pressable
-                    style={styles.startRecordingButton}
-                    onPress={() => startRecording()}
-                  >
-                    <Mic size={20} color="#FFD700" />
-                    <Text style={styles.startRecordingText}>Tap to start recording</Text>
-                  </Pressable>
-                )}
-              </View>
-            )}
 
             {/* Privacy Selector - Integrated Circle Selection */}
             <View style={styles.privacySection}>
@@ -484,68 +425,9 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
                   {/* Quick Options */}
                   <Text style={styles.privacySectionLabel}>WHO CAN SEE THIS?</Text>
 
-                  <Pressable
-                    style={[styles.quickOption, isPrivate && styles.quickOptionSelected]}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setIsPrivate(true);
-                      setIsNetwork(false);
-                      setIsExplore(false);
-                      setSelectedCircleIds(new Set());
-                    }}
-                  >
-                    <Lock size={18} color={isPrivate ? '#FFD700' : '#FFF'} />
-                    <Text style={[styles.quickOptionText, isPrivate && styles.quickOptionTextActive]}>
-                      Only Me
-                    </Text>
-                  </Pressable>
-
-                  <Pressable
-                    style={[styles.quickOption, isNetwork && styles.quickOptionSelected]}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setIsNetwork(true);
-                      setIsPrivate(false);
-                      setSelectedCircleIds(new Set());
-                    }}
-                  >
-                    <Users size={18} color={isNetwork ? '#FFD700' : '#FFF'} />
-                    <Text style={[styles.quickOptionText, isNetwork && styles.quickOptionTextActive]}>
-                      My Network (All Circles)
-                    </Text>
-                  </Pressable>
-
-                  {/* Explore Toggle */}
-                  <Pressable
-                    style={[styles.exploreOption, isExplore && styles.exploreOptionActive]}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setIsExplore(!isExplore);
-                      if (!isExplore) {
-                        setIsPrivate(false);
-                      }
-                    }}
-                  >
-                    <View style={[styles.checkbox, isExplore && styles.checkboxChecked]}>
-                      {isExplore && <Check size={14} color="#000" strokeWidth={3} />}
-                    </View>
-                    <MapPin size={18} color={isExplore ? '#FFD700' : '#FFF'} />
-                    <Text style={[styles.quickOptionText, isExplore && styles.quickOptionTextActive]}>
-                      Share to Explore (Discoverable)
-                    </Text>
-                  </Pressable>
-
-                  {/* Debug info */}
-                  <Text style={{ fontSize: 10, color: '#666', marginTop: 8 }}>
-                    DEBUG: {userCircles ? `${userCircles.length} circles found` : 'No circles loaded'}
-                  </Text>
-
-                  {/* Circle Selection */}
+                  {/* Circle Selection - All checked by default */}
                   {userCircles && userCircles.length > 0 ? (
                     <>
-                      <Text style={[styles.privacySectionLabel, { marginTop: 16 }]}>
-                        OR SELECT CIRCLES
-                      </Text>
                       {userCircles.map(circle => {
                         if (__DEV__) console.log('🔵 Rendering circle:', circle.name, circle.id);
                         return (
@@ -564,11 +446,6 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
                               newSet.add(circle.id);
                             }
                             setSelectedCircleIds(newSet);
-                            // Clear other options when selecting circles
-                            if (newSet.size > 0) {
-                              setIsPrivate(false);
-                              setIsNetwork(false);
-                            }
                           }}
                         >
                           <View style={[styles.checkbox, selectedCircleIds.has(circle.id) && styles.checkboxChecked]}>
@@ -583,6 +460,29 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
                           </Text>
                         </Pressable>
                       )})}
+
+                      {/* Followers Checkbox */}
+                      <Pressable
+                        style={[
+                          styles.circleOption,
+                          includeFollowers && styles.circleOptionSelected
+                        ]}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setIncludeFollowers(!includeFollowers);
+                        }}
+                      >
+                        <View style={[styles.checkbox, includeFollowers && styles.checkboxChecked]}>
+                          {includeFollowers && <Check size={14} color="#000" strokeWidth={3} />}
+                        </View>
+                        <Text style={styles.circleEmoji}>👥</Text>
+                        <Text style={[
+                          styles.circleName,
+                          includeFollowers && styles.circleNameSelected
+                        ]}>
+                          Followers
+                        </Text>
+                      </Pressable>
                     </>
                   ) : userCircles ? (
                     <View style={{ marginTop: 16, padding: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 8 }}>
@@ -645,13 +545,13 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
 
               <Text style={styles.privacyHint}>
                 {TEST_NEW_UI ? (
-                  isPrivate ? 'Only you can see this' :
-                  isNetwork && isExplore ? 'Visible to your network and discoverable by everyone' :
-                  isNetwork ? 'Visible to all your circles and followers' :
-                  isExplore && selectedCircleIds.size > 0 ? `Visible to ${selectedCircleIds.size} circle${selectedCircleIds.size > 1 ? 's' : ''} and discoverable` :
-                  isExplore ? 'Discoverable by everyone' :
-                  selectedCircleIds.size > 0 ? `Visible to ${selectedCircleIds.size} selected circle${selectedCircleIds.size > 1 ? 's' : ''}` :
-                  'Select who can see this'
+                  selectedCircleIds.size === 0 && !includeFollowers
+                    ? 'No one selected - post will be private'
+                    : selectedCircleIds.size > 0 && includeFollowers
+                    ? `Visible to ${selectedCircleIds.size} circle${selectedCircleIds.size > 1 ? 's' : ''} and followers`
+                    : selectedCircleIds.size > 0
+                    ? `Visible to ${selectedCircleIds.size} circle${selectedCircleIds.size > 1 ? 's' : ''} only`
+                    : 'Visible to followers only'
                 ) : (
                   selectedPrivacy === 'private' ? 'Only you can see this' :
                   selectedPrivacy === 'circle' ? 'Visible to your close friends' :
@@ -660,18 +560,23 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
               </Text>
             </View>
 
-            {/* Action Buttons - Hide when keyboard is visible and showing comment input */}
-            {!(showCommentInput && isKeyboardVisible) && (
+            {/* Action Buttons - Hide when keyboard is visible */}
+            {!isKeyboardVisible && (
               <View style={styles.actions}>
-                <Pressable onPress={handleClose} style={styles.cancelButton}>
+                <Pressable
+                  onPress={handleClose}
+                  style={styles.cancelButton}
+                  disabled={isSubmitting}
+                >
                   <Text style={styles.cancelText}>Cancel</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleConfirm}
-                  style={styles.confirmButton}
+                  style={[styles.confirmButton, isSubmitting && styles.confirmButtonDisabled]}
+                  disabled={isSubmitting}
                 >
-                  <Text style={styles.confirmText}>
-                    Complete
+                  <Text style={[styles.confirmText, isSubmitting && styles.confirmTextDisabled]}>
+                    {isSubmitting ? 'Posting...' : 'Complete'}
                   </Text>
                 </Pressable>
               </View>
@@ -681,7 +586,7 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
       </View>
 
       {/* iOS Keyboard Toolbar */}
-      {showCommentInput && Platform.OS === 'ios' && (
+      {Platform.OS === 'ios' && (
         <KeyboardToolbar
           nativeID="privacy-modal-toolbar"
           onCancel={() => {
@@ -695,7 +600,7 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
       )}
 
       {/* Android/Web Keyboard Toolbar */}
-      {showCommentInput && Platform.OS !== 'ios' && isKeyboardVisible && (
+      {Platform.OS !== 'ios' && isKeyboardVisible && (
         <View style={toolbarStyle}>
           <KeyboardToolbar
             onCancel={() => {

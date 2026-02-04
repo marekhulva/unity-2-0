@@ -51,6 +51,9 @@ const { width } = Dimensions.get('window');
 // Set to false for safety - flip to true to enable Timeline cards
 const USE_TIMELINE_CARDS = true;
 
+// Tab bar height constant for proper scroll padding
+const TAB_BAR_HEIGHT = 60;
+
 export const SocialScreenUnified = () => {
   const insets = useSafeAreaInsets();
 
@@ -374,7 +377,10 @@ export const SocialScreenUnified = () => {
               }
             }}
             onEndReachedThreshold={0.5}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: TAB_BAR_HEIGHT + insets.bottom }
+            ]}
             removeClippedSubviews={true}
             maxToRenderPerBatch={10}
             windowSize={10}
@@ -472,8 +478,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 120,
     paddingTop: 8,
+    // paddingBottom is set dynamically via contentContainerStyle
   },
   circleSelectorContainer: {
     paddingHorizontal: 16,

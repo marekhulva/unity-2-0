@@ -94,6 +94,7 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+        detachInactiveScreens: false, // Keep all tabs mounted for instant switching
         tabBarBackground: () => (
           <BlurView intensity={80} tint="dark" style={{ flex: 1 }}>
             <LinearGradient
@@ -269,18 +270,40 @@ export function AppWithAuth() {
           if (__DEV__) console.log('🟡 [INIT] New user needs onboarding');
           setShowOnboarding(true);
         } else {
-          if (__DEV__) console.log('🔐 [INIT] Existing user or completed onboarding, fetching initial data...');
-          await Promise.all([
-            fetchGoals(),
-            fetchDailyActions()
-          ]);
-          const goals = useStore.getState().goals;
-          const actions = useStore.getState().actions;
-          if (__DEV__) console.log('🟢 [INIT] Initial data loaded - Goals:', goals.length, 'Actions:', actions.length);
+          // Check if we have cached data
+          const cachedGoals = useStore.getState().goals;
+          const cachedActions = useStore.getState().actions;
+          const hasCachedData = cachedGoals.length > 0 || cachedActions.length > 0;
+
+          if (hasCachedData) {
+            // Show UI immediately with cached data
+            if (__DEV__) console.log('🟢 [INIT] Using cached data - Goals:', cachedGoals.length, 'Actions:', cachedActions.length);
+            setIsLoading(false);
+
+            // Fetch fresh data in background
+            if (__DEV__) console.log('🔄 [INIT] Refreshing data in background...');
+            Promise.all([
+              fetchGoals(),
+              fetchDailyActions()
+            ]).then(() => {
+              if (__DEV__) console.log('✅ [INIT] Background refresh complete');
+            });
+          } else {
+            // No cached data, wait for initial fetch
+            if (__DEV__) console.log('🔐 [INIT] No cached data, fetching initial data...');
+            await Promise.all([
+              fetchGoals(),
+              fetchDailyActions()
+            ]);
+            const goals = useStore.getState().goals;
+            const actions = useStore.getState().actions;
+            if (__DEV__) console.log('🟢 [INIT] Initial data loaded - Goals:', goals.length, 'Actions:', actions.length);
+            setIsLoading(false);
+          }
         }
+      } else {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     };
     initAuth();
   }, []);

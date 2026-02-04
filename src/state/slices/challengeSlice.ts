@@ -54,7 +54,12 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
 
   fetchGlobalChallenges: async () => {
     if (__DEV__) console.log('🌍 [STORE] Fetching global challenges');
-    set({ challengesLoading: true, challengeError: null });
+
+    // Only show loading state if we don't have cached data
+    const hasCachedData = get().globalChallenges.length > 0;
+    if (!hasCachedData) {
+      set({ challengesLoading: true, challengeError: null });
+    }
 
     try {
       const challenges = await supabaseChallengeService.getGlobalChallenges();
@@ -74,7 +79,11 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
 
   fetchCircleChallenges: async (circleId: string) => {
     if (__DEV__) console.log('👥 [STORE] Fetching circle challenges for:', circleId);
-    set({ challengesLoading: true, challengeError: null });
+
+    const hasCachedData = get().circleChallenges.length > 0;
+    if (!hasCachedData) {
+      set({ challengesLoading: true, challengeError: null });
+    }
 
     try {
       const challenges = await supabaseChallengeService.getCircleChallenges(circleId);
@@ -94,7 +103,11 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
 
   fetchAllUserCircleChallenges: async () => {
     if (__DEV__) console.log('👥 [STORE] Fetching all user circle challenges');
-    set({ challengesLoading: true, challengeError: null });
+
+    const hasCachedData = get().circleChallenges.length > 0;
+    if (!hasCachedData) {
+      set({ challengesLoading: true, challengeError: null });
+    }
 
     try {
       const challenges = await supabaseChallengeService.getAllUserCircleChallenges();
@@ -114,7 +127,11 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
 
   fetchMyActiveChallenges: async () => {
     if (__DEV__) console.log('📋 [STORE] Fetching my active challenges');
-    set({ challengesLoading: true });
+
+    const hasCachedData = get().activeChallenges.length > 0;
+    if (!hasCachedData) {
+      set({ challengesLoading: true });
+    }
 
     try {
       const challenges = await supabaseChallengeService.getMyActiveChallenges();

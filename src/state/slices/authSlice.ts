@@ -194,32 +194,42 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
       if (__DEV__) console.log('  - Supabase user ID:', supabaseUser?.id || 'none');
       
       if (session && supabaseUser) {
-        // Fetch profile data to get avatar
+        // Check if we have cached user profile
+        const cachedUser = get().user;
+        const hasCachedProfile = cachedUser && cachedUser.id === supabaseUser.id;
+
         let avatarUrl = null;
         let displayName = null;
-        try {
-          if (__DEV__) console.log('🔵 [AUTH] Fetching profile from database for user:', supabaseUser.id);
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('avatar_url, name')
-            .eq('id', supabaseUser.id)
-            .single();
-          
-          if (profile) {
-            avatarUrl = profile.avatar_url;
-            displayName = profile.name;
-            if (__DEV__) console.log('🔵 [AUTH] Profile found:', {
-              hasAvatar: !!avatarUrl,
-              avatarType: avatarUrl?.startsWith('http') ? 'HTTP URL' : avatarUrl?.startsWith('data:') ? 'BASE64' : 'NONE',
-              displayName: profile.name
-            });
-          } else {
-            if (__DEV__) console.log('🟡 [AUTH] No profile found in database');
-            // Profile should exist from registration/onboarding
-            // If not, user needs to complete onboarding
+
+        if (hasCachedProfile) {
+          // Use cached profile - no DB query needed
+          if (__DEV__) console.log('🟢 [AUTH] Using cached profile for:', supabaseUser.id);
+          avatarUrl = cachedUser.avatar || null;
+          displayName = cachedUser.name;
+        } else {
+          // Fetch profile from database
+          try {
+            if (__DEV__) console.log('🔵 [AUTH] Fetching profile from database for user:', supabaseUser.id);
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('avatar_url, name')
+              .eq('id', supabaseUser.id)
+              .single();
+
+            if (profile) {
+              avatarUrl = profile.avatar_url;
+              displayName = profile.name;
+              if (__DEV__) console.log('🔵 [AUTH] Profile found:', {
+                hasAvatar: !!avatarUrl,
+                avatarType: avatarUrl?.startsWith('http') ? 'HTTP URL' : avatarUrl?.startsWith('data:') ? 'BASE64' : 'NONE',
+                displayName: profile.name
+              });
+            } else {
+              if (__DEV__) console.log('🟡 [AUTH] No profile found in database');
+            }
+          } catch (error) {
+            if (__DEV__) console.log('🔴 [AUTH] Error loading profile:', error);
           }
-        } catch (error) {
-          if (__DEV__) console.log('🔴 [AUTH] Error loading profile:', error);
         }
         
         // Build user object from Supabase data
