@@ -6,8 +6,8 @@ import {
   StyleSheet,
   Pressable,
   ActivityIndicator,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '../../state/rootStore';
@@ -16,8 +16,8 @@ import { supabaseChallengeService } from '../../services/supabase.challenges.ser
 import { LogOut, ChevronRight } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
-// Consistency Circle Component
-const ConsistencyCircle = ({ percentage }: { percentage: number }) => {
+// Consistency Circle Component (Memoized for performance)
+const ConsistencyCircle = React.memo(({ percentage }: { percentage: number }) => {
   const rotation = (percentage / 100) * 360;
 
   return (
@@ -36,7 +36,7 @@ const ConsistencyCircle = ({ percentage }: { percentage: number }) => {
       </View>
     </View>
   );
-};
+});
 
 // Activity Card Component (for What I'm Working On)
 const ActivityCard = ({ item, type }: { item: any; type: 'challenge' | 'goal' | 'routine' }) => {
@@ -131,28 +131,76 @@ export const ProfileScreen: React.FC = () => {
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch user circles, posts, and challenges
+  // Cache for preventing double-fetch on tab switch
+  const [dataCache, setDataCache] = useState<{
+    circles: any[] | null;
+    posts: any[] | null;
+    lastFetch: number | null;
+  }>({
+    circles: null,
+    posts: null,
+    lastFetch: null,
+  });
+
+  // Fetch user circles, posts, and challenges (OPTIMIZED: Parallel + Cached)
   useEffect(() => {
     const fetchData = async () => {
+      const startTime = Date.now();
+
       try {
-        // Fetch challenges from store
-        await fetchMyActiveChallenges();
-        if (__DEV__) console.log('[PROFILE-VISION] Active challenges loaded from store');
+        // Check cache (5 minute expiry)
+        const cacheAge = Date.now() - (dataCache.lastFetch || 0);
+        const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-        // Fetch circles
-        const userCircles = await supabaseService.getUserCircles();
-        setCircles(userCircles || []);
-
-        // Fetch posts (limited to 5 for timeline)
-        if (currentUser?.id) {
-          const posts = await supabaseService.getUserPosts(currentUser.id, 5);
-          setUserPosts(posts || []);
+        if (cacheAge < CACHE_DURATION && dataCache.circles && dataCache.posts) {
+          // Use cached data
+          if (__DEV__) console.log('[PROFILE-VISION] Using cached data');
+          setCircles(dataCache.circles);
+          setUserPosts(dataCache.posts);
+          setLoading(false);
+          return;
         }
 
-        // Load followers/following
-        await loadFollowing();
+        // Fetch ALL data in parallel (not sequential)
+        if (__DEV__) console.log('[PROFILE-VISION] Fetching fresh data in parallel...');
+
+        const [challengesResult, userCircles, posts] = await Promise.all([
+          fetchMyActiveChallenges().catch(err => {
+            if (__DEV__) console.error('[PROFILE-VISION] Error fetching challenges:', err);
+            return null;
+          }),
+          supabaseService.getUserCircles().catch(err => {
+            if (__DEV__) console.error('[PROFILE-VISION] Error fetching circles:', err);
+            return [];
+          }),
+          currentUser?.id
+            ? supabaseService.getUserPosts(currentUser.id, 5).catch(err => {
+                if (__DEV__) console.error('[PROFILE-VISION] Error fetching posts:', err);
+                return [];
+              })
+            : Promise.resolve([]),
+        ]);
+
+        // Load followers/following separately (can happen in background)
+        loadFollowing().catch(err => {
+          if (__DEV__) console.error('[PROFILE-VISION] Error loading following:', err);
+        });
+
+        // Update state
+        setCircles(userCircles || []);
+        setUserPosts(posts || []);
+
+        // Update cache
+        setDataCache({
+          circles: userCircles || [],
+          posts: posts || [],
+          lastFetch: Date.now(),
+        });
+
+        const endTime = Date.now();
+        if (__DEV__) console.log(`[PROFILE-VISION] Profile data loaded in ${endTime - startTime}ms`);
       } catch (error) {
-        if (__DEV__) console.error('Error fetching profile data:', error);
+        if (__DEV__) console.error('[PROFILE-VISION] Error fetching profile data:', error);
       } finally {
         setLoading(false);
       }
@@ -212,7 +260,13 @@ export const ProfileScreen: React.FC = () => {
               />
               <View style={styles.avatarInner}>
                 {currentUser?.avatar ? (
-                  <Image source={{ uri: currentUser.avatar }} style={styles.avatarImage} />
+                  <Image
+                    source={{ uri: currentUser.avatar }}
+                    style={styles.avatarImage}
+                    contentFit="cover"
+                    transition={200}
+                    cachePolicy="memory-disk"
+                  />
                 ) : (
                   <Text style={styles.avatarText}>{currentUser?.name?.charAt(0) || 'U'}</Text>
                 )}
@@ -299,7 +353,9 @@ export const ProfileScreen: React.FC = () => {
                             <Image
                               source={{ uri: post.media_url }}
                               style={styles.photoImage}
-                              resizeMode="cover"
+                              contentFit="cover"
+                              transition={200}
+                              cachePolicy="memory-disk"
                             />
                             <View style={styles.photoBadge}>
                               <Text style={styles.photoBadgeText}>Day {index + 1} 📸</Text>

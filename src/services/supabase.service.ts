@@ -2880,7 +2880,8 @@ class SupabaseService {
 
     if (__DEV__) console.log('🔵 [CIRCLES] Fetching all circles for user:', user.id);
 
-    // Get all circle memberships for the user with emoji and additional fields
+    // OPTIMIZED: Single query with member count using aggregate function
+    // Get all circle memberships with circle data and member counts in one query
     const { data: memberships, error: membershipError } = await supabase
       .from('circle_members')
       .select(`
@@ -2895,7 +2896,8 @@ class SupabaseService {
           is_private,
           created_by,
           created_at,
-          join_code
+          join_code,
+          circle_members!circle_id(count)
         )
       `)
       .eq('user_id', user.id)
@@ -2910,7 +2912,9 @@ class SupabaseService {
     const circles = (memberships || []).map(membership => {
       const circle = membership.circles;
 
-      // Get member count for each circle (we'll need to do this separately)
+      // Extract member count from the aggregate result
+      const memberCount = circle.circle_members?.[0]?.count || 0;
+
       return {
         id: circle.id,
         name: circle.name,
@@ -2918,7 +2922,7 @@ class SupabaseService {
         description: circle.description,
         category: circle.category,
         is_private: circle.is_private || false,
-        member_count: 0, // Will be updated below
+        member_count: memberCount,
         created_by: circle.created_by,
         created_at: circle.created_at,
         joined_at: membership.joined_at,
@@ -2926,29 +2930,7 @@ class SupabaseService {
       };
     });
 
-    // Get member counts for all circles
-    if (circles.length > 0) {
-      const circleIds = circles.map(c => c.id);
-      const { data: counts, error: countError } = await supabase
-        .from('circle_members')
-        .select('circle_id')
-        .in('circle_id', circleIds);
-
-      if (!countError && counts) {
-        // Count members per circle
-        const memberCounts = counts.reduce((acc, member) => {
-          acc[member.circle_id] = (acc[member.circle_id] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>);
-
-        // Update member counts
-        circles.forEach(circle => {
-          circle.member_count = memberCounts[circle.id] || 0;
-        });
-      }
-    }
-
-    if (__DEV__) console.log('✅ [CIRCLES] Found', circles.length, 'circles for user');
+    if (__DEV__) console.log('✅ [CIRCLES] Found', circles.length, 'circles for user (OPTIMIZED: single query)');
     return circles;
   }
 
