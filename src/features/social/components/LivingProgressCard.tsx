@@ -121,28 +121,66 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({ post }) 
     }
   }, [ringConfig.size]);
 
-  // Tile label shortening
-  const getTileLabel = (fullName: string): string => {
-    if (!fullName) return '';
-    let label = fullName.replace(/\s*\([^)]*\)/g, '').trim();
+  // Smart abbreviation rules
+  const applyAbbreviations = (text: string): string => {
+    if (!text) return '';
 
-    if (label.toLowerCase().includes('progress') && label.toLowerCase().includes('photo')) return 'Photo';
-    if (label.toLowerCase().startsWith('take progress')) return 'Photo';
-    if (label.toLowerCase().startsWith('read')) return 'Read';
-    if (label.toLowerCase().includes('breathwork')) return 'Breathwork';
-    if (label.toLowerCase().includes('workout')) return 'Workout';
-    if (label.toLowerCase().includes('journal')) return 'Journal';
+    let abbreviated = text
+      .replace(/\s*\([^)]*\)/g, '')
+      .trim()
+      .replace(/\bgallon(s)?\b/gi, 'gal')
+      .replace(/\bminute(s)?\b/gi, 'min')
+      .replace(/\bsecond(s)?\b/gi, 'sec')
+      .replace(/\bmile(s)?\b/gi, 'mi')
+      .replace(/\bkilometer(s)?\b/gi, 'km')
+      .replace(/\bexercise\b/gi, 'workout')
+      .replace(/\bmeditation\b/gi, 'meditate')
+      .replace(/\bprogress\s+photo/gi, 'photo')
+      .replace(/\btake\s+progress/gi, 'photo');
 
-    const words = label.split(/\s+/);
-    if (words.length === 1) return label.substring(0, 14);
+    if (abbreviated.toLowerCase().includes('breathwork')) return 'Breathwork';
+    if (abbreviated.toLowerCase().startsWith('read')) return 'Read';
+    if (abbreviated.toLowerCase().includes('workout')) return 'Workout';
+    if (abbreviated.toLowerCase().includes('journal')) return 'Journal';
 
-    const firstWord = words[0];
-    if (firstWord.length >= 14) return firstWord.substring(0, 14);
+    return abbreviated;
+  };
 
-    const twoWords = words.slice(0, 2).join(' ');
-    if (twoWords.length <= 14) return twoWords;
+  // Calculate text configuration (font size + number of lines)
+  const getTextConfig = (text: string, maxWidth: number = 160) => {
+    const processedText = applyAbbreviations(text);
 
-    return firstWord.substring(0, 14);
+    const estimateWidth = (str: string, fontSize: number): number => {
+      const avgCharWidthRatio = 0.55;
+      return str.length * fontSize * avgCharWidthRatio;
+    };
+
+    const availableWidth = maxWidth - 24;
+
+    if (estimateWidth(processedText, 16) <= availableWidth) {
+      return { text: processedText, fontSize: 16, numberOfLines: 1, lineHeight: 16 };
+    }
+
+    if (estimateWidth(processedText, 14) <= availableWidth) {
+      return { text: processedText, fontSize: 14, numberOfLines: 1, lineHeight: 14 };
+    }
+
+    if (estimateWidth(processedText, 12) <= availableWidth) {
+      return { text: processedText, fontSize: 12, numberOfLines: 1, lineHeight: 12 };
+    }
+
+    const twoLineWidth = availableWidth * 2;
+    if (estimateWidth(processedText, 12) <= twoLineWidth) {
+      return { text: processedText, fontSize: 12, numberOfLines: 2, lineHeight: 17 };
+    }
+
+    if (estimateWidth(processedText, 11) <= twoLineWidth) {
+      return { text: processedText, fontSize: 11, numberOfLines: 2, lineHeight: 15 };
+    }
+
+    const maxChars = Math.floor((availableWidth * 2) / (11 * 0.55));
+    const truncated = processedText.substring(0, maxChars - 1) + '…';
+    return { text: truncated, fontSize: 11, numberOfLines: 2, lineHeight: 15 };
   };
 
   // Smart tile selection - only show completed actions
@@ -358,7 +396,7 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({ post }) 
           }
 
           const isNewest = index === 0;
-          const label = getTileLabel(slot.action?.title || '');
+          const textConfig = getTextConfig(slot.action?.title || '', tileWidth);
 
           return (
             <TouchableOpacity
@@ -376,12 +414,16 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({ post }) 
                 style={[
                   styles.actionLabel,
                   isNewest && styles.actionLabelNewest,
+                  {
+                    fontSize: textConfig.fontSize,
+                    lineHeight: textConfig.lineHeight,
+                  }
                 ]}
-                numberOfLines={1}
-                ellipsizeMode="clip"
+                numberOfLines={textConfig.numberOfLines}
+                ellipsizeMode="tail"
                 allowFontScaling={false}
               >
-                {label}
+                {textConfig.text}
               </Text>
             </TouchableOpacity>
           );
