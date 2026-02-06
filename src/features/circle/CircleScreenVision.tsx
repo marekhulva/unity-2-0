@@ -11,6 +11,7 @@ import {
   TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle as SvgCircle } from 'react-native-svg';
 import {
@@ -400,49 +401,71 @@ export const CircleScreenVision = () => {
                   <Text style={styles.emptyActivitySubtext}>Be the first to post!</Text>
                 </View>
               ) : (
-                circlePosts.slice(0, 3).map((post, index) => (
-                  <Animated.View
-                    key={post.id}
-                    entering={FadeInDown.delay(index * 100).springify()}
-                  >
-                    <View style={styles.activityItem}>
-                      <View style={styles.activityHeader}>
-                        <View style={styles.activityAvatar}>
-                          <Text style={styles.activityAvatarText}>
-                            {(post.profiles?.username || post.profiles?.name || 'U').substring(0, 2).toUpperCase()}
-                          </Text>
+                <View style={styles.journeyTimeline}>
+                  {/* Timeline vertical line */}
+                  <LinearGradient
+                    colors={['#E7B43A', 'rgba(231,180,58,0)']}
+                    style={styles.timelineLine}
+                  />
+
+                  {circlePosts.slice(0, 3).map((post, index) => {
+                    const isFirstPost = index === 0;
+                    const hasPhoto = post.media_url || post.image_url;
+
+                    return (
+                      <View key={post.id} style={styles.timelineEvent}>
+                        {/* Timeline dot or milestone */}
+                        <View style={isFirstPost ? styles.timelineMilestone : styles.timelineDot}>
+                          {isFirstPost && <Text style={styles.milestoneIcon}>🏆</Text>}
                         </View>
-                        <View style={styles.activityUser}>
-                          <Text style={styles.activityUserName}>
-                            {post.profiles?.username || post.profiles?.name || 'User'}
-                          </Text>
-                          <Text style={styles.activityTime}>
-                            {new Date(post.created_at).toLocaleDateString()}
-                          </Text>
+
+                        {/* Post content */}
+                        <View style={styles.timelineContent}>
+                          {hasPhoto ? (
+                            <View style={styles.timelinePhoto}>
+                              <Image
+                                source={{ uri: post.media_url || post.image_url }}
+                                style={styles.photoImage}
+                                contentFit="cover"
+                                transition={200}
+                                cachePolicy="memory-disk"
+                              />
+                              <View style={styles.photoBadge}>
+                                <Text style={styles.photoBadgeText}>Day {index + 1} 📸</Text>
+                              </View>
+                              <LinearGradient
+                                colors={['transparent', 'rgba(0,0,0,0.85)']}
+                                style={styles.photoOverlay}
+                              >
+                                <Text style={styles.photoDate}>
+                                  {new Date(post.created_at).toLocaleDateString()}
+                                </Text>
+                                <Text style={styles.photoTitle}>{post.action_title || post.content}</Text>
+                                {post.goal_title && (
+                                  <View style={styles.photoMetrics}>
+                                    <Text style={styles.metricText}>🎯 {post.goal_title}</Text>
+                                  </View>
+                                )}
+                              </LinearGradient>
+                            </View>
+                          ) : (
+                            <View style={styles.timelineText}>
+                              <Text style={styles.timelineDate}>
+                                {new Date(post.created_at).toLocaleDateString()}
+                              </Text>
+                              <Text style={styles.timelineTitle}>
+                                {post.action_title || post.content || 'Post'}
+                              </Text>
+                              {post.content && post.action_title && (
+                                <Text style={styles.timelineReflection}>{post.content}</Text>
+                              )}
+                            </View>
+                          )}
                         </View>
                       </View>
-                      <Text style={styles.activityContent}>{post.content}</Text>
-                      {post.image_url && (
-                        <View style={[styles.activityImage, { backgroundColor: 'transparent' }]}>
-                          <LinearGradient
-                            colors={['#667eea', '#764ba2']}
-                            style={StyleSheet.absoluteFillObject}
-                          />
-                        </View>
-                      )}
-                      <View style={styles.activityActions}>
-                        <View style={styles.activityAction}>
-                          <Heart size={14} color="rgba(255,255,255,0.6)" />
-                          <Text style={styles.activityActionText}>{post.likes_count || 0}</Text>
-                        </View>
-                        <View style={styles.activityAction}>
-                          <MessageCircle size={14} color="rgba(255,255,255,0.6)" />
-                          <Text style={styles.activityActionText}>{post.comments_count || 0}</Text>
-                        </View>
-                      </View>
-                    </View>
-                  </Animated.View>
-                ))
+                    );
+                  })}
+                </View>
               )}
             </View>
 
@@ -2103,5 +2126,140 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(255,255,255,0.6)',
     textAlign: 'center',
+  },
+
+  // Timeline (My Journey style for Recent Activity)
+  journeyTimeline: {
+    position: 'relative',
+    paddingLeft: 30,
+  },
+  timelineLine: {
+    position: 'absolute',
+    left: 18,
+    top: 0,
+    bottom: 0,
+    width: 2,
+  },
+  timelineEvent: {
+    marginBottom: 20,
+    position: 'relative',
+  },
+  timelineDot: {
+    position: 'absolute',
+    left: -22,
+    top: 4,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#E7B43A',
+    shadowColor: '#E7B43A',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+  },
+  timelineMilestone: {
+    position: 'absolute',
+    left: -26,
+    top: 0,
+    width: 18,
+    height: 18,
+    borderRadius: 10,
+    backgroundColor: '#E7B43A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#E7B43A',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 16,
+  },
+  milestoneIcon: {
+    fontSize: 10,
+  },
+  timelineContent: {
+    flex: 1,
+  },
+  timelinePhoto: {
+    width: '100%',
+    height: 180,
+    borderRadius: 14,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(231,180,58,0.15)',
+  },
+  photoImage: {
+    width: '100%',
+    height: '100%',
+  },
+  photoBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: '#E7B43A',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  photoBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#000',
+  },
+  photoOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 14,
+    paddingTop: 40,
+  },
+  photoDate: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.7)',
+    marginBottom: 4,
+  },
+  photoTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 8,
+  },
+  photoMetrics: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  metricText: {
+    fontSize: 11,
+    color: '#E7B43A',
+    fontWeight: '600',
+  },
+  timelineText: {
+    backgroundColor: 'rgba(231,180,58,0.05)',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(231,180,58,0.1)',
+  },
+  timelineDate: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.5)',
+    marginBottom: 4,
+  },
+  timelineTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 6,
+  },
+  timelineReflection: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: 'rgba(255,255,255,0.7)',
+    fontStyle: 'italic',
   },
 });
