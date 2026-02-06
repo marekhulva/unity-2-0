@@ -131,6 +131,55 @@ export const ProfileScreen: React.FC = () => {
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Timeline entry type for My Journey
+  interface TimelineEntry {
+    id: string;
+    type: 'post' | 'action';
+    date: string;
+    post?: any;
+    action?: {
+      actionId: string;
+      title: string;
+      goalTitle?: string;
+      goalColor?: string;
+      completedAt: string;
+      streak: number;
+      progressDate?: string;
+    };
+  }
+
+  // Expand daily_progress posts into individual action entries
+  const expandTimelineEntries = (posts: any[]): TimelineEntry[] => {
+    const entries: TimelineEntry[] = [];
+
+    posts.forEach(post => {
+      if (post.is_daily_progress && post.completed_actions?.length > 0) {
+        post.completed_actions.forEach(action => {
+          entries.push({
+            id: `action-${action.actionId}-${action.completedAt}`,
+            type: 'action',
+            date: action.completedAt,
+            action: {
+              ...action,
+              progressDate: post.progress_date,
+            }
+          });
+        });
+      } else {
+        entries.push({
+          id: post.id,
+          type: 'post',
+          date: post.created_at,
+          post: post,
+        });
+      }
+    });
+
+    return entries.sort((a, b) =>
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  };
+
   // Cache for preventing double-fetch on tab switch
   const [dataCache, setDataCache] = useState<{
     circles: any[] | null;
@@ -231,6 +280,90 @@ export const ProfileScreen: React.FC = () => {
       : `${challenge.duration_days} days`,
     consistency: challenge.my_participation?.completion_percentage || 0,
   }));
+
+  // Render helper for action entries (from daily_progress cards)
+  const renderActionEntry = (action: any) => {
+    return (
+      <View style={styles.timelineContent}>
+        <View style={styles.timelineText}>
+          <Text style={styles.timelineDate}>
+            {new Date(action.completedAt).toLocaleDateString()}
+          </Text>
+
+          <Text style={styles.timelineTitle}>
+            {action.title}
+          </Text>
+
+          {action.goalTitle && (
+            <View style={[
+              styles.goalBadge,
+              { backgroundColor: action.goalColor || '#B366FF' }
+            ]}>
+              <Text style={styles.goalBadgeText}>
+                🎯 {action.goalTitle}
+              </Text>
+            </View>
+          )}
+
+          {action.streak > 1 && (
+            <Text style={styles.streakText}>
+              🔥 {action.streak} day streak
+            </Text>
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  // Render helper for regular post entries
+  const renderPostEntry = (post: any, index: number) => {
+    const hasPhoto = post.media_url;
+
+    return (
+      <View style={styles.timelineContent}>
+        {hasPhoto ? (
+          <View style={styles.timelinePhoto}>
+            <Image
+              source={{ uri: post.media_url }}
+              style={styles.photoImage}
+              contentFit="cover"
+              transition={200}
+              cachePolicy="memory-disk"
+            />
+            <View style={styles.photoBadge}>
+              <Text style={styles.photoBadgeText}>Day {index + 1} 📸</Text>
+            </View>
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.85)']}
+              style={styles.photoOverlay}
+            >
+              <Text style={styles.photoDate}>
+                {new Date(post.created_at).toLocaleDateString()}
+              </Text>
+              <Text style={styles.photoTitle}>{post.action_title || post.content}</Text>
+              {post.goal_title && (
+                <View style={styles.photoMetrics}>
+                  <Text style={styles.metricText}>🎯 {post.goal_title}</Text>
+                </View>
+              )}
+            </LinearGradient>
+          </View>
+        ) : (
+          <View style={styles.timelineText}>
+            <Text style={styles.timelineDate}>
+              {new Date(post.created_at).toLocaleDateString()}
+            </Text>
+            <Text style={styles.timelineTitle}>
+              {post.action_title || post.content || 'Post'}
+            </Text>
+            {post.content && post.action_title && (
+              <Text style={styles.timelineReflection}>{post.content}</Text>
+            )}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   if (loading) {
     return (
@@ -334,62 +467,26 @@ export const ProfileScreen: React.FC = () => {
                   style={styles.timelineLine}
                 />
 
-                {userPosts.map((post, index) => {
-                  const isFirstPost = index === 0;
-                  const hasPhoto = post.media_url;
+                {expandTimelineEntries(userPosts).map((entry, index) => {
+                  const isFirstEntry = index === 0;
 
                   return (
-                    <View key={post.id} style={styles.timelineEvent}>
-                      {/* Timeline dot or milestone */}
-                      <View style={isFirstPost ? styles.timelineMilestone : styles.timelineDot}>
-                        {isFirstPost && <Text style={styles.milestoneIcon}>🏆</Text>}
+                    <View key={entry.id} style={styles.timelineEvent}>
+                      {/* Timeline dot - use goal color for actions */}
+                      <View style={[
+                        isFirstEntry ? styles.timelineMilestone : styles.timelineDot,
+                        entry.type === 'action' && entry.action?.goalColor && {
+                          backgroundColor: entry.action.goalColor
+                        }
+                      ]}>
+                        {isFirstEntry && <Text style={styles.milestoneIcon}>🏆</Text>}
                       </View>
 
-                      {/* Post content */}
-                      <View style={styles.timelineContent}>
-                        {hasPhoto ? (
-                          // Photo post
-                          <View style={styles.timelinePhoto}>
-                            <Image
-                              source={{ uri: post.media_url }}
-                              style={styles.photoImage}
-                              contentFit="cover"
-                              transition={200}
-                              cachePolicy="memory-disk"
-                            />
-                            <View style={styles.photoBadge}>
-                              <Text style={styles.photoBadgeText}>Day {index + 1} 📸</Text>
-                            </View>
-                            <LinearGradient
-                              colors={['transparent', 'rgba(0,0,0,0.85)']}
-                              style={styles.photoOverlay}
-                            >
-                              <Text style={styles.photoDate}>
-                                {new Date(post.created_at).toLocaleDateString()}
-                              </Text>
-                              <Text style={styles.photoTitle}>{post.action_title || post.content}</Text>
-                              {post.goal_title && (
-                                <View style={styles.photoMetrics}>
-                                  <Text style={styles.metricText}>🎯 {post.goal_title}</Text>
-                                </View>
-                              )}
-                            </LinearGradient>
-                          </View>
-                        ) : (
-                          // Text-only post
-                          <View style={styles.timelineText}>
-                            <Text style={styles.timelineDate}>
-                              {new Date(post.created_at).toLocaleDateString()}
-                            </Text>
-                            <Text style={styles.timelineTitle}>
-                              {post.action_title || post.content || 'Post'}
-                            </Text>
-                            {post.content && post.action_title && (
-                              <Text style={styles.timelineReflection}>{post.content}</Text>
-                            )}
-                          </View>
-                        )}
-                      </View>
+                      {/* Render based on type */}
+                      {entry.type === 'action'
+                        ? renderActionEntry(entry.action!)
+                        : renderPostEntry(entry.post!, index)
+                      }
                     </View>
                   );
                 })}
@@ -805,5 +902,25 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
+  },
+
+  // My Journey - Action entry styles
+  goalBadge: {
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  goalBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  streakText: {
+    marginTop: 6,
+    fontSize: 11,
+    color: '#E7B43A',
+    fontWeight: '600',
   },
 });
