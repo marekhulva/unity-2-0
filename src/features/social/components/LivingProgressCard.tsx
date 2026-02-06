@@ -417,6 +417,7 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({ post }) 
                   {
                     fontSize: textConfig.fontSize,
                     lineHeight: textConfig.lineHeight,
+                    textAlign: 'center',
                   }
                 ]}
                 numberOfLines={textConfig.numberOfLines}
