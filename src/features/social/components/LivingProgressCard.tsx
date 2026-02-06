@@ -546,12 +546,14 @@ const styles = StyleSheet.create({
   },
   perfectDayLabel: {
     position: 'absolute',
+    left: 0,
     right: 0,
     top: -8,
     color: tokens.perfectDay.goldColor,
     fontSize: tokens.perfectDay.label.fontSize,
     fontWeight: tokens.perfectDay.label.fontWeight,
     letterSpacing: tokens.perfectDay.label.letterSpacing,
+    textAlign: 'center',
   },
   sectionLabel: {
     fontSize: tokens.sectionLabel.fontSize,
