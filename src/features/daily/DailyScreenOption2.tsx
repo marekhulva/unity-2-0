@@ -14,6 +14,8 @@ import ChallengeDebugV2 from '../../utils/challengeDebugV2';
 import { supabaseService } from '../../services/supabase.service';
 import { featureFlags } from '../../services/featureFlags.service';
 import { backendService } from '../../services/backend.service';
+import { FeedSkeleton } from '../../components/SkeletonLoader';
+import { LoadingSpinner } from '../../ui/LoadingSpinner';
 
 const getCategoryIcon = (title: string, goalTitle?: string) => {
   const text = `${title} ${goalTitle}`.toLowerCase();
@@ -363,7 +365,17 @@ export const DailyScreenOption2 = () => {
           </View>
         </Animated.View>
 
-        {actions.length === 0 ? (
+        {/* Show skeleton during initial load */}
+        {actionsLoading && actions.length === 0 ? (
+          <View style={styles.skeletonContainer}>
+            <FeedSkeleton />
+            <LoadingSpinner
+              text="Loading your actions..."
+              size="small"
+              theme="gold"
+            />
+          </View>
+        ) : actions.length === 0 ? (
           renderEmptyState()
         ) : (
           <Animated.View
@@ -460,6 +472,10 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 20,
     paddingBottom: 24,
+  },
+  skeletonContainer: {
+    padding: 20,
+    gap: 16,
   },
   greeting: {
     fontSize: 28,

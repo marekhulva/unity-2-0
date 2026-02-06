@@ -289,16 +289,21 @@ export function AppWithAuth() {
               if (__DEV__) console.log('✅ [INIT] Background refresh complete');
             });
           } else {
-            // No cached data, wait for initial fetch
-            if (__DEV__) console.log('🔐 [INIT] No cached data, fetching initial data...');
-            await Promise.all([
+            // OPTIMIZATION: Show UI immediately even without cache
+            if (__DEV__) console.log('🔐 [INIT] No cached data, showing UI and fetching in background...');
+            setIsLoading(false); // ← MOVED UP - Show UI immediately
+
+            // Fetch data in background (non-blocking)
+            Promise.all([
               fetchGoals(),
               fetchDailyActions()
-            ]);
-            const goals = useStore.getState().goals;
-            const actions = useStore.getState().actions;
-            if (__DEV__) console.log('🟢 [INIT] Initial data loaded - Goals:', goals.length, 'Actions:', actions.length);
-            setIsLoading(false);
+            ]).then(() => {
+              const goals = useStore.getState().goals;
+              const actions = useStore.getState().actions;
+              if (__DEV__) console.log('✅ [INIT] Background fetch complete - Goals:', goals.length, 'Actions:', actions.length);
+            }).catch(err => {
+              if (__DEV__) console.error('🔴 [INIT] Background fetch error:', err);
+            });
           }
         }
       } else {

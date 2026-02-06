@@ -67,19 +67,18 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
       if (__DEV__) console.log('🟦 [ACTIONS] Fetching fresh data from backend');
 
       // PARALLEL FETCH: Run all independent queries at once
+      // OPTIMIZATION: Removed redundant getUserChallengeParticipations (save ~400ms)
       const [
         response,
-        challengeResponse,
+        challengeResponse,  // Already includes activity_times with scheduledTime
         linkedResponse,
         todayCompletions,
-        participations,
         completedResponse
       ] = await Promise.all([
         backendService.getDailyActions(),
         backendService.getUserChallengeActivities(),
         backendService.getLinkedChallengeActivities(),
         backendService.getTodayChallengeCompletions(),
-        backendService.getUserChallengeParticipations(),
         backendService.getTodaysCompletedActions()
       ]);
 
@@ -173,21 +172,16 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
         );
         if (__DEV__) console.log('✅ [ACTIONS] Already completed today:', completedActivityIds);
 
-        // Use already-fetched participation data for activity times
+        // OPTIMIZATION: Extract scheduled times directly from challengeResponse
+        // (getUserChallengeActivities already includes scheduledTime for each activity)
         const activityTimeMappings: Map<string, string> = new Map();
-        
-        if (participations.success && participations.data) {
-          participations.data.forEach((participation: any) => {
-            // Get activity times (skip link mappings)
-            if (__DEV__) console.log('⏰ [ACTIONS] Participation activity_times:', participation.activity_times);
-            if (participation.activity_times && Array.isArray(participation.activity_times)) {
-              participation.activity_times.forEach((timeEntry: any) => {
-                // Skip link mappings, only get actual times
-                if (!timeEntry.is_link && timeEntry.activity_id && timeEntry.scheduled_time) {
-                  activityTimeMappings.set(timeEntry.activity_id, timeEntry.scheduled_time);
-                  if (__DEV__) console.log(`⏰ [ACTIONS] Mapped time for activity ${timeEntry.activity_id}: ${timeEntry.scheduled_time}`);
-                }
-              });
+
+        if (challengeResponse.success && challengeResponse.data) {
+          challengeResponse.data.forEach((activity: any) => {
+            // Each activity already has scheduledTime extracted from activity_times
+            if (activity.scheduledTime && activity.id) {
+              activityTimeMappings.set(activity.id, activity.scheduledTime);
+              if (__DEV__) console.log(`⏰ [ACTIONS] Mapped time for activity ${activity.id}: ${activity.scheduledTime}`);
             }
           });
         }

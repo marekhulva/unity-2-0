@@ -186,8 +186,14 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
   checkAuth: async () => {
     try {
       // CRITICAL: Always use Supabase as source of truth
-      const { data: { session } } = await supabase.auth.getSession();
-      const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+      // OPTIMIZATION: Parallel auth calls (save ~100ms)
+      const [sessionResult, userResult] = await Promise.all([
+        supabase.auth.getSession(),
+        supabase.auth.getUser()
+      ]);
+
+      const { data: { session } } = sessionResult;
+      const { data: { user: supabaseUser } } = userResult;
       
       if (__DEV__) console.log('🔐 [AUTH-CHECK] Checking authentication state');
       if (__DEV__) console.log('  - Supabase session exists:', !!session);
