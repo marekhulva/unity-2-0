@@ -21,11 +21,45 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({ post }) 
     completedActions = [],
     totalActions = 0,
     actionsToday = 0,
+    timestamp,
   } = post;
 
   const percentage = totalActions > 0 ? Math.round((actionsToday / totalActions) * 100) : 0;
   const isPerfectDay = percentage === 100;
   const remainingCount = totalActions - actionsToday;
+
+  // Date label logic - check if post is from today
+  const getDateLabel = (): string => {
+    if (!timestamp) return 'Today';
+
+    const postDate = new Date(timestamp);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // Reset hours for date comparison
+    const resetTime = (date: Date) => {
+      date.setHours(0, 0, 0, 0);
+      return date;
+    };
+
+    const postDay = resetTime(new Date(postDate));
+    const todayDay = resetTime(new Date(today));
+    const yesterdayDay = resetTime(new Date(yesterday));
+
+    if (postDay.getTime() === todayDay.getTime()) {
+      return 'Today';
+    } else if (postDay.getTime() === yesterdayDay.getTime()) {
+      return 'Yesterday';
+    } else {
+      // Format as "Feb 3" or "Jan 27"
+      const month = postDate.toLocaleDateString('en-US', { month: 'short' });
+      const day = postDate.getDate();
+      return `${month} ${day}`;
+    }
+  };
+
+  const dateLabel = getDateLabel();
 
   // Progress ring calculation
   const ringConfig = isPerfectDay ? tokens.progressRing.perfectDay : tokens.progressRing.normal;
@@ -235,7 +269,7 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({ post }) 
               {user}
             </Text>
             <Text style={styles.metadata} allowFontScaling={false}>
-              Today <Text style={styles.highlight}>{actionsToday} of {totalActions}</Text>  {percentage}%
+              {dateLabel} <Text style={styles.highlight}>{actionsToday} of {totalActions}</Text>  {percentage}%
             </Text>
           </View>
         </View>

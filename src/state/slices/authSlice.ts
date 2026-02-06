@@ -282,27 +282,17 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
           hasCompletedOnboarding: actuallyCompletedOnboarding
         });
       } else {
-        // Check if we have cached credentials (offline support)
-        const token = await AsyncStorage.getItem('token');
-        const userStr = await AsyncStorage.getItem('user');
-        
-        if (token && userStr) {
-          const cachedUser = JSON.parse(userStr);
-          if (__DEV__) console.log('  - Using cached user (offline):', cachedUser.id);
-          
-          set({
-            isAuthenticated: true,
-            user: cachedUser,
-            token
-          });
-        } else {
-          if (__DEV__) console.log('  - No authentication found');
-          set({
-            isAuthenticated: false,
-            user: null,
-            token: null
-          });
-        }
+        // No valid Supabase session - clear any stale cached data
+        if (__DEV__) console.log('  - No valid Supabase session, clearing cached credentials');
+
+        await AsyncStorage.removeItem('token');
+        await AsyncStorage.removeItem('user');
+
+        set({
+          isAuthenticated: false,
+          user: null,
+          token: null
+        });
       }
     } catch (error) {
       if (__DEV__) console.error('Auth check failed:', error);
