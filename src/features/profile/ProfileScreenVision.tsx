@@ -293,23 +293,6 @@ export const ProfileScreen: React.FC = () => {
           <Text style={styles.timelineTitle}>
             {action.title}
           </Text>
-
-          {action.goalTitle && (
-            <View style={[
-              styles.goalBadge,
-              { backgroundColor: action.goalColor || '#B366FF' }
-            ]}>
-              <Text style={styles.goalBadgeText}>
-                🎯 {action.goalTitle}
-              </Text>
-            </View>
-          )}
-
-          {action.streak > 1 && (
-            <Text style={styles.streakText}>
-              🔥 {action.streak} day streak
-            </Text>
-          )}
         </View>
       </View>
     );
@@ -902,25 +885,5 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
-  },
-
-  // My Journey - Action entry styles
-  goalBadge: {
-    marginTop: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  goalBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  streakText: {
-    marginTop: 6,
-    fontSize: 11,
-    color: '#E7B43A',
-    fontWeight: '600',
   },
 });
