@@ -455,13 +455,8 @@ export const ProfileScreen: React.FC = () => {
 
                   return (
                     <View key={entry.id} style={styles.timelineEvent}>
-                      {/* Timeline dot - use goal color for actions */}
-                      <View style={[
-                        isFirstEntry ? styles.timelineMilestone : styles.timelineDot,
-                        entry.type === 'action' && entry.action?.goalColor && {
-                          backgroundColor: entry.action.goalColor
-                        }
-                      ]}>
+                      {/* Timeline dot or milestone */}
+                      <View style={isFirstEntry ? styles.timelineMilestone : styles.timelineDot}>
                         {isFirstEntry && <Text style={styles.milestoneIcon}>🏆</Text>}
                       </View>
 
