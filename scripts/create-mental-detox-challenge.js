@@ -1,4 +1,18 @@
-import { supabase } from '../src/services/supabase.service';
+#!/usr/bin/env node
+
+const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config({ path: '.env.development' });
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+);
 
 async function createMentalDetoxChallenge() {
   console.log('🧠 Creating 7 Day Mental Detox challenge...\n');
