@@ -23,6 +23,7 @@ import * as Haptics from 'expo-haptics';
 import { Post } from '../../state/slices/socialSlice';
 import { MessageCircle, Play, Pause, Send, Check } from 'lucide-react-native';
 import { Audio } from 'expo-av';
+import { isValidContent } from '../../utils/contentValidation';
 
 const { width } = Dimensions.get('window');
 
@@ -328,7 +329,7 @@ export const UnifiedActivityCard: React.FC<UnifiedActivityCardProps> = ({
           {/* Check mark and action title - always shown */}
           <View style={styles.actionRow}>
             <GoldCheck size={28} />
-            <Text style={styles.actionTitle}>{post.actionTitle || 'Completed action'}</Text>
+            <Text style={styles.actionTitle}>{(post.actionTitle && isValidContent(post.actionTitle) ? post.actionTitle : null) || 'Completed action'}</Text>
             <Animated.View style={[styles.pointsWrap, coinAnimatedStyle]}>
               <Text style={styles.pointsText}>+5</Text>
             </Animated.View>
@@ -337,7 +338,7 @@ export const UnifiedActivityCard: React.FC<UnifiedActivityCardProps> = ({
           {/* User's comment if provided */}
           {hasComment && (
             <View style={styles.commentSection}>
-              <Text style={styles.userComment}>{post.content}</Text>
+              <Text style={styles.userComment}>{isValidContent(post.content) ? post.content : ''}</Text>
             </View>
           )}
           
@@ -419,7 +420,7 @@ export const UnifiedActivityCard: React.FC<UnifiedActivityCardProps> = ({
                     </View>
                     <View style={styles.commentBubble}>
                       <Text style={styles.commentAuthor}>{comment.user}</Text>
-                      <Text style={styles.commentText}>{comment.content || comment.text}</Text>
+                      <Text style={styles.commentText}>{(comment.content && isValidContent(comment.content) ? comment.content : null) || (comment.text && isValidContent(comment.text) ? comment.text : null)}</Text>
                     </View>
                   </View>
                 ))}

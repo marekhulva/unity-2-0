@@ -199,6 +199,50 @@ export const SocialScreenUnified = () => {
   }, []);
 
   const renderPost = useCallback(({ item }: { item: Post }) => {
+    // DEBUG: Log ALL post data to find the gibberish
+    if (__DEV__) {
+      console.log('🔍 [POST-DEBUG] Rendering post:', {
+        id: item.id.substring(0, 8),
+        type: item.type,
+        user: item.user,
+        contentLength: item.content?.length || 0,
+        mediaUrlLength: item.mediaUrl?.length || 0,
+        photoUriLength: item.photoUri?.length || 0,
+        audioUriLength: item.audioUri?.length || 0,
+        actionTitle: item.actionTitle?.substring(0, 50),
+        goal: item.goal?.substring(0, 50),
+      });
+    }
+
+    // SAFETY: Skip posts with suspiciously long content (likely corrupted base64)
+    if (item.content && item.content.length > 500) {
+      if (__DEV__) console.warn('🚫 [SOCIAL] Skipping post with suspiciously long content:', {
+        id: item.id.substring(0, 8),
+        contentLength: item.content.length,
+        preview: item.content.substring(0, 50) + '...'
+      });
+      return null;
+    }
+
+    // SAFETY: Check ALL text fields for gibberish
+    const checkField = (fieldName: string, value: string | undefined) => {
+      if (value && value.length > 500) {
+        if (__DEV__) console.warn('🚫 [SOCIAL] Found gibberish in', fieldName, ':', {
+          id: item.id.substring(0, 8),
+          fieldLength: value.length,
+          preview: value.substring(0, 50) + '...'
+        });
+        return true;
+      }
+      return false;
+    };
+
+    if (checkField('mediaUrl', item.mediaUrl) ||
+        checkField('photoUri', item.photoUri) ||
+        checkField('audioUri', item.audioUri)) {
+      return null; // Skip this post
+    }
+
     // Render Living Progress Card for daily_progress posts
     if (item.type === 'daily_progress' && item.isDailyProgress) {
       return <LivingProgressCard post={item} />;
@@ -327,6 +371,17 @@ export const SocialScreenUnified = () => {
       </View>
     );
   }, [feedLoading]);
+
+  // Debug: Log any suspicious data
+  if (__DEV__ && unifiedFeed.length > 0) {
+    const firstPost = unifiedFeed[0];
+    console.log('🐛 [SOCIAL] First post data:', {
+      id: firstPost.id?.substring(0, 8),
+      type: firstPost.type,
+      content: firstPost.content?.substring(0, 100),
+      user: firstPost.user
+    });
+  }
 
   return (
     <View style={styles.container}>

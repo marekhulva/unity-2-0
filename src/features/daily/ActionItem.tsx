@@ -174,11 +174,25 @@ export const ActionItem: React.FC<ActionItemProps> = ({
 
     // Check if Living Progress Cards feature is enabled
     const useLivingProgressCards = await featureFlags.isEnabled('use_living_progress_cards');
-    if (__DEV__) console.log('🎯 [ActionItem] Feature flag check:', { useLivingProgressCards, userId: user?.id, visibility });
+    if (__DEV__) {
+      console.log('🎯 [ActionItem] Feature flag check:', {
+        useLivingProgressCards,
+        userId: user?.id,
+        visibility,
+        hasUserId: !!user?.id,
+        isNotPrivate: visibility !== 'private'
+      });
+      console.log('🎯 [ActionItem] Condition breakdown:', {
+        flag: useLivingProgressCards,
+        user: !!user?.id,
+        notPrivate: visibility !== 'private',
+        willUseLivingCard: useLivingProgressCards && user?.id && visibility !== 'private'
+      });
+    }
 
     if (useLivingProgressCards && user?.id && visibility !== 'private') {
       // LIVING PROGRESS CARD FLOW
-      if (__DEV__) console.log('📊 [ACTION] Using Living Progress Card flow');
+      if (__DEV__) console.log('✅ [ACTION] ===== USING LIVING PROGRESS CARD FLOW =====');
 
       try {
         const progressPost = await backendService.findOrCreateDailyProgressPost(user.id);
@@ -208,7 +222,12 @@ export const ActionItem: React.FC<ActionItemProps> = ({
       }
     } else {
       // LEGACY FLOW - create individual posts
-      if (__DEV__) console.log('📝 [ACTION] Using legacy individual post flow');
+      if (__DEV__) console.log('❌ [ACTION] ===== USING LEGACY INDIVIDUAL POST FLOW =====', {
+        reason: !useLivingProgressCards ? 'Feature flag is false' :
+                !user?.id ? 'No user ID' :
+                visibility === 'private' ? 'Visibility is private' :
+                'Unknown'
+      });
 
       const actionType = contentType === 'photo' ? 'photo' :
                         contentType === 'audio' ? 'audio' :

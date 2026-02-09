@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, Image, Animated } from 'react-native
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Post } from '../../../state/slices/socialSlice';
+import { isValidContent } from '../../../utils/contentValidation';
 
 interface PostCardEnhancedProps {
   post: Post;
@@ -65,7 +66,7 @@ export const PostCardEnhanced: React.FC<PostCardEnhancedProps> = ({ post, onReac
           </View>
 
           {/* Goal pill */}
-          {post.goal && (
+          {post.goal && isValidContent(post.goal) && (
             <View style={styles.goalPill}>
               <Text style={styles.goalText}>{post.goal}</Text>
             </View>
@@ -78,7 +79,7 @@ export const PostCardEnhanced: React.FC<PostCardEnhancedProps> = ({ post, onReac
           {post.type === 'checkin' && (
             <View style={styles.checkinBanner}>
               <View style={styles.checkinContent}>
-                <Text style={styles.checkinText}>✅ {post.actionTitle}</Text>
+                <Text style={styles.checkinText}>✅ {isValidContent(post.actionTitle) ? post.actionTitle : ''}</Text>
                 {typeof post.streak === 'number' && (
                   <Text style={styles.streakText}>🔥 {post.streak} day streak</Text>
                 )}
@@ -90,13 +91,13 @@ export const PostCardEnhanced: React.FC<PostCardEnhancedProps> = ({ post, onReac
           {post.type === 'goal' && (
             <View style={styles.goalBanner}>
               <Text style={styles.goalAnnouncement}>
-                🎯 New Goal: <Text style={styles.goalEmphasis}>{post.goal}</Text>
+                🎯 New Goal: <Text style={styles.goalEmphasis}>{isValidContent(post.goal) ? post.goal : ''}</Text>
               </Text>
             </View>
           )}
 
           {/* Content text */}
-          {post.content && (
+          {post.content && isValidContent(post.content) && (
             <Text style={styles.content}>{post.content}</Text>
           )}
 

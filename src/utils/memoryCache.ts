@@ -63,6 +63,23 @@ class MemoryCache {
       if (__DEV__) console.log('🗑️ Cleared all cache');
     }
   }
+
+  /**
+   * Clear all feed-related cache entries
+   */
+  clearFeedCache(): void {
+    const keysToRemove: string[] = [];
+
+    this.cache.forEach((_, key) => {
+      if (key.startsWith('feed:')) {
+        keysToRemove.push(key);
+      }
+    });
+
+    keysToRemove.forEach(key => this.cache.delete(key));
+
+    if (__DEV__) console.log(`🧹 Cleared ${keysToRemove.length} feed cache entries`);
+  }
 }
 
 // Create one cache for the whole app

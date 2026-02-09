@@ -307,9 +307,14 @@ export const CircleScreenVision = () => {
               style={styles.headerBtn}
               onPress={(e) => {
                 e.stopPropagation();
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                if (__DEV__) console.log('Invite members - show invite code:', activeCircle?.invite_code || activeCircle?.join_code);
-                alert('🚧 Coming Soon\n\nInvite functionality is being built. Stay tuned!');
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                const joinCode = activeCircle?.invite_code || activeCircle?.join_code;
+                if (__DEV__) console.log('Invite members - show invite code:', joinCode);
+                if (joinCode) {
+                  alert(`📲 Invite Code: ${joinCode}\n\nShare this code with others to invite them to join ${activeCircle?.name}!`);
+                } else {
+                  alert('No invite code found for this circle.');
+                }
               }}
             >
               <UserPlus size={18} color="#E7B43A" />
@@ -411,6 +416,7 @@ export const CircleScreenVision = () => {
                   {circlePosts.slice(0, 3).map((post, index) => {
                     const isFirstPost = index === 0;
                     const hasPhoto = post.media_url || post.image_url;
+                    const userName = post.profiles?.username || post.profiles?.name || 'Member';
 
                     return (
                       <View key={post.id} style={styles.timelineEvent}>
@@ -421,6 +427,21 @@ export const CircleScreenVision = () => {
 
                         {/* Post content */}
                         <View style={styles.timelineContent}>
+                          {/* User info header */}
+                          <View style={styles.timelineUserHeader}>
+                            <View style={styles.timelineUserAvatar}>
+                              <Text style={styles.timelineUserAvatarText}>
+                                {userName.substring(0, 2).toUpperCase()}
+                              </Text>
+                            </View>
+                            <View style={styles.timelineUserInfo}>
+                              <Text style={styles.timelineUserName}>{userName}</Text>
+                              <Text style={styles.timelineDate}>
+                                {new Date(post.created_at).toLocaleDateString()}
+                              </Text>
+                            </View>
+                          </View>
+
                           {hasPhoto ? (
                             <View style={styles.timelinePhoto}>
                               <Image
@@ -437,9 +458,6 @@ export const CircleScreenVision = () => {
                                 colors={['transparent', 'rgba(0,0,0,0.85)']}
                                 style={styles.photoOverlay}
                               >
-                                <Text style={styles.photoDate}>
-                                  {new Date(post.created_at).toLocaleDateString()}
-                                </Text>
                                 <Text style={styles.photoTitle}>{post.action_title || post.content}</Text>
                                 {post.goal_title && (
                                   <View style={styles.photoMetrics}>
@@ -450,9 +468,6 @@ export const CircleScreenVision = () => {
                             </View>
                           ) : (
                             <View style={styles.timelineText}>
-                              <Text style={styles.timelineDate}>
-                                {new Date(post.created_at).toLocaleDateString()}
-                              </Text>
                               <Text style={styles.timelineTitle}>
                                 {post.action_title || post.content || 'Post'}
                               </Text>
@@ -2177,6 +2192,36 @@ const styles = StyleSheet.create({
   },
   timelineContent: {
     flex: 1,
+  },
+  timelineUserHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  timelineUserAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: 'rgba(231,180,58,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(231,180,58,0.3)',
+  },
+  timelineUserAvatarText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#E7B43A',
+  },
+  timelineUserInfo: {
+    flex: 1,
+  },
+  timelineUserName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 2,
   },
   timelinePhoto: {
     width: '100%',

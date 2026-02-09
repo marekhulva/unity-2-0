@@ -19,6 +19,7 @@ import Animated, {
 import { MessageCircle, Send, Check, Flame, Clock } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { Post } from '../../state/slices/socialSlice';
+import { isValidContent } from '../../utils/contentValidation';
 
 interface UnifiedPostCardTimelineProps {
   post: Post;
@@ -98,7 +99,7 @@ export const UnifiedPostCardTimeline: React.FC<UnifiedPostCardTimelineProps> = R
               <Text style={styles.goldText}>{post.user}</Text>
               {' '}completed all daily actions
             </Text>
-            {post.goal && post.goal.trim() && post.goal.trim() !== '.' && (
+            {post.goal && isValidContent(post.goal) && (
               <View style={styles.goalRow}>
                 <View style={[styles.goalDot, { backgroundColor: accentColor }]} />
                 <Text style={styles.metaText}>{post.goal}</Text>
@@ -141,7 +142,7 @@ export const UnifiedPostCardTimeline: React.FC<UnifiedPostCardTimelineProps> = R
 
         <View style={styles.headerText}>
           <Text style={styles.userName}>{post.user && post.user.trim() !== '.' ? post.user : 'User'}</Text>
-          {isChallenge && post.challengeName && post.challengeName.trim() && post.challengeName.trim() !== '.' && (
+          {isChallenge && post.challengeName && isValidContent(post.challengeName) && (
             <View style={styles.challengeChip}>
               <Text style={styles.challengeChipText}>
                 🏆 {post.challengeName}
@@ -154,7 +155,7 @@ export const UnifiedPostCardTimeline: React.FC<UnifiedPostCardTimelineProps> = R
       {/* Content */}
       <View style={styles.content}>
         {/* Check-in display */}
-        {isCheckin && post.actionTitle && post.actionTitle.trim() && post.actionTitle.trim() !== '.' && (
+        {isCheckin && post.actionTitle && isValidContent(post.actionTitle) && (
           <View style={styles.checkinRow}>
             <View style={[styles.checkIcon, { backgroundColor: accentColor }]}>
               <Check size={14} color="#000" strokeWidth={3} />
@@ -164,7 +165,7 @@ export const UnifiedPostCardTimeline: React.FC<UnifiedPostCardTimelineProps> = R
         )}
 
         {/* Regular text post */}
-        {post.content && post.content.trim() && post.content.trim() !== '.' && !isCheckin && (
+        {post.content && isValidContent(post.content) && !isCheckin && (
           <Text style={styles.postText}>{post.content}</Text>
         )}
 
@@ -180,7 +181,7 @@ export const UnifiedPostCardTimeline: React.FC<UnifiedPostCardTimelineProps> = R
         )}
 
         {/* Photo caption */}
-        {isPhoto && post.content && post.content.trim() && post.content.trim() !== '.' && (
+        {isPhoto && post.content && isValidContent(post.content) && (
           <Text style={styles.caption}>{post.content}</Text>
         )}
 
@@ -200,7 +201,7 @@ export const UnifiedPostCardTimeline: React.FC<UnifiedPostCardTimelineProps> = R
             </View>
           )}
 
-          {post.goal && post.goal.trim() && post.goal.trim() !== '.' && (
+          {post.goal && isValidContent(post.goal) && (
             <View style={[styles.goalBadge, { borderColor: `${accentColor}50` }]}>
               <View style={[styles.goalDot, { backgroundColor: accentColor }]} />
               <Text style={[styles.goalBadgeText, { color: accentColor }]}>{post.goal}</Text>
@@ -248,7 +249,7 @@ export const UnifiedPostCardTimeline: React.FC<UnifiedPostCardTimelineProps> = R
           {post.comments && post.comments.length > 0 && (
             <View style={styles.commentsList}>
               {post.comments.slice(0, 3).map((comment, index) => {
-                if (!comment.user || !comment.content || comment.content.trim() === '.') return null;
+                if (!comment.user || !comment.content || !isValidContent(comment.content)) return null;
                 return (
                   <View key={comment.id || index} style={styles.commentItem}>
                     <Text style={styles.commentUser}>{comment.user}</Text>

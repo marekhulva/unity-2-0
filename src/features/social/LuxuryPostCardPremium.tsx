@@ -12,6 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Post } from '../../state/slices/socialSlice';
+import { isValidContent } from '../../utils/contentValidation';
 
 const { width } = Dimensions.get('window');
 
@@ -186,7 +187,7 @@ export const LuxuryPostCardPremium: React.FC<LuxuryPostCardPremiumProps> = ({
             end={{x:1,y:1}} 
             style={styles.badge}
           >
-            <Text style={styles.badgeText}>🏆 {post.challengeName || 'CHALLENGE'}</Text>
+            <Text style={styles.badgeText}>🏆 {(post.challengeName && isValidContent(post.challengeName) ? post.challengeName : null) || 'CHALLENGE'}</Text>
           </LinearGradient>
         )}
       </View>
@@ -195,9 +196,9 @@ export const LuxuryPostCardPremium: React.FC<LuxuryPostCardPremiumProps> = ({
       <View style={styles.bodyRow}>
         <GoldCheck size={36} />
         <View style={styles.textBlock}>
-          <Text style={styles.title}>{actionTitle}</Text>
+          <Text style={styles.title}>{isValidContent(actionTitle) ? actionTitle : ''}</Text>
           {hasGoal && (
-            <Text style={styles.subtitle}>Goal: {post.goal || post.goalTitle || 'Personal growth'}</Text>
+            <Text style={styles.subtitle}>Goal: {(post.goal && isValidContent(post.goal) ? post.goal : null) || (post.goalTitle && isValidContent(post.goalTitle) ? post.goalTitle : null) || 'Personal growth'}</Text>
           )}
         </View>
         <Animated.View style={[styles.pointsWrap, coinAnimatedStyle]}>
@@ -248,7 +249,7 @@ export const LuxuryPostCardPremium: React.FC<LuxuryPostCardPremiumProps> = ({
                   </View>
                   <View style={styles.commentBubble}>
                     <Text style={styles.commentAuthor}>{comment.user}</Text>
-                    <Text style={styles.commentText}>{comment.content || comment.text}</Text>
+                    <Text style={styles.commentText}>{(comment.content && isValidContent(comment.content) ? comment.content : null) || (comment.text && isValidContent(comment.text) ? comment.text : null)}</Text>
                   </View>
                 </View>
               ))}

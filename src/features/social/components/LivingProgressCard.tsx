@@ -9,6 +9,7 @@ import {
   BASE_DESIGN_WIDTH,
   CURRENT_SCREEN_WIDTH,
 } from './LivingProgressCard.tokens';
+import { isValidContent } from '../../../utils/contentValidation';
 
 interface LivingProgressCardProps {
   post: Post;
@@ -396,7 +397,8 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({ post }) 
           }
 
           const isNewest = index === 0;
-          const textConfig = getTextConfig(slot.action?.title || '', tileWidth);
+          const actionTitle = slot.action?.title && isValidContent(slot.action.title) ? slot.action.title : '';
+          const textConfig = getTextConfig(actionTitle, tileWidth);
 
           return (
             <TouchableOpacity
@@ -407,7 +409,7 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({ post }) 
                 isNewest && styles.actionTileNewest,
                 { width: tileWidth }
               ]}
-              onLongPress={() => handleLongPress(slot.action?.title || '')}
+              onLongPress={() => handleLongPress(actionTitle)}
               delayLongPress={500}
             >
               <Text

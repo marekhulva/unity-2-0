@@ -140,6 +140,7 @@ export type SocialSlice = {
   addComment: (postId: string, content: string, which: Visibility) => Promise<void>;
   loadComments: (postId: string, which: Visibility) => Promise<void>;
   clearCheckinPosts: () => void;
+  clearFeedCache: () => void;
   // Circle actions (joinCircle moved to circlesSlice)
   loadCircleData: () => Promise<void>;
   // Following actions
@@ -742,7 +743,15 @@ export const createSocialSlice: StateCreator<
       followFeed: state.followFeed.filter(post => post.type !== 'checkin')
     }));
   },
-  
+
+  clearFeedCache: () => {
+    // Clear all feed-related cache entries
+    memoryCache.clearFeedCache();
+    // Also clear feed state to force fresh fetch
+    set({ unifiedFeed: [], circleFeed: [], followFeed: [], unifiedOffset: 0, circleOffset: 0, followOffset: 0 });
+    if (__DEV__) console.log('🧹 Cleared feed cache and state');
+  },
+
   addPost: async (postData) => {
     // CHECKPOINT 3: Post data received in socialSlice
     ChallengeDebugV2.checkpoint('CP3-SOCIAL-SLICE', 'Post data in socialSlice.addPost', postData);

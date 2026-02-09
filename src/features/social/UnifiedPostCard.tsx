@@ -19,6 +19,7 @@ import Animated, {
 import { MessageCircle, Send, Check, Flame } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { Post } from '../../state/slices/socialSlice';
+import { isValidContent } from '../../utils/contentValidation';
 
 interface UnifiedPostCardProps {
   post: Post;
@@ -92,7 +93,7 @@ export const UnifiedPostCard: React.FC<UnifiedPostCardProps> = React.memo(({
               <Text style={styles.goldText}>{post.user}</Text>
               {' '}completed all daily actions
             </Text>
-            {post.goal && post.goal.trim() && post.goal.trim() !== '.' && (
+            {post.goal && isValidContent(post.goal) && (
               <View style={styles.goalRow}>
                 <View style={[styles.goalDot, { backgroundColor: post.goalColor || '#10B981' }]} />
                 <Text style={styles.metaText}>{post.goal}</Text>
@@ -141,7 +142,7 @@ export const UnifiedPostCard: React.FC<UnifiedPostCardProps> = React.memo(({
             {isActivityChallenge && (
               <View style={styles.challengeChip}>
                 <Text style={styles.challengeChipText}>
-                  🏆 {post.challengeName || 'Challenge'}
+                  🏆 {(post.challengeName && isValidContent(post.challengeName) ? post.challengeName : null) || 'Challenge'}
                 </Text>
               </View>
             )}
@@ -157,11 +158,11 @@ export const UnifiedPostCard: React.FC<UnifiedPostCardProps> = React.memo(({
             <View style={styles.checkIcon}>
               <Check size={14} color="#000" strokeWidth={3} />
             </View>
-            <Text style={styles.actionTitle}>{post.actionTitle || 'Completed action'}</Text>
+            <Text style={styles.actionTitle}>{(post.actionTitle && isValidContent(post.actionTitle) ? post.actionTitle : null) || 'Completed action'}</Text>
           </View>
         )}
 
-        {post.content && post.content.trim() && post.content.trim() !== '.' && !isCheckin && (
+        {post.content && isValidContent(post.content) && !isCheckin && (
           <Text style={styles.postText}>{post.content}</Text>
         )}
 
@@ -175,11 +176,11 @@ export const UnifiedPostCard: React.FC<UnifiedPostCardProps> = React.memo(({
           </View>
         )}
 
-        {isPhoto && post.content && post.content.trim() && post.content.trim() !== '.' && (
+        {isPhoto && post.content && isValidContent(post.content) && (
           <Text style={styles.caption}>{post.content}</Text>
         )}
 
-        {post.goal && post.goal.trim() && post.goal.trim() !== '.' && !isCheckin && (
+        {post.goal && isValidContent(post.goal) && !isCheckin && (
           <View style={styles.goalRow}>
             <View style={[styles.goalDot, { backgroundColor: post.goalColor || '#10B981' }]} />
             <Text style={styles.metaText}>{post.goal}</Text>
@@ -226,7 +227,7 @@ export const UnifiedPostCard: React.FC<UnifiedPostCardProps> = React.memo(({
           {post.comments && post.comments.length > 0 && (
             <View style={styles.commentsList}>
               {post.comments.slice(0, 3).map((comment, index) => {
-                if (!comment.user || !comment.content || comment.content.trim() === '.') return null;
+                if (!comment.user || !comment.content || !isValidContent(comment.content)) return null;
                 return (
                   <View key={comment.id || index} style={styles.commentItem}>
                     <Text style={styles.commentUser}>{comment.user}</Text>

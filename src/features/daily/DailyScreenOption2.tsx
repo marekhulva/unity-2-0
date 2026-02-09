@@ -165,7 +165,7 @@ export const DailyScreenOption2 = () => {
     const user = useStore.getState().user;
     if (__DEV__) console.log('🎯 [DailyScreen] Feature flag check:', { useLivingProgressCards, userId: user?.id, visibility });
 
-    // DO ALL BACKEND WORK IN BACKGROUND (non-blocking)
+    // Handle challenge activity completion first (always needed for challenge tracking)
     if (actionToComplete.isFromChallenge && actionToComplete.challengeActivityId) {
       const isLinkedActivity = actionToComplete.id && !actionToComplete.id.startsWith('challenge-');
       const linkedActionId = isLinkedActivity ? actionToComplete.id : undefined;
@@ -181,12 +181,11 @@ export const DailyScreenOption2 = () => {
           fetchDailyActions();
         }
       });
+    }
 
-      // Still need to create post for challenge completions (legacy flow)
-      // This will also run in background via the code below
-    } else if (useLivingProgressCards && user?.id && visibility !== 'private') {
-      // LIVING PROGRESS CARD FLOW
-      if (__DEV__) console.log('📊 [DailyScreen] Using Living Progress Card flow');
+    // LIVING PROGRESS CARD FLOW (for both challenge and regular actions)
+    if (useLivingProgressCards && user?.id && visibility !== 'private') {
+      if (__DEV__) console.log('✅ [DailyScreen] ===== USING LIVING PROGRESS CARD FLOW =====');
 
       // Mark action as complete locally (optimistic update)
       toggleAction(actionToComplete.id);
@@ -219,11 +218,11 @@ export const DailyScreenOption2 = () => {
 
       // Skip legacy post creation for Living Progress Cards
       return;
-    } else {
-      // LEGACY FLOW - non-challenge action
-      if (__DEV__) console.log('📝 [DailyScreen] Using legacy individual post flow');
-      toggleAction(actionToComplete.id);
     }
+
+    // LEGACY FLOW (only if Living Progress Cards are disabled)
+    if (__DEV__) console.log('❌ [DailyScreen] ===== USING LEGACY INDIVIDUAL POST FLOW =====');
+    toggleAction(actionToComplete.id);
 
     // Legacy post creation (for non-Living Progress Card actions)
     const actionType = contentType === 'text' ? 'milestone' : 'check';

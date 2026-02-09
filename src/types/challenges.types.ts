@@ -39,9 +39,11 @@ export interface PredeterminedActivity {
   id?: string;
   title: string;
   emoji?: string;
-  frequency: 'daily' | 'weekly' | 'custom';
+  frequency: 'daily' | 'weekly' | 'custom' | 'once';
   min_duration_minutes?: number;
   description?: string;
+  start_day?: number;  // Which day to start showing (1-based)
+  end_day?: number;    // Which day to stop showing (inclusive)
 }
 
 export interface ChallengeParticipant {

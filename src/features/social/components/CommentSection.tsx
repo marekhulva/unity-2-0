@@ -12,6 +12,7 @@ import Animated, {
 import { Send, MessageCircle } from 'lucide-react-native';
 import { Comment } from '../../../state/slices/socialSlice';
 import * as Haptics from 'expo-haptics';
+import { isValidContent } from '../../../utils/contentValidation';
 
 interface CommentSectionProps {
   postId: string;
@@ -91,7 +92,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                     <Text style={styles.commentUser}>{comment.user}</Text>
                     <Text style={styles.commentTime}>{comment.time}</Text>
                   </View>
-                  <Text style={styles.commentText}>{comment.content}</Text>
+                  <Text style={styles.commentText}>{isValidContent(comment.content) ? comment.content : ''}</Text>
                 </View>
               </View>
             </Animated.View>

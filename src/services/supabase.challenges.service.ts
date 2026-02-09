@@ -855,11 +855,13 @@ class SupabaseChallengeService {
         selected_activity_ids,
         linked_action_ids,
         activity_times,
+        personal_start_date,
         challenges!inner (
           id,
           name,
           status,
-          predetermined_activities
+          predetermined_activities,
+          duration_days
         )
       `)
       .eq('user_id', user.id)
@@ -884,6 +886,14 @@ class SupabaseChallengeService {
       const selectedIds = participation.selected_activity_ids || [];
       const linkedIds = participation.linked_action_ids || [];
 
+      // Calculate current day of challenge for day-specific filtering
+      const startDate = new Date(participation.personal_start_date);
+      const today = new Date();
+      const daysSinceStart = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      const currentDay = daysSinceStart + 1; // 1-based
+
+      if (__DEV__) console.log('📅 [CHALLENGES] Challenge', challenge.name, '- Current Day:', currentDay);
+
       // If selectedIds contains undefined/null, it means the user joined before IDs were added
       // In that case, include ALL activities from the challenge
       const hasValidSelectedIds = selectedIds.length > 0 && selectedIds.every((id: any) => id && id !== 'undefined');
@@ -895,19 +905,27 @@ class SupabaseChallengeService {
 
           const activity = predeterminedActivities.find((a: any) => a.id === activityId);
           if (activity) {
-            const activityTime = (participation.activity_times || []).find(
-              (t: any) => t.activity_id === activityId && !t.is_link
-            );
+            // Check if activity should show today (day-specific filtering)
+            const startDay = activity.start_day || 1;
+            const endDay = activity.end_day || challenge.duration_days;
 
-            activities.push({
-              id: activityId,
-              title: activity.title,
-              emoji: activity.emoji,
-              challengeId: challenge.id,
-              challengeName: challenge.name,
-              participantId: participation.id,
-              scheduledTime: activityTime?.scheduled_time,
-            });
+            if (currentDay >= startDay && currentDay <= endDay) {
+              const activityTime = (participation.activity_times || []).find(
+                (t: any) => t.activity_id === activityId && !t.is_link
+              );
+
+              activities.push({
+                id: activityId,
+                title: activity.title,
+                emoji: activity.emoji,
+                challengeId: challenge.id,
+                challengeName: challenge.name,
+                participantId: participation.id,
+                scheduledTime: activityTime?.scheduled_time,
+              });
+            } else {
+              if (__DEV__) console.log('⏭️  [CHALLENGES] Skipping activity', activity.title, '(days', startDay, '-', endDay, ', current:', currentDay, ')');
+            }
           }
         }
       } else {
@@ -916,19 +934,27 @@ class SupabaseChallengeService {
         for (const activity of predeterminedActivities) {
           if (linkedIds.includes(activity.id)) continue;
 
-          const activityTime = (participation.activity_times || []).find(
-            (t: any) => t.activity_id === activity.id && !t.is_link
-          );
+          // Check if activity should show today (day-specific filtering)
+          const startDay = activity.start_day || 1;
+          const endDay = activity.end_day || challenge.duration_days;
 
-          activities.push({
-            id: activity.id,
-            title: activity.title,
-            emoji: activity.emoji,
-            challengeId: challenge.id,
-            challengeName: challenge.name,
-            participantId: participation.id,
-            scheduledTime: activityTime?.scheduled_time,
-          });
+          if (currentDay >= startDay && currentDay <= endDay) {
+            const activityTime = (participation.activity_times || []).find(
+              (t: any) => t.activity_id === activity.id && !t.is_link
+            );
+
+            activities.push({
+              id: activity.id,
+              title: activity.title,
+              emoji: activity.emoji,
+              challengeId: challenge.id,
+              challengeName: challenge.name,
+              participantId: participation.id,
+              scheduledTime: activityTime?.scheduled_time,
+            });
+          } else {
+            if (__DEV__) console.log('⏭️  [CHALLENGES] Skipping activity', activity.title, '(days', startDay, '-', endDay, ', current:', currentDay, ')');
+          }
         }
       }
     }

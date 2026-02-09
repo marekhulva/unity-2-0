@@ -19,6 +19,7 @@ import { useStore } from '../../../state/rootStore';
 import * as Haptics from 'expo-haptics';
 import { SimpleAudioPlayer } from './SimpleAudioPlayer';
 import { CommentSection } from './CommentSection';
+import { isValidContent } from '../../../utils/contentValidation';
 
 const { width } = Dimensions.get('window');
 
@@ -227,16 +228,16 @@ export const FeedCard: React.FC<FeedCardProps> = ({
                 <View style={styles.checkmarkContainer}>
                   <Text style={styles.checkmark}>✅</Text>
                 </View>
-                <Text style={styles.checkinAction}>{post.actionTitle}</Text>
+                <Text style={styles.checkinAction}>{isValidContent(post.actionTitle) ? post.actionTitle : ''}</Text>
               </View>
-              {post.goal && (
+              {post.goal && isValidContent(post.goal) && (
                 <Text style={styles.goalContext}>→ {post.goal}</Text>
               )}
             </View>
           )}
           
           {/* Main content */}
-          {post.content && (
+          {post.content && isValidContent(post.content) && (
             <Text style={styles.content}>{post.content}</Text>
           )}
           
