@@ -7,6 +7,13 @@ import ChallengeDebugV2 from '../utils/challengeDebugV2';
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://ojusijzhshvviqjeyhyn.supabase.co';
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qdXNpanpoc2h2dmlxamV5aHluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NjU3MjQsImV4cCI6MjA3MTE0MTcyNH0.rlQ9lIGzoaLTOW-5-W0G1J1A0WwvqZMnhGHW-FwV8GQ';
 
+// Log which database we're using
+if (__DEV__) {
+  console.log('🔵 [SUPABASE] Connecting to database:');
+  console.log('  URL:', SUPABASE_URL);
+  console.log('  Using env var:', !!process.env.EXPO_PUBLIC_SUPABASE_URL);
+}
+
 // Create Supabase client
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
@@ -2878,7 +2885,11 @@ class SupabaseService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    if (__DEV__) console.log('🔵 [CIRCLES] Fetching all circles for user:', user.id);
+    if (__DEV__) {
+      console.log('🔵 [CIRCLES] Fetching all circles for user:', user.id);
+      console.log('🔵 [CIRCLES] Database URL:', SUPABASE_URL);
+      console.log('🔵 [CIRCLES] Querying circle_members table...');
+    }
 
     // OPTIMIZED: Single query with member count using aggregate function
     // Get all circle memberships with circle data and member counts in one query
@@ -2908,6 +2919,19 @@ class SupabaseService {
       throw membershipError;
     }
 
+    if (__DEV__) {
+      console.log('🔵 [CIRCLES] Raw memberships from DB:', memberships?.length || 0);
+      if (memberships && memberships.length > 0) {
+        memberships.forEach((m, i) => {
+          console.log(`🔵 [CIRCLES] Membership ${i + 1}:`, {
+            circle_id: m.circle_id,
+            circle_name: m.circles?.name,
+            joined_at: m.joined_at
+          });
+        });
+      }
+    }
+
     // Transform the data to match our Circle interface
     const circles = (memberships || []).map(membership => {
       const circle = membership.circles;
@@ -2930,7 +2954,18 @@ class SupabaseService {
       };
     });
 
-    if (__DEV__) console.log('✅ [CIRCLES] Found', circles.length, 'circles for user (OPTIMIZED: single query)');
+    if (__DEV__) {
+      console.log('✅ [CIRCLES] Found', circles.length, 'circles for user (OPTIMIZED: single query)');
+      circles.forEach((c, i) => {
+        console.log(`✅ [CIRCLES] Circle ${i + 1}:`, {
+          id: c.id,
+          name: c.name,
+          emoji: c.emoji,
+          member_count: c.member_count,
+          join_code: c.join_code
+        });
+      });
+    }
     return circles;
   }
 
