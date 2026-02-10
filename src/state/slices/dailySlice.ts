@@ -2,19 +2,21 @@ import { StateCreator } from 'zustand';
 import { backendService } from '../../services/backend.service';
 import { shouldActionAppearToday } from '../../utils/actionScheduling';
 
-export type ActionItem = { 
-  id: string; 
-  title: string; 
+export type ActionItem = {
+  id: string;
+  title: string;
   goalId?: string;  // Link to specific goal
-  goalTitle?: string; 
+  goalTitle?: string;
   goalColor?: string;
-  type:'commitment'|'performance'|'one-time'; 
+  type:'commitment'|'performance'|'one-time';
   frequency?: string; // e.g., "daily", "three_per_week", "weekly"
   scheduled_days?: string[]; // For weekly and 3x/week: ['monday', 'wednesday', 'friday']
   created_at?: string; // For every_other_day calculation
-  time?: string; 
-  streak: number; 
+  time?: string;
+  streak: number;
   done?: boolean;
+  // Abstinence flag
+  isAbstinence?: boolean;      // True for "avoid" actions (No Social Media, No Alcohol)
   // Challenge-related fields
   challengeId?: string;        // If from a challenge
   challengeActivityId?: string; // The specific activity in challenge
