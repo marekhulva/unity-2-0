@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { LuxuryTheme } from '../../design/luxuryTheme';
 import { PrivacySelectionModal } from './PrivacySelectionModal';
+import { AbstinenceModal } from './AbstinenceModal';
 import { featureFlags } from '../../services/featureFlags.service';
 import { backendService } from '../../services/backend.service';
 
@@ -29,6 +30,7 @@ interface ActionItemProps {
   time?: string;
   type?: 'goal' | 'performance' | 'commitment' | 'oneTime' | 'one-time';
   goalColor?: string;
+  isAbstinence?: boolean;
 }
 
 // Helper function to format time from 24hr to 12hr with AM/PM
@@ -56,9 +58,10 @@ export const ActionItem: React.FC<ActionItemProps> = ({
   streak,
   time,
   type = 'goal',
-  goalColor
+  goalColor,
+  isAbstinence = false
 }) => {
-  if (__DEV__) console.log('🎯 [ActionItem] Rendering:', { id, title, done, goalTitle, goalColor });
+  if (__DEV__) console.log('🎯 [ActionItem] Rendering:', { id, title, done, goalTitle, goalColor, isAbstinence });
   const toggle = useStore(s => s.toggleAction);
   const updateAction = useStore(s => s.updateAction);
   const deleteAction = useStore(s => s.deleteAction);
@@ -67,6 +70,7 @@ export const ActionItem: React.FC<ActionItemProps> = ({
   const user = useStore(s => s.user);
   const actions = useStore(s => s.actions);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showAbstinenceModal, setShowAbstinenceModal] = useState(false);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const scaleAnimation = useSharedValue(1);
   const streakGlow = useSharedValue(0);
@@ -111,12 +115,17 @@ export const ActionItem: React.FC<ActionItemProps> = ({
   };
 
   const handleToggle = async () => {
-    if (__DEV__) console.log('🎯 [ActionItem] handleToggle called:', { id, title, done });
+    if (__DEV__) console.log('🎯 [ActionItem] handleToggle called:', { id, title, done, isAbstinence });
 
     if (!done) {
-      // Show privacy modal when completing an action
-      if (__DEV__) console.log('🎯 [ActionItem] Opening privacy modal for action:', title);
-      setShowPrivacyModal(true);
+      // Route to abstinence modal for abstinence actions, privacy modal for regular actions
+      if (isAbstinence) {
+        if (__DEV__) console.log('🎯 [ActionItem] Opening abstinence modal for action:', title);
+        setShowAbstinenceModal(true);
+      } else {
+        if (__DEV__) console.log('🎯 [ActionItem] Opening privacy modal for action:', title);
+        setShowPrivacyModal(true);
+      }
       HapticManager.interaction.premiumPress();
       if (__DEV__) console.log('🎯 [ActionItem] Modal state set to true');
     } else {
@@ -273,6 +282,125 @@ export const ActionItem: React.FC<ActionItemProps> = ({
     setShowPrivacyModal(false);
   };
 
+  const handleAbstinenceComplete = async (
+    didStayOnTrack: boolean,
+    comment?: string,
+    photoUri?: string,
+    circleIds?: string[],
+    includeFollowers?: boolean
+  ) => {
+    if (__DEV__) console.log('🎯 [ActionItem] handleAbstinenceComplete called:', {
+      id,
+      title,
+      didStayOnTrack,
+      hasComment: !!comment,
+      hasPhoto: !!photoUri,
+      circleIds,
+      includeFollowers
+    });
+
+    // Mark action as complete
+    toggle(id);
+    if (streak >= 7) {
+      HapticManager.context.streakExtended();
+    } else {
+      HapticManager.context.actionCompleted();
+    }
+
+    // Determine visibility based on circle selection
+    const isPrivate = (!circleIds || circleIds.length === 0) && !includeFollowers;
+    const visibility = isPrivate ? 'private' : 'circle';
+
+    if (__DEV__) console.log('🎯 [ActionItem] Abstinence visibility:', { isPrivate, visibility, circleIds, includeFollowers });
+
+    // Check if Living Progress Cards feature is enabled
+    const useLivingProgressCards = await featureFlags.isEnabled('use_living_progress_cards');
+    if (__DEV__) {
+      console.log('🎯 [ActionItem] Feature flag check:', {
+        useLivingProgressCards,
+        userId: user?.id,
+        visibility,
+        hasUserId: !!user?.id,
+        isNotPrivate: !isPrivate
+      });
+    }
+
+    if (useLivingProgressCards && user?.id && !isPrivate) {
+      // LIVING PROGRESS CARD FLOW
+      if (__DEV__) console.log('✅ [ACTION] ===== USING LIVING PROGRESS CARD FLOW (ABSTINENCE) =====');
+
+      try {
+        const progressPost = await backendService.findOrCreateDailyProgressPost(user.id);
+
+        if (progressPost.success && progressPost.data) {
+          const totalActions = actions.length;
+
+          await backendService.updateDailyProgressPost(
+            progressPost.data.id,
+            {
+              actionId: id,
+              title,
+              goalTitle,
+              goalColor,
+              completedAt: new Date().toISOString(),
+              streak: streak + 1,
+              comment: didStayOnTrack ? comment : `Did not stay on track${comment ? ': ' + comment : ''}`,
+              photoUri,
+            },
+            totalActions
+          );
+
+          if (__DEV__) console.log('✅ [ACTION] Updated Living Progress Card with abstinence completion');
+          useStore.getState().fetchUnifiedFeed(true);
+          if (__DEV__) console.log('🔄 [ACTION] Refreshed unified feed');
+        }
+      } catch (error) {
+        if (__DEV__) console.error('❌ [ACTION] Failed to update Living Progress Card:', error);
+      }
+    } else {
+      // LEGACY FLOW - create individual posts
+      if (__DEV__) console.log('❌ [ACTION] ===== USING LEGACY INDIVIDUAL POST FLOW (ABSTINENCE) =====', {
+        reason: !useLivingProgressCards ? 'Feature flag is false' :
+                !user?.id ? 'No user ID' :
+                isPrivate ? 'Visibility is private' :
+                'Unknown'
+      });
+
+      const actionType = photoUri ? 'photo' : comment ? 'milestone' : 'check';
+
+      addCompletedAction({
+        id: `${id}-${Date.now()}`,
+        actionId: id,
+        title,
+        goalTitle,
+        completedAt: new Date(),
+        isPrivate,
+        visibility: visibility as any,
+        streak: streak + 1,
+        type: actionType,
+        mediaUrl: photoUri,
+        content: didStayOnTrack ? comment : `Did not stay on track${comment ? ': ' + comment : ''}`,
+        category: 'fitness',
+      });
+
+      if (!isPrivate && (photoUri || comment)) {
+        setTimeout(() => {
+          openShare({
+            type: 'checkin',
+            visibility,
+            actionTitle: title,
+            goal: goalTitle,
+            streak: streak + 1,
+            goalColor: goalColor || LuxuryTheme.colors.primary.gold,
+            contentType: photoUri ? 'photo' : 'text',
+          });
+        }, 500);
+      }
+    }
+
+    setShowAbstinenceModal(false);
+  };
+
   const handleEdit = () => {
     setShowActionMenu(false);
     Alert.prompt(
@@ -413,7 +541,16 @@ export const ActionItem: React.FC<ActionItemProps> = ({
         actionTitle={title}
         streak={streak}
       />
-      
+
+      {/* Abstinence Modal */}
+      <AbstinenceModal
+        visible={showAbstinenceModal}
+        onClose={() => setShowAbstinenceModal(false)}
+        onComplete={handleAbstinenceComplete}
+        actionTitle={title}
+        streak={streak}
+      />
+
       {/* Action Menu Modal */}
       {showActionMenu && (
         <TouchableOpacity 
