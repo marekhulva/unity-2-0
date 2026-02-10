@@ -284,6 +284,7 @@ class SupabaseService {
           goalId: action.goal_id,
           userId: action.user_id,
           completedAt: action.completed_at,
+          isAbstinence: action.is_abstinence || false,
           goal: action.goal
         };
 
@@ -313,9 +314,10 @@ class SupabaseService {
     goalId?: string;
     frequency?: string;
     scheduled_days?: string[];
+    isAbstinence?: boolean;
   }) {
-    if (__DEV__) console.log('🔵 [SUPABASE] createAction called:', action.title);
-    
+    if (__DEV__) console.log('🔵 [SUPABASE] createAction called:', action.title, 'isAbstinence:', action.isAbstinence);
+
     // Verify session first
     const { user } = await this.verifySession();
     if (!user) {
@@ -337,7 +339,8 @@ class SupabaseService {
         completed: false,
         goal_id: goalId,  // Map goalId to goal_id
         frequency: action.frequency || 'daily',
-        scheduled_days: action.scheduled_days || null
+        scheduled_days: action.scheduled_days || null,
+        is_abstinence: action.isAbstinence || false
       })
       .select()
       .single();

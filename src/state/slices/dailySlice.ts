@@ -108,7 +108,8 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
               // PRESERVE COMPLETION TIMESTAMPS FOR PROGRESS PAGE!
               completed_at: a.completed_at,
               completedAt: a.completedAt,
-              completed: a.completed  // Keep original completed status too
+              completed: a.completed,  // Keep original completed status too
+              isAbstinence: a.isAbstinence || false
             };
           })
           .filter((action: any) => {
