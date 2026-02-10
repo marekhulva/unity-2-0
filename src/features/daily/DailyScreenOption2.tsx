@@ -93,13 +93,26 @@ export const DailyScreenOption2 = () => {
     loadWeeklyProgress();
   }, [currentUser?.id, actions.length, actionsLoading]);
 
-  const sortedActions = useMemo(() => {
-    return [...actions].sort((a, b) => {
+  const { timedActions, abstinenceActions } = useMemo(() => {
+    const timed: any[] = [];
+    const abstinence: any[] = [];
+
+    actions.forEach(action => {
+      if (action.isAbstinence) {
+        abstinence.push(action);
+      } else {
+        timed.push(action);
+      }
+    });
+
+    timed.sort((a, b) => {
       if (!a.time || !b.time) return 0;
       const timeA = a.time.split(':').map(Number);
       const timeB = b.time.split(':').map(Number);
       return (timeA[0] * 60 + timeA[1]) - (timeB[0] * 60 + timeB[1]);
     });
+
+    return { timedActions: timed, abstinenceActions: abstinence };
   }, [actions]);
 
   const formatTime24 = (time?: string) => {
@@ -420,49 +433,99 @@ export const DailyScreenOption2 = () => {
         ) : actions.length === 0 ? (
           renderEmptyState()
         ) : (
-          <Animated.View
-            entering={FadeInDown.delay(200).springify()}
-            style={styles.timeline}
-          >
-            <LinearGradient
-              colors={['#E7B43A', 'rgba(231,180,58,0.2)']}
-              style={styles.timelineLine}
-            />
-            {sortedActions.map((action, index) => {
-              const icon = getCategoryIcon(action.title, action.goalTitle);
+          <>
+            {/* Abstinence Actions Section */}
+            {abstinenceActions.length > 0 && (
+              <Animated.View
+                entering={FadeInDown.delay(200).springify()}
+                style={styles.abstinenceSection}
+              >
+                <Text style={styles.sectionTitle}>ALL-DAY COMMITMENTS</Text>
+                {abstinenceActions.map((action, index) => {
+                  const icon = getCategoryIcon(action.title, action.goalTitle);
 
-              return (
-                <Animated.View
-                  key={action.id}
-                  entering={FadeInDown.delay(index * 50).springify()}
-                  style={styles.timelineItem}
-                >
-                  <Text style={styles.time}>{formatTime24(action.time)}</Text>
-                  <View style={[styles.dot, action.done && styles.dotCompleted]} />
-                  <Pressable
-                    style={[styles.card, action.done && styles.cardCompleted]}
-                    onPress={() => handleTaskToggle(action)}
-                  >
-                    <View style={styles.cardHeader}>
-                      <Text style={styles.activityIcon}>{icon}</Text>
-                      <Text style={[
-                        styles.activityName,
-                        action.done && styles.activityNameCompleted
-                      ]}>
-                        {action.title}
-                      </Text>
-                      {action.done && <Text style={styles.checkIcon}>✓</Text>}
-                    </View>
-                    {(action.goalTitle || action.challengeName) && (
-                      <Text style={styles.cardDetails}>
-                        {[action.challengeName, action.goalTitle].filter(Boolean).join(' • ')}
-                      </Text>
-                    )}
-                  </Pressable>
-                </Animated.View>
-              );
-            })}
-          </Animated.View>
+                  return (
+                    <Animated.View
+                      key={action.id}
+                      entering={FadeInDown.delay(index * 50).springify()}
+                      style={styles.abstinenceItem}
+                    >
+                      <Pressable
+                        style={[styles.card, action.done && styles.cardCompleted]}
+                        onPress={() => handleTaskToggle(action)}
+                      >
+                        <View style={styles.cardHeader}>
+                          <Text style={styles.activityIcon}>{icon}</Text>
+                          <Text style={[
+                            styles.activityName,
+                            action.done && styles.activityNameCompleted
+                          ]}>
+                            {action.title}
+                          </Text>
+                          {action.done && <Text style={styles.checkIcon}>✓</Text>}
+                        </View>
+                        {(action.goalTitle || action.challengeName) && (
+                          <Text style={styles.cardDetails}>
+                            {[action.challengeName, action.goalTitle].filter(Boolean).join(' • ')}
+                          </Text>
+                        )}
+                      </Pressable>
+                    </Animated.View>
+                  );
+                })}
+              </Animated.View>
+            )}
+
+            {/* Timed Actions Timeline */}
+            {timedActions.length > 0 && (
+              <Animated.View
+                entering={FadeInDown.delay(abstinenceActions.length * 50 + 200).springify()}
+                style={styles.timeline}
+              >
+                {abstinenceActions.length > 0 && (
+                  <Text style={[styles.sectionTitle, { marginBottom: 16 }]}>SCHEDULED ACTIONS</Text>
+                )}
+                <LinearGradient
+                  colors={['#E7B43A', 'rgba(231,180,58,0.2)']}
+                  style={styles.timelineLine}
+                />
+                {timedActions.map((action, index) => {
+                  const icon = getCategoryIcon(action.title, action.goalTitle);
+
+                  return (
+                    <Animated.View
+                      key={action.id}
+                      entering={FadeInDown.delay(index * 50).springify()}
+                      style={styles.timelineItem}
+                    >
+                      <Text style={styles.time}>{formatTime24(action.time)}</Text>
+                      <View style={[styles.dot, action.done && styles.dotCompleted]} />
+                      <Pressable
+                        style={[styles.card, action.done && styles.cardCompleted]}
+                        onPress={() => handleTaskToggle(action)}
+                      >
+                        <View style={styles.cardHeader}>
+                          <Text style={styles.activityIcon}>{icon}</Text>
+                          <Text style={[
+                            styles.activityName,
+                            action.done && styles.activityNameCompleted
+                          ]}>
+                            {action.title}
+                          </Text>
+                          {action.done && <Text style={styles.checkIcon}>✓</Text>}
+                        </View>
+                        {(action.goalTitle || action.challengeName) && (
+                          <Text style={styles.cardDetails}>
+                            {[action.challengeName, action.goalTitle].filter(Boolean).join(' • ')}
+                          </Text>
+                        )}
+                      </Pressable>
+                    </Animated.View>
+                  );
+                })}
+              </Animated.View>
+            )}
+          </>
         )}
       </ScrollView>
 
@@ -554,6 +617,21 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: 'rgba(255,255,255,0.4)',
     textTransform: 'uppercase',
+  },
+  sectionTitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    color: 'rgba(255,255,255,0.4)',
+    textTransform: 'uppercase',
+    marginBottom: 12,
+  },
+  abstinenceSection: {
+    padding: 20,
+    paddingTop: 24,
+  },
+  abstinenceItem: {
+    marginBottom: 12,
   },
   timeline: {
     padding: 20,
