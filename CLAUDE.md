@@ -135,6 +135,102 @@ Post appears in all circles' feeds + followers' feeds
 - Tapping completed action gives error haptic, does nothing
 - Future: May add EDIT feature to change comment/photo without affecting completion status
 
+## Onboarding System (Toggle On/Off)
+
+**Current Status**: DISABLED for MVP (Feb 2026) - Users skip straight to app
+**Can be re-enabled**: Yes, easily (see instructions below)
+
+### How It Works
+
+**Components**:
+- `OnboardingFlow.tsx` - 8-step flow (Journey selection, Goals, Milestones, Actions, etc.)
+- `ProfileSetupScreen.tsx` - Name, username, avatar setup
+- `AppWithAuth.tsx` - Controls what screens are shown
+
+**State Flags** (in `authSlice.ts`):
+- `hasCompletedProfileSetup` - Controls ProfileSetupScreen
+- `hasCompletedOnboarding` - Controls OnboardingFlow
+- Stored in AsyncStorage, persists across app restarts
+
+**Flow Logic** (in `AppWithAuth.tsx` lines 226-380):
+```
+New user registers
+  ↓
+hasCompletedProfileSetup = false → Show ProfileSetupScreen
+  ↓ (user completes)
+hasCompletedOnboarding = false → Show OnboardingFlow
+  ↓ (user completes)
+hasCompletedOnboarding = true → Show main app tabs
+```
+
+### To DISABLE Onboarding (Current MVP State)
+
+**Option 1: Skip onboarding for new users** (Recommended)
+In `src/state/slices/authSlice.ts` line ~141:
+```typescript
+// Change this:
+await AsyncStorage.setItem('hasCompletedOnboarding', 'false');
+
+// To this:
+await AsyncStorage.setItem('hasCompletedOnboarding', 'true');
+```
+
+**Option 2: Comment out OnboardingFlow render**
+In `src/AppWithAuth.tsx` lines ~375-390, comment out the entire block:
+```typescript
+{/* showOnboarding && (
+  <View style={{...}}>
+    <OnboardingFlow onComplete={...} />
+  </View>
+) */}
+```
+
+### To RE-ENABLE Onboarding
+
+**Reverse the changes above**:
+1. Set `hasCompletedOnboarding` back to `'false'` in authSlice register
+2. Uncomment OnboardingFlow render in AppWithAuth
+3. Test with a new user account (existing users won't see it)
+
+**To force existing users through onboarding**:
+```typescript
+// In AppWithAuth or a migration script:
+await AsyncStorage.setItem('hasCompletedOnboarding', 'false');
+await AsyncStorage.setItem('isNewUser', 'true');
+// User will see onboarding on next launch
+```
+
+### Onboarding Screens (8 steps)
+
+1. **JourneySelectionScreen** - Pick program/goal type
+2. **JourneyConfirmationScreen** - Confirm selection
+3. **GoalSettingScreen** - Set main goal
+4. **MilestonesScreen** - Define milestones
+5. **ActionsCommitmentsScreen** - Choose daily actions
+6. **ReviewCommitScreen** - Review and commit
+7. **TimeSelectionScreen** - Set action times
+8. **RoutineBuilderScreen** - Build routine
+
+**Files**:
+- `/src/features/onboarding/OnboardingFlow.tsx` - Main flow controller
+- `/src/features/onboarding/ProfileSetupScreen.tsx` - Profile setup
+- `/src/features/onboarding/[Screen].tsx` - Individual screens
+- `/src/state/slices/authSlice.ts` - Onboarding state management
+- `/src/AppWithAuth.tsx` - Onboarding render logic
+
+### MVP Decision (Feb 2026)
+
+**Why disabled**:
+- 8 steps = ~70% abandon rate
+- Users invited to challenges don't need setup (they get challenge activities)
+- Each tab has empty states with CTAs ("Add action +", "Join circle")
+- Faster to value (auth → app in 10 seconds)
+
+**When to re-enable**:
+- If users are confused without guided setup
+- If retention suffers from lack of initial actions/goals
+- If data shows users not discovering key features
+
 ## Code Style Guidelines
 - NO comments unless explicitly requested
 - Follow existing patterns in codebase
@@ -143,7 +239,7 @@ Post appears in all circles' feeds + followers' feeds
 - Prefer editing existing files over creating new ones
 
 ## Current Branch
-Working on: `circle-view-tabs`
+Working on: `Unity-Vision`
 
 ## Testing Accounts
 - Username: 12221212
