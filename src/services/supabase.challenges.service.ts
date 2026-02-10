@@ -922,6 +922,7 @@ class SupabaseChallengeService {
                 challengeName: challenge.name,
                 participantId: participation.id,
                 scheduledTime: activityTime?.scheduled_time,
+                is_abstinence: activity.is_abstinence || false,
               });
             } else {
               if (__DEV__) console.log('⏭️  [CHALLENGES] Skipping activity', activity.title, '(days', startDay, '-', endDay, ', current:', currentDay, ')');
@@ -951,6 +952,7 @@ class SupabaseChallengeService {
               challengeName: challenge.name,
               participantId: participation.id,
               scheduledTime: activityTime?.scheduled_time,
+              is_abstinence: activity.is_abstinence || false,
             });
           } else {
             if (__DEV__) console.log('⏭️  [CHALLENGES] Skipping activity', activity.title, '(days', startDay, '-', endDay, ', current:', currentDay, ')');

@@ -1,19 +1,31 @@
--- Add is_abstinence column to challenge_activities table
-ALTER TABLE challenge_activities
-ADD COLUMN is_abstinence BOOLEAN DEFAULT FALSE;
-
 -- Mark abstinence activities in the Mental Detox challenge
--- These are the "No" activities where you avoid something
-UPDATE challenge_activities
-SET is_abstinence = TRUE
-WHERE title IN (
-  'No Social Media',
-  'No Long-Form Content',
-  'Detox Compliance'
-);
+-- Update the predetermined_activities JSON to add is_abstinence flag
 
--- Add comment
-COMMENT ON COLUMN challenge_activities.is_abstinence IS 'TRUE for avoidance activities (No Social Media, No Alcohol), FALSE for active tasks (Exercise, Meditation).';
+UPDATE challenges
+SET predetermined_activities = jsonb_set(
+  jsonb_set(
+    jsonb_set(
+      predetermined_activities,
+      '{4,is_abstinence}',  -- Index 4: "No Social Media"
+      'true'::jsonb
+    ),
+    '{5,is_abstinence}',  -- Index 5: "No Long-Form Content"
+    'true'::jsonb
+  ),
+  '{6,is_abstinence}',  -- Index 6: "Detox Compliance"
+  'true'::jsonb
+)
+WHERE name = '7 Day Mental Detox';
 
--- Create index for querying abstinence activities
-CREATE INDEX idx_challenge_activities_abstinence ON challenge_activities(challenge_id, is_abstinence) WHERE is_abstinence = true;
+-- Verify the update
+SELECT
+  name,
+  jsonb_array_length(predetermined_activities) as activity_count,
+  (predetermined_activities->4->>'title') as activity_4,
+  (predetermined_activities->4->>'is_abstinence') as is_abstinence_4,
+  (predetermined_activities->5->>'title') as activity_5,
+  (predetermined_activities->5->>'is_abstinence') as is_abstinence_5,
+  (predetermined_activities->6->>'title') as activity_6,
+  (predetermined_activities->6->>'is_abstinence') as is_abstinence_6
+FROM challenges
+WHERE name = '7 Day Mental Detox';
