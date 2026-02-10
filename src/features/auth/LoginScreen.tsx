@@ -65,7 +65,7 @@ export function LoginScreen({ navigation }: any) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.content}>
-        <Text style={styles.title}>Best</Text>
+        <Text style={styles.title}>Unity</Text>
         <Text style={styles.subtitle}>
           {isRegistering ? 'Create your account' : 'Welcome back'}
         </Text>
