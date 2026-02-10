@@ -1,21 +1,30 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Post } from '../../../state/slices/socialSlice';
-import Svg, { Circle, Defs, Pattern, Rect, Line } from 'react-native-svg';
-import {
-  LivingProgressCardTokens as tokens,
-  SCALE_FACTOR,
-  BASE_DESIGN_WIDTH,
-  CURRENT_SCREEN_WIDTH,
-} from './LivingProgressCard.tokens';
-import { isValidContent } from '../../../utils/contentValidation';
+import Svg, { Circle } from 'react-native-svg';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
+import { Heart, MessageCircle } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
 
 interface LivingProgressCardProps {
   post: Post;
+  onToggleLike?: (postId: string, visibility: string) => Promise<void>;
+  onComment?: (postId: string, content: string, visibility: string) => Promise<void>;
 }
 
-export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({ post }) => {
+export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({
+  post,
+  onToggleLike,
+  onComment,
+}) => {
+  // Extract data from post
   const {
     user,
     avatar,
@@ -27,648 +36,525 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({ post }) 
     challenge_id,
     challenge_name,
     challenge_progress,
+    challengeName,
+    challengeId,
+    likeCount = 0,
+    userLiked = false,
+    commentCount = 0,
+    visibility,
+    id,
   } = post;
 
-  // Challenge detection
-  const isChallenge = is_challenge && challenge_id;
-  const currentDay = (challenge_progress as any)?.current_day;
-  const durationDays = (challenge_progress as any)?.total_days;
+  // Challenge detection - handle both naming conventions
+  const isChallengeSnake = is_challenge && challenge_id;
+  const isChallengeCamel = (post as any).isChallenge && (post as any).challengeId;
+  const isChallenge = isChallengeSnake || isChallengeCamel;
 
+  // Get challenge name from either naming convention
+  const displayChallengeName = challenge_name || challengeName;
+
+  // Perfect day calculation
   const percentage = totalActions > 0 ? Math.round((actionsToday / totalActions) * 100) : 0;
   const isPerfectDay = percentage === 100;
-  const remainingCount = totalActions - actionsToday;
 
-  // Date label logic - check if post is from today
-  const getDateLabel = (): string => {
-    if (!timestamp) return 'Today';
+  // State for interactions
+  const scale = useSharedValue(1);
+  const animatedReactStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
-    const postDate = new Date(timestamp);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+  // Engagement data
+  const hasLikes = likeCount > 0;
+  const hasComments = commentCount > 0;
 
-    // Reset hours for date comparison
-    const resetTime = (date: Date) => {
-      date.setHours(0, 0, 0, 0);
-      return date;
-    };
+  // Interaction handlers
+  const handleToggleLike = async () => {
+    if (!isChallenge || !onToggleLike) return;
 
-    const postDay = resetTime(new Date(postDate));
-    const todayDay = resetTime(new Date(today));
-    const yesterdayDay = resetTime(new Date(yesterday));
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    scale.value = withSequence(
+      withTiming(1.3, { duration: 80 }),
+      withSpring(1, { damping: 10 })
+    );
 
-    if (postDay.getTime() === todayDay.getTime()) {
-      return 'Today';
-    } else if (postDay.getTime() === yesterdayDay.getTime()) {
-      return 'Yesterday';
-    } else {
-      // Format as "Feb 3" or "Jan 27"
-      const month = postDate.toLocaleDateString('en-US', { month: 'short' });
-      const day = postDate.getDate();
-      return `${month} ${day}`;
+    try {
+      await onToggleLike(id, visibility);
+    } catch (error) {
+      console.error('Failed to toggle like:', error);
     }
   };
 
-  const dateLabel = getDateLabel();
+  const handleCommentPress = () => {
+    // TODO: Implement comment modal/section
+    console.log('Comment button pressed');
+  };
+
+  // Time ago calculation
+  const getTimeAgo = (): string => {
+    if (!timestamp) return 'Just now';
+
+    const now = new Date();
+    const postDate = new Date(timestamp);
+    const diffMs = now.getTime() - postDate.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays}d ago`;
+
+    // Format as "Feb 3"
+    const month = postDate.toLocaleDateString('en-US', { month: 'short' });
+    const day = postDate.getDate();
+    return `${month} ${day}`;
+  };
 
   // Progress ring calculation
-  const ringConfig = isPerfectDay ? tokens.progressRing.perfectDay : tokens.progressRing.normal;
-  const circumference = 2 * Math.PI * ringConfig.radius;
-  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+  const ringRadius = 21;
+  const circumference = 2 * Math.PI * ringRadius; // ~132
+  const progress = totalActions > 0 ? actionsToday / totalActions : 0;
+  const strokeDashoffset = circumference - (circumference * progress);
 
-  // Card width calculation for dynamic tile widths
-  const [cardWidth, setCardWidth] = React.useState(0);
-  const [cardHeight, setCardHeight] = React.useState(0);
+  // Get streak count (fallback to 0)
+  const streakCount = (post as any).streakCount || 0;
 
-  const onCardLayout = (event: LayoutChangeEvent) => {
-    const { width, height } = event.nativeEvent.layout;
-    setCardWidth(width);
-    setCardHeight(height);
-
-    // Log card dimensions and ratio
-    if (width > 0 && height > 0) {
-      const ratio = width / height;
-      console.log('📐 [LivingProgressCard] Card Measurements:', {
-        width: width.toFixed(1),
-        height: height.toFixed(1),
-        ratio: ratio.toFixed(2),
-        ratioString: `${ratio.toFixed(2)}:1`,
-      });
-    }
-  };
-
-  // Tile width calculation: match HTML flex behavior
-  const cardInnerWidth = cardWidth - (tokens.card.padding * 2);
-  const tileWidth = cardInnerWidth > 0
-    ? (cardInnerWidth - (tokens.actionsRow.gap * 2)) / 3
-    : tokens.actionTile.minWidth;
-
-  // Debug logging on render
-  React.useEffect(() => {
-    if (__DEV__) {
-      console.log('🎨 [LivingProgressCard] Layout Debug:', {
-        screenWidth: CURRENT_SCREEN_WIDTH,
-        baseWidth: BASE_DESIGN_WIDTH,
-        scale: SCALE_FACTOR,
-        cardPadding: tokens.card.padding,
-        avatarSize: tokens.avatar.width,
-        ringSize: ringConfig.size,
-        fonts: {
-          username: tokens.userInfo.username.fontSize,
-          metadata: tokens.userInfo.metadata.fontSize,
-          sectionLabel: tokens.sectionLabel.fontSize,
-          actionLabel: tokens.actionTile.label.fontSize,
-          footer: tokens.footer.fontSize,
-        },
-        spacing: {
-          headerMargin: tokens.header.marginBottom,
-          sectionLabelMargin: tokens.sectionLabel.marginBottom,
-          actionsGap: tokens.actionsRow.gap,
-          actionsMargin: tokens.actionsRow.marginBottom,
-        },
-        tileHeight: tokens.actionTile.height,
-      });
-    }
-  }, [ringConfig.size]);
-
-  // Smart abbreviation rules
-  const applyAbbreviations = (text: string): string => {
-    if (!text) return '';
-
-    let abbreviated = text
-      .replace(/\s*\([^)]*\)/g, '')
-      .trim()
-      .replace(/\bgallon(s)?\b/gi, 'gal')
-      .replace(/\bminute(s)?\b/gi, 'min')
-      .replace(/\bsecond(s)?\b/gi, 'sec')
-      .replace(/\bmile(s)?\b/gi, 'mi')
-      .replace(/\bkilometer(s)?\b/gi, 'km')
-      .replace(/\bexercise\b/gi, 'workout')
-      .replace(/\bmeditation\b/gi, 'meditate')
-      .replace(/\bprogress\s+photo/gi, 'photo')
-      .replace(/\btake\s+progress/gi, 'photo');
-
-    if (abbreviated.toLowerCase().includes('breathwork')) return 'Breathwork';
-    if (abbreviated.toLowerCase().startsWith('read')) return 'Read';
-    if (abbreviated.toLowerCase().includes('workout')) return 'Workout';
-    if (abbreviated.toLowerCase().includes('journal')) return 'Journal';
-
-    return abbreviated;
-  };
-
-  // Calculate text configuration (font size + number of lines)
-  const getTextConfig = (text: string, maxWidth: number = 160) => {
-    const processedText = applyAbbreviations(text);
-
-    const estimateWidth = (str: string, fontSize: number): number => {
-      const avgCharWidthRatio = 0.55;
-      return str.length * fontSize * avgCharWidthRatio;
-    };
-
-    const availableWidth = maxWidth - 24;
-
-    if (estimateWidth(processedText, 16) <= availableWidth) {
-      return { text: processedText, fontSize: 16, numberOfLines: 1, lineHeight: 16 };
-    }
-
-    if (estimateWidth(processedText, 14) <= availableWidth) {
-      return { text: processedText, fontSize: 14, numberOfLines: 1, lineHeight: 14 };
-    }
-
-    if (estimateWidth(processedText, 12) <= availableWidth) {
-      return { text: processedText, fontSize: 12, numberOfLines: 1, lineHeight: 12 };
-    }
-
-    const twoLineWidth = availableWidth * 2;
-    if (estimateWidth(processedText, 12) <= twoLineWidth) {
-      return { text: processedText, fontSize: 12, numberOfLines: 2, lineHeight: 17 };
-    }
-
-    if (estimateWidth(processedText, 11) <= twoLineWidth) {
-      return { text: processedText, fontSize: 11, numberOfLines: 2, lineHeight: 15 };
-    }
-
-    const maxChars = Math.floor((availableWidth * 2) / (11 * 0.55));
-    const truncated = processedText.substring(0, maxChars - 1) + '…';
-    return { text: truncated, fontSize: 11, numberOfLines: 2, lineHeight: 15 };
-  };
-
-  // Smart tile selection - only show completed actions
-  const getTileSlots = (): Array<{
-    type: 'completed' | 'overflow';
-    action?: any;
-    overflowCount?: number;
-  }> => {
-    const completed = [...completedActions].sort((a, b) => b.order - a.order);
-
-    if (completed.length === 0) return [];
-    if (completed.length <= 3) {
-      return completed.map(action => ({ type: 'completed' as const, action }));
-    }
-
-    return [
-      { type: 'completed' as const, action: completed[0] },
-      { type: 'completed' as const, action: completed[1] },
-      { type: 'overflow' as const, overflowCount: completed.length - 2 },
-    ];
-  };
-
-  const tileSlots = getTileSlots();
-
-  const handleOverflowTap = () => {
-    if (__DEV__) console.log('📊 [LivingProgressCard] Overflow tap');
-  };
-
-  const handleLongPress = (actionTitle: string) => {
-    if (__DEV__) console.log('📋 [LivingProgressCard] Full name:', actionTitle);
-  };
-
-  // Debug outline helper - pointerEvents none so they don't affect layout
-  const debugBorder = (color: string) => tokens.debug.enabled ? {
-    borderWidth: 2,
-    borderColor: color,
-    borderStyle: 'dashed' as const,
-  } : {};
+  // Get first 3 completed actions
+  const visibleActions = completedActions.slice(0, 3);
 
   return (
-    <View
-      style={[
-        styles.card,
-        isChallenge && styles.challengeCard,
-        debugBorder(tokens.debug.colors.card)
-      ]}
-      onLayout={onCardLayout}
-      pointerEvents="box-none"
-    >
-      {/* Mesh texture overlay */}
-      <Svg
-        width="100%"
-        height="100%"
-        style={styles.meshOverlay}
-        pointerEvents="none"
-      >
-        <Defs>
-          <Pattern
-            id="meshGrid"
-            width={tokens.mesh.patternSize}
-            height={tokens.mesh.patternSize}
-            patternUnits="userSpaceOnUse"
-          >
-            <Rect
-              width={tokens.mesh.patternSize}
-              height={tokens.mesh.patternSize}
-              fill="transparent"
-            />
-            <Line
-              x1="0"
-              y1={tokens.mesh.patternSize / 2}
-              x2={tokens.mesh.patternSize}
-              y2={tokens.mesh.patternSize / 2}
-              stroke="white"
-              strokeWidth={tokens.mesh.strokeWidth}
-            />
-            <Line
-              x1={tokens.mesh.patternSize / 2}
-              y1="0"
-              x2={tokens.mesh.patternSize / 2}
-              y2={tokens.mesh.patternSize}
-              stroke="white"
-              strokeWidth={tokens.mesh.strokeWidth}
-            />
-          </Pattern>
-        </Defs>
-        <Rect width="100%" height="100%" fill="url(#meshGrid)" />
-      </Svg>
+    <View style={[styles.card, isPerfectDay && styles.cardPerfectDay]}>
+      {/* Subtle Gold Background Overlay - Always visible */}
+      <LinearGradient
+        colors={[
+          'rgba(212, 175, 55, 0.08)',
+          'rgba(212, 175, 55, 0.06)',
+          'rgba(212, 175, 55, 0.07)',
+          'rgba(212, 175, 55, 0.03)'
+        ]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.goldBackgroundOverlay}
+      />
 
-      {/* Perfect Day Gold Top Line */}
+      {/* Perfect Day Decorations */}
       {isPerfectDay && (
-        <LinearGradient
-          colors={[
-            'transparent',
-            tokens.perfectDay.goldColor,
-            tokens.perfectDay.goldColor,
-            'transparent'
-          ]}
-          locations={[0, 0.2, 0.8, 1]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.perfectDayTopLine}
-          pointerEvents="none"
-        />
-      )}
-
-      {/* Challenge Header (if this is a challenge card) */}
-      {isChallenge && (
-        <View style={styles.challengeHeader}>
-          <Text style={styles.challengeName} allowFontScaling={false}>
-            🏆 {challenge_name || 'Challenge'}
-          </Text>
-          {currentDay && durationDays && (
-            <Text style={styles.challengeDay} allowFontScaling={false}>
-              Day {currentDay}/{durationDays}
-            </Text>
-          )}
-        </View>
-      )}
-
-      {/* Row 1: Header */}
-      <View style={[styles.header, debugBorder(tokens.debug.colors.header)]}>
-        <View style={styles.leftGroup}>
-          {/* Avatar */}
+        <>
           <LinearGradient
-            colors={['#667eea', '#764ba2']}
+            colors={['#D4AF37', '#E7C455', '#D4AF37']}
             start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.avatar}
-          >
-            <Text style={styles.avatarText} allowFontScaling={false}>
-              {avatar || '👤'}
-            </Text>
-          </LinearGradient>
+            end={{ x: 1, y: 0 }}
+            style={styles.goldTopLine}
+          />
+          <LinearGradient
+            colors={['rgba(212, 175, 55, 0.08)', 'transparent']}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={styles.goldGlow}
+          />
+        </>
+      )}
 
-          {/* User Info */}
-          <View style={styles.userInfo}>
-            <Text style={styles.username} allowFontScaling={false}>
-              {user}
-            </Text>
-            <Text style={styles.metadata} allowFontScaling={false}>
-              {dateLabel} <Text style={styles.highlight}>{actionsToday} of {totalActions}</Text>  {percentage}%
-            </Text>
-          </View>
+      {/* Challenge Name Header */}
+      {displayChallengeName && (
+        <View style={styles.challengeHeader}>
+          <Text style={styles.challengeHeaderText}>{displayChallengeName}</Text>
         </View>
+      )}
 
-        {/* Progress Ring */}
-        <View
-          style={[
-            styles.progressRingContainer,
-            {
-              width: ringConfig.size,
-              height: ringConfig.size,
-              marginTop: tokens.progressRing.containerMargin.top,
-              marginRight: tokens.progressRing.containerMargin.right,
-            },
-            debugBorder(tokens.debug.colors.ring)
-          ]}
-        >
-          {isPerfectDay && <View style={styles.perfectDayGlow} pointerEvents="none" />}
-
-          <Svg width={ringConfig.size} height={ringConfig.size} style={styles.progressRing} pointerEvents="none">
+      {/* Header Row */}
+      <View style={styles.header}>
+        {/* Progress Ring with Avatar */}
+        <View style={styles.progressRingWrapper}>
+          {/* Background Ring */}
+          <Svg width={48} height={48} viewBox="0 0 48 48" style={StyleSheet.absoluteFill}>
             <Circle
-              cx={ringConfig.size / 2}
-              cy={ringConfig.size / 2}
-              r={ringConfig.radius}
-              stroke={tokens.progressRing.strokeColor.background}
-              strokeWidth={ringConfig.strokeWidth}
+              cx={24}
+              cy={24}
+              r={ringRadius}
               fill="none"
+              stroke="rgba(255, 255, 255, 0.06)"
+              strokeWidth={3}
             />
+          </Svg>
+
+          {/* Progress Fill Ring */}
+          <Svg
+            width={48}
+            height={48}
+            viewBox="0 0 48 48"
+            style={[StyleSheet.absoluteFill, { transform: [{ rotate: '-90deg' }] }]}
+          >
             <Circle
-              cx={ringConfig.size / 2}
-              cy={ringConfig.size / 2}
-              r={ringConfig.radius}
-              stroke={tokens.progressRing.strokeColor.progress}
-              strokeWidth={ringConfig.strokeWidth}
+              cx={24}
+              cy={24}
+              r={ringRadius}
+              fill="none"
+              stroke="#D4AF37"
+              strokeWidth={3}
               strokeLinecap="round"
               strokeDasharray={circumference}
               strokeDashoffset={strokeDashoffset}
-              fill="none"
-              transform={`rotate(-90 ${ringConfig.size / 2} ${ringConfig.size / 2})`}
             />
           </Svg>
-          <Text style={styles.progressPercentage} allowFontScaling={false}>
-            {percentage}%
-          </Text>
+
+          {/* Avatar Inside Ring */}
+          <View style={styles.avatarInner}>
+            <Text style={styles.avatarEmoji}>{avatar || '👤'}</Text>
+          </View>
         </View>
 
-        {/* Perfect Day label in header */}
-        {isPerfectDay && (
-          <Text style={styles.perfectDayLabel} allowFontScaling={false}>
-            Perfect Day
-          </Text>
+        {/* User Info */}
+        <View style={styles.userInfo}>
+          {/* User Row: Name + Streak Badge */}
+          <View style={styles.userRow}>
+            <Text style={styles.username}>{user}</Text>
+            {streakCount > 0 && (
+              <LinearGradient
+                colors={['#FF6B35', '#FF4500']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.streakBadge}
+              >
+                <Text style={styles.streakBadgeText}>🔥 {streakCount}</Text>
+              </LinearGradient>
+            )}
+          </View>
+
+          {/* Subtitle Row: Perfect Badge + Time */}
+          <View style={styles.subtitleRow}>
+            {isPerfectDay && <Text style={styles.perfectBadge}>✦ PERFECT DAY</Text>}
+            {isPerfectDay && <Text style={styles.dotSeparator}>·</Text>}
+            <Text style={styles.timeAgo}>{getTimeAgo()}</Text>
+          </View>
+        </View>
+
+        {/* More Button */}
+        <Pressable style={styles.moreButton}>
+          <Text style={styles.moreText}>···</Text>
+        </Pressable>
+      </View>
+
+      {/* Action Tiles */}
+      <View style={styles.actionTiles}>
+        {visibleActions.map((action, index) => (
+          <View key={action.actionId || index} style={styles.actionTile}>
+            {/* Checkmark if completed */}
+            {action.completed && <Text style={styles.checkMark}>✓</Text>}
+
+            {/* Action Emoji */}
+            <Text style={styles.actionEmoji}>{action.emoji || '✓'}</Text>
+
+            {/* Action Name */}
+            <Text style={styles.actionName} numberOfLines={2}>
+              {action.title || action.name || 'Action'}
+            </Text>
+
+            {/* Green bottom bar if completed */}
+            {action.completed && <View style={styles.completedBar} />}
+          </View>
+        ))}
+      </View>
+
+      {/* Footer */}
+      <View style={styles.footer}>
+        {/* Completion Stat */}
+        <View style={styles.completionStat}>
+          <Text style={styles.completionNumber}>{actionsToday}/{totalActions}</Text>
+          <Text style={styles.completionText}> completed</Text>
+        </View>
+
+        {/* Spacer */}
+        <View style={styles.spacer} />
+
+        {/* Heart Button */}
+        {isChallenge && (
+          <Animated.View style={animatedReactStyle}>
+            <Pressable style={styles.actionButton} onPress={handleToggleLike}>
+              <Heart
+                size={18}
+                color={userLiked ? '#FF6B35' : 'rgba(255,255,255,0.6)'}
+                fill={userLiked ? '#FF6B35' : 'none'}
+              />
+              {hasLikes && (
+                <Text style={[styles.buttonText, userLiked && styles.buttonTextActive]}>
+                  {likeCount}
+                </Text>
+              )}
+            </Pressable>
+          </Animated.View>
+        )}
+
+        {/* Comment Button */}
+        {isChallenge && (
+          <Pressable style={styles.actionButton} onPress={handleCommentPress}>
+            <MessageCircle
+              size={18}
+              color="rgba(255,255,255,0.6)"
+              fill="none"
+              strokeWidth={2}
+            />
+            {hasComments && (
+              <Text style={styles.buttonText}>{commentCount}</Text>
+            )}
+          </Pressable>
         )}
       </View>
-
-      {/* Section Label */}
-      <Text
-        style={[styles.sectionLabel, debugBorder(tokens.debug.colors.sectionLabel)]}
-        allowFontScaling={false}
-      >
-        COMPLETED
-      </Text>
-
-      {/* Row 3: Action Tiles */}
-      <View style={[styles.actionsRow, debugBorder(tokens.debug.colors.actionsRow)]}>
-        {tileSlots.map((slot, index) => {
-          if (slot.type === 'overflow') {
-            return (
-              <TouchableOpacity
-                key={`overflow-${index}`}
-                style={[
-                  styles.actionTile,
-                  styles.actionTileOverflow,
-                  { width: tileWidth }
-                ]}
-                onPress={handleOverflowTap}
-              >
-                <Text
-                  style={styles.actionLabelOverflow}
-                  numberOfLines={1}
-                  allowFontScaling={false}
-                >
-                  +{slot.overflowCount} more
-                </Text>
-              </TouchableOpacity>
-            );
-          }
-
-          const isNewest = index === 0;
-          const actionTitle = slot.action?.title && isValidContent(slot.action.title) ? slot.action.title : '';
-          const textConfig = getTextConfig(actionTitle, tileWidth);
-
-          return (
-            <TouchableOpacity
-              key={slot.action?.actionId || `tile-${index}`}
-              style={[
-                styles.actionTile,
-                styles.actionTileCompleted,
-                isNewest && styles.actionTileNewest,
-                { width: tileWidth }
-              ]}
-              onLongPress={() => handleLongPress(actionTitle)}
-              delayLongPress={500}
-            >
-              <Text
-                style={[
-                  styles.actionLabel,
-                  isNewest && styles.actionLabelNewest,
-                  {
-                    fontSize: textConfig.fontSize,
-                    lineHeight: textConfig.lineHeight,
-                    textAlign: 'center',
-                  }
-                ]}
-                numberOfLines={textConfig.numberOfLines}
-                ellipsizeMode="tail"
-                allowFontScaling={false}
-              >
-                {textConfig.text}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* Row 4: Footer */}
-      {!isPerfectDay && remainingCount > 0 && (
-        <Text
-          style={[styles.footer, debugBorder(tokens.debug.colors.footer)]}
-          allowFontScaling={false}
-        >
-          <Text style={styles.footerCount}>{remainingCount} left:</Text> Upcoming actions
-        </Text>
-      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  // Outer Container
   card: {
+    marginHorizontal: 8,
+    marginBottom: 8,
+    padding: 20,
+    backgroundColor: '#0A0A0A',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.15)',
+    overflow: 'hidden',
     position: 'relative',
-    width: '100%',
-    backgroundColor: tokens.card.backgroundColor,
-    borderRadius: tokens.card.borderRadius,
-    padding: tokens.card.padding,
-    borderWidth: tokens.card.borderWidth,
-    borderColor: tokens.card.borderColor,
-    shadowColor: tokens.card.shadowColor,
-    shadowOffset: tokens.card.shadowOffset,
-    shadowOpacity: tokens.card.shadowOpacity,
-    shadowRadius: tokens.card.shadowRadius,
-    marginBottom: 16,
+    shadowColor: 'rgba(212, 175, 55, 0.3)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  meshOverlay: {
+  cardPerfectDay: {
+    borderColor: 'rgba(212, 175, 55, 0.3)',
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+  },
+
+  // Gold Background Overlay (always visible)
+  goldBackgroundOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    opacity: tokens.mesh.opacity,
+    zIndex: 0,
   },
-  perfectDayTopLine: {
+
+  // Challenge Header
+  challengeHeader: {
+    marginBottom: 16,
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  challengeHeaderText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#D4AF37',
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    textAlign: 'center',
+  },
+
+  // Perfect Day Decorations
+  goldTopLine: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: tokens.perfectDay.topLineHeight,
-    borderTopLeftRadius: tokens.card.borderRadius,
-    borderTopRightRadius: tokens.card.borderRadius,
-    shadowColor: tokens.perfectDay.goldColor,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
+    height: 2,
+    zIndex: 0,
   },
+  goldGlow: {
+    position: 'absolute',
+    top: 0,
+    left: '20%',
+    right: '20%',
+    height: 60,
+    zIndex: 0,
+  },
+
+  // Header
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: tokens.header.marginBottom,
-  },
-  leftGroup: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: tokens.header.gap,
+    gap: 12,
+    marginBottom: 16,
+    zIndex: 1,
+  },
+
+  // Progress Ring
+  progressRingWrapper: {
+    width: 48,
+    height: 48,
+    position: 'relative',
+    flexShrink: 0,
+  },
+  avatarInner: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    right: 6,
+    bottom: 6,
+    borderRadius: 999,
+    backgroundColor: '#111111',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarEmoji: {
+    fontSize: 16,
+  },
+
+  // User Info
+  userInfo: {
     flex: 1,
   },
-  avatar: {
-    width: tokens.avatar.width,
-    height: tokens.avatar.height,
-    borderRadius: tokens.avatar.borderRadius,
+  userRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: tokens.avatar.fontSize,
-    fontWeight: tokens.avatar.fontWeight,
-    color: '#fff',
-  },
-  userInfo: {
-    flexDirection: 'column',
-    gap: tokens.userInfo.gap,
+    gap: 6,
   },
   username: {
-    fontSize: tokens.userInfo.username.fontSize,
-    lineHeight: tokens.userInfo.username.lineHeight,
-    fontWeight: tokens.userInfo.username.fontWeight,
-    color: tokens.userInfo.username.color,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
-  metadata: {
-    fontSize: tokens.userInfo.metadata.fontSize,
-    lineHeight: tokens.userInfo.metadata.lineHeight,
-    color: tokens.userInfo.metadata.color,
+  streakBadge: {
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 8,
+    overflow: 'hidden',
   },
-  highlight: {
-    color: tokens.userInfo.highlight.color,
-    fontWeight: tokens.userInfo.highlight.fontWeight,
+  streakBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
-  progressRingContainer: {
-    position: 'relative',
+  subtitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 1,
+  },
+  perfectBadge: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#D4AF37',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  dotSeparator: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.2)',
+  },
+  timeAgo: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.4)',
+  },
+
+  // More Button
+  moreButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  progressRing: {
-    position: 'absolute',
+  moreText: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.4)',
+    fontWeight: '700',
   },
-  progressPercentage: {
-    fontSize: tokens.progressRing.percentage.fontSize,
-    fontWeight: tokens.progressRing.percentage.fontWeight,
-    color: tokens.progressRing.percentage.color,
-  },
-  perfectDayGlow: {
-    position: 'absolute',
-    width: tokens.perfectDay.glowSize,
-    height: tokens.perfectDay.glowSize,
-    borderRadius: tokens.perfectDay.glowSize / 2,
-    backgroundColor: tokens.perfectDay.goldColor,
-    opacity: tokens.perfectDay.glowOpacity,
-  },
-  perfectDayLabel: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: -8,
-    color: tokens.perfectDay.goldColor,
-    fontSize: tokens.perfectDay.label.fontSize,
-    fontWeight: tokens.perfectDay.label.fontWeight,
-    letterSpacing: tokens.perfectDay.label.letterSpacing,
-    textAlign: 'center',
-  },
-  sectionLabel: {
-    fontSize: tokens.sectionLabel.fontSize,
-    fontWeight: tokens.sectionLabel.fontWeight,
-    letterSpacing: tokens.sectionLabel.letterSpacing,
-    color: tokens.sectionLabel.color,
-    marginBottom: tokens.sectionLabel.marginBottom,
-    marginLeft: tokens.sectionLabel.marginLeft,
-    textTransform: 'uppercase',
-  },
-  actionsRow: {
+
+  // Action Tiles
+  actionTiles: {
     flexDirection: 'row',
-    gap: tokens.actionsRow.gap,
-    justifyContent: 'flex-start',
-    marginBottom: tokens.actionsRow.marginBottom,
+    gap: 8,
+    marginBottom: 14,
+    zIndex: 1,
   },
   actionTile: {
-    height: tokens.actionTile.height,
-    minWidth: tokens.actionTile.minWidth,
-    maxWidth: tokens.actionTile.maxWidth,
-    backgroundColor: tokens.actionTile.backgroundColor.normal,
-    borderWidth: tokens.actionTile.borderWidth,
-    borderColor: tokens.actionTile.borderColor,
-    borderRadius: tokens.actionTile.borderRadius,
-    flexDirection: 'row',
+    flex: 1,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: tokens.actionTile.gap,
-    paddingHorizontal: tokens.actionTile.paddingHorizontal,
+    position: 'relative',
+    overflow: 'hidden',
   },
-  actionTileCompleted: {
-    backgroundColor: tokens.actionTile.backgroundColor.completed,
+  checkMark: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    fontSize: 14,
+    color: '#D4AF37',
+    fontWeight: '700',
   },
-  actionTileNewest: {
-    backgroundColor: tokens.actionTile.backgroundColor.newest,
-    borderWidth: tokens.actionTile.borderWidthNewest,
-    borderColor: tokens.perfectDay.goldColor,
-    shadowColor: tokens.perfectDay.goldColor,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    paddingHorizontal: tokens.actionTile.paddingHorizontalNewest,
+  actionEmoji: {
+    fontSize: 20,
+    marginBottom: 4,
+    textAlign: 'center',
+    color: '#D4AF37',
   },
-  actionTileOverflow: {
-    backgroundColor: tokens.actionTile.backgroundColor.overflow,
-    borderColor: tokens.actionTile.borderColor,
-    justifyContent: 'center',
-  },
-  actionLabel: {
-    fontSize: tokens.actionTile.label.fontSize,
-    fontWeight: tokens.actionTile.label.fontWeight,
-    lineHeight: tokens.actionTile.label.lineHeight,
-    color: tokens.actionTile.label.color.completed,
-  },
-  actionLabelNewest: {
-    color: tokens.actionTile.label.color.newest,
-    fontWeight: tokens.actionTile.label.fontWeightNewest,
-  },
-  actionLabelOverflow: {
-    fontSize: tokens.actionTile.label.fontSizeMore,
-    fontWeight: tokens.actionTile.label.fontWeight,
-    color: tokens.perfectDay.goldColor,
+  actionName: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    lineHeight: 14.3,
     textAlign: 'center',
   },
+  completedBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: '#D4AF37',
+  },
+
+  // Footer
   footer: {
-    fontSize: tokens.footer.fontSize,
-    color: tokens.footer.color,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    zIndex: 1,
   },
-  footerCount: {
-    color: tokens.footer.countColor,
+  completionStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  completionNumber: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#E7C455',
+  },
+  completionText: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: 'rgba(255, 255, 255, 0.4)',
+  },
+  spacer: {
+    flex: 1,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    backgroundColor: 'transparent',
+  },
+  buttonText: {
+    fontSize: 13,
     fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.6)',
   },
-  challengeCard: {
-    backgroundColor: '#1a1a1a',
-  },
-  challengeHeader: {
-    marginBottom: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
-  },
-  challengeName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  challengeDay: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
+  buttonTextActive: {
+    color: '#FF6B35',
   },
 });

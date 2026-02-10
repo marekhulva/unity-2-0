@@ -40,6 +40,7 @@ import { DiscoverUsersModal } from './DiscoverUsersModal';
 import { UnifiedPostCard } from './UnifiedPostCard';
 import { UnifiedPostCardTimeline } from './UnifiedPostCardTimeline';
 import { LivingProgressCard } from './components/LivingProgressCard';
+import { TextPostCard } from './components/TextPostCard';
 import { ProfileScreen } from '../profile/ProfileScreenVision';
 import { CircleSelector, FEED_ALL, FEED_FOLLOWING } from '../circles/components/CircleSelector';
 import { ChallengeCard } from '../challenges/ChallengeCard';
@@ -60,6 +61,50 @@ export const SocialScreenUnified = () => {
   // Unified feed state
   const unifiedFeed = useStore(s => s.unifiedFeed);
   const feedLoading = useStore(s => s.feedLoading);
+
+  // Filter out celebration posts and incomplete milestone posts
+  const filteredFeed = React.useMemo(() => {
+    const filtered = unifiedFeed.filter(post => {
+      // Filter celebrations
+      if (post.is_celebration) return false;
+
+      // Filter milestone posts that have no content or actions
+      // These appear to be corrupt/incomplete data
+      if (post.type === 'milestone') {
+        const hasContent = post.content && post.content.length > 0;
+        const hasActions = (post.completedActions?.length || 0) > 0 || (post.totalActions || 0) > 0;
+        const hasMedia = post.mediaUrl || post.photoUri;
+
+        // Only show milestone if it has actual content, actions, or media
+        if (!hasContent && !hasActions && !hasMedia) {
+          if (__DEV__) {
+            console.log('🚫 [FEED-FILTER] Filtering empty milestone post:', {
+              id: post.id.substring(0, 8),
+              actionTitle: post.actionTitle,
+              isChallenge: post.isChallenge
+            });
+          }
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    if (__DEV__) {
+      console.log('📊 [FEED-FILTER] Total posts:', unifiedFeed.length);
+      console.log('📊 [FEED-FILTER] After filtering:', filtered.length);
+      console.log('📊 [FEED-FILTER] Posts filtered:', unifiedFeed.length - filtered.length);
+
+      // Log each post type
+      const postTypes = filtered.reduce((acc, post) => {
+        acc[post.type] = (acc[post.type] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      console.log('📊 [FEED-FILTER] Post types breakdown:', postTypes);
+    }
+    return filtered;
+  }, [unifiedFeed]);
   const unifiedHasMore = useStore(s => s.unifiedHasMore);
   const loadingMore = useStore(s => s.loadingMore);
   const fetchUnifiedFeed = useStore(s => s.fetchUnifiedFeed);
@@ -76,6 +121,7 @@ export const SocialScreenUnified = () => {
   const react = useStore(s => s.react);
   const addPost = useStore(s => s.addPost);
   const addComment = useStore(s => s.addComment);
+  const toggleLike = useStore(s => s.toggleLike);
 
   // Challenges
   const circleChallenges = useStore(s => s.circleChallenges);
@@ -199,19 +245,28 @@ export const SocialScreenUnified = () => {
   }, []);
 
   const renderPost = useCallback(({ item }: { item: Post }) => {
-    // DEBUG: Log ALL post data to find the gibberish
+    // DEBUG: Log ALL post data comprehensively
     if (__DEV__) {
-      console.log('🔍 [POST-DEBUG] Rendering post:', {
-        id: item.id.substring(0, 8),
-        type: item.type,
-        user: item.user,
-        contentLength: item.content?.length || 0,
-        mediaUrlLength: item.mediaUrl?.length || 0,
-        photoUriLength: item.photoUri?.length || 0,
-        audioUriLength: item.audioUri?.length || 0,
-        actionTitle: item.actionTitle?.substring(0, 50),
-        goal: item.goal?.substring(0, 50),
-      });
+      console.log('🔍 [POST-DEBUG] ==================== RENDERING POST ====================');
+      console.log('🔍 [POST-DEBUG] ID:', item.id.substring(0, 8));
+      console.log('🔍 [POST-DEBUG] Type:', item.type);
+      console.log('🔍 [POST-DEBUG] User:', item.user);
+      console.log('🔍 [POST-DEBUG] Avatar:', item.avatar);
+      console.log('🔍 [POST-DEBUG] Content:', item.content?.substring(0, 100) || 'NONE');
+      console.log('🔍 [POST-DEBUG] Content Length:', item.content?.length || 0);
+      console.log('🔍 [POST-DEBUG] Action Title:', item.actionTitle || 'NONE');
+      console.log('🔍 [POST-DEBUG] Goal:', item.goal || 'NONE');
+      console.log('🔍 [POST-DEBUG] isDailyProgress:', item.isDailyProgress);
+      console.log('🔍 [POST-DEBUG] isChallenge:', item.isChallenge);
+      console.log('🔍 [POST-DEBUG] challengeName:', item.challengeName || 'NONE');
+      console.log('🔍 [POST-DEBUG] challengeId:', item.challengeId || 'NONE');
+      console.log('🔍 [POST-DEBUG] is_celebration:', item.is_celebration);
+      console.log('🔍 [POST-DEBUG] completedActions:', item.completedActions?.length || 0);
+      console.log('🔍 [POST-DEBUG] totalActions:', item.totalActions || 0);
+      console.log('🔍 [POST-DEBUG] actionsToday:', item.actionsToday || 0);
+      console.log('🔍 [POST-DEBUG] mediaUrl length:', item.mediaUrl?.length || 0);
+      console.log('🔍 [POST-DEBUG] photoUri length:', item.photoUri?.length || 0);
+      console.log('🔍 [POST-DEBUG] ===========================================================');
     }
 
     // SAFETY: Skip posts with suspiciously long content (likely corrupted base64)
@@ -243,16 +298,32 @@ export const SocialScreenUnified = () => {
       return null; // Skip this post
     }
 
-    // Render Living Progress Card for daily_progress posts
-    if (item.type === 'daily_progress' && item.isDailyProgress) {
-      return <LivingProgressCard post={item} />;
+    // Render Living Progress Card for daily_progress posts AND challenge check-ins
+    const shouldUseLivingProgressCard = (item.type === 'daily_progress' && item.isDailyProgress) ||
+        (item.type === 'checkin' && (item.isChallenge || item.challengeName));
+
+    if (shouldUseLivingProgressCard) {
+      if (__DEV__) {
+        console.log('✅ [RENDER-DECISION]', item.id.substring(0, 8), '→ LivingProgressCard');
+        console.log('   Reason: type =', item.type, ', isDailyProgress =', item.isDailyProgress,
+                    ', isChallenge =', item.isChallenge, ', challengeName =', item.challengeName);
+      }
+      return (
+        <LivingProgressCard
+          post={item}
+          onToggleLike={toggleLike}
+          onComment={addComment}
+        />
+      );
     }
 
-    // Render regular post cards
-    const CardComponent = USE_TIMELINE_CARDS ? UnifiedPostCardTimeline : UnifiedPostCard;
-
+    // Render regular post cards (text posts, comments, photos)
+    if (__DEV__) {
+      console.log('✅ [RENDER-DECISION]', item.id.substring(0, 8), '→ TextPostCard');
+      console.log('   Reason: Regular post (type =', item.type, ')');
+    }
     return (
-      <CardComponent
+      <TextPostCard
         post={item}
         onReact={handleReact}
         onComment={handleComment}
@@ -350,11 +421,11 @@ export const SocialScreenUnified = () => {
         </View>
       );
     }
-    if (!unifiedHasMore && unifiedFeed.length > 0) {
+    if (!unifiedHasMore && filteredFeed.length > 0) {
       return <Text style={styles.endOfFeed}>You're all caught up!</Text>;
     }
     return null;
-  }, [loadingMore, unifiedHasMore, unifiedFeed.length]);
+  }, [loadingMore, unifiedHasMore, filteredFeed.length]);
 
   // Render empty state
   const renderListEmpty = useCallback(() => {
@@ -373,8 +444,8 @@ export const SocialScreenUnified = () => {
   }, [feedLoading]);
 
   // Debug: Log any suspicious data
-  if (__DEV__ && unifiedFeed.length > 0) {
-    const firstPost = unifiedFeed[0];
+  if (__DEV__ && filteredFeed.length > 0) {
+    const firstPost = filteredFeed[0];
     console.log('🐛 [SOCIAL] First post data:', {
       id: firstPost.id?.substring(0, 8),
       type: firstPost.type,
@@ -412,7 +483,7 @@ export const SocialScreenUnified = () => {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <FlatList
-            data={unifiedFeed}
+            data={filteredFeed}
             renderItem={renderPost}
             keyExtractor={(item) => item.id}
             ListHeaderComponent={renderListHeader}
