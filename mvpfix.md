@@ -89,10 +89,11 @@ Pass 2 traced actual data flows end-to-end (not just reading code structure) and
 
 ## PRIORITY 2 — WILL FRUSTRATE USERS (Fix before TestFlight)
 
-### 9. "View Progress" button does nothing *(NEW - Pass 2)*
+### 9. ✅ FIXED - "View Progress" button does nothing *(NEW - Pass 2)*
 - **What**: In challenge detail, "View Progress" just logs to console
 - **Where**: `ChallengeDetailModal.tsx`
 - **Impact**: User taps it expecting to see their progress. Nothing happens.
+- **Fix**: Implemented progress modal showing ChallengeDashboard (Feb 10, 2026)
 
 ### 10. Settings "Save" button is fake *(NEW - Pass 2)*
 - **What**: Circle settings "Save Changes" shows a "Coming Soon" alert
@@ -434,3 +435,79 @@ During log review, discovered that the issue isn't double-tapping - it's users t
 - [ ] Verify regular actions can't be toggled off anymore
 
 **Status**: ✅ Code changes complete, ready for testing
+
+
+---
+
+### Issue #9: "View Progress" Button Does Nothing - FIXED (Feb 10, 2026)
+
+**Problem:**
+When user is in a joined challenge and taps "View Progress" button in ChallengeDetailModal, the button only logs to console. No visual feedback or progress view appears.
+
+**Root Cause:**
+- `ChallengeDetailModal.tsx` line 207: `if (__DEV__) console.log('View progress');`
+- No state management or modal to show progress
+- ChallengeDashboard component exists and works but wasn't being used
+
+**Solution Implemented:**
+1. **Added progress modal**: Created new Modal component to display challenge progress
+2. **Load leaderboard data**: Added async call to `loadLeaderboard()` before showing progress
+3. **Reused existing component**: Leveraged ChallengeDashboard component that has:
+   - Two tabs: "Leaderboard" and "Today's Progress"
+   - Stats: Consistency %, Rank, Day streak (streak disabled per Issue #1)
+   - Activity checklist with completion tracking
+   - Motivational messages based on leaderboard position
+4. **Fixed data flow**: Modified ChallengeDashboard to accept `myParticipation` as prop
+   - Previously expected `myParticipation` from global store
+   - Now accepts as optional prop, falls back to store if not provided
+   - Ensures backward compatibility with other uses
+
+**Files Modified:**
+1. `/home/marek/Unity-vision/src/features/challenges/ChallengeDetailModal.tsx`:
+   - Added import for ChallengeDashboard component (line 10)
+   - Added `showProgress` state variable (line 22)
+   - Added `loadLeaderboard` to store hook (line 20)
+   - Created `handleViewProgress()` async function (lines 30-35)
+   - Updated "View Progress" button to call `handleViewProgress()` (line 216)
+   - Added new Modal for progress view (lines 241-275)
+   - Added styles: `progressModalContainer`, `progressHeader`, `progressContent` (lines 535-556)
+   - Fixed duplicate `progressHeader` style by renaming card header to `progressCardHeader` (line 495)
+
+2. `/home/marek/Unity-vision/src/features/challenges/ChallengeDashboard.tsx`:
+   - Added optional `myParticipation` prop to interface (line 30)
+   - Modified component to accept `myParticipation` prop (line 36)
+   - Created fallback: uses prop if provided, else falls back to store (line 45)
+   - Maintains backward compatibility with existing uses
+
+**User Experience:**
+1. User joins challenge → "View Progress" button appears (styled with gold border)
+2. User taps "View Progress"
+3. System loads leaderboard data from backend
+4. Full-screen modal slides up showing:
+   - Header: "Your Progress" with close button (X)
+   - Stats cards: Consistency %, Rank, (Streak disabled)
+   - Tab selector: "Leaderboard" | "Today's Progress"
+   - Leaderboard tab: Shows all participants, rankings, user highlighted
+   - Progress tab:
+     - Today's completion percentage with progress bar
+     - Motivational message (e.g., "Complete 2 more activities to overtake Sarah\!")
+     - Activity checklist with checkmarks
+     - Hint: "Complete any 3 activities for 100% today\!"
+5. User can scroll through progress, switch tabs, then close modal
+
+**Testing Required:**
+- [ ] Join a challenge
+- [ ] Tap "View Progress" button
+- [ ] Verify modal appears with loading indicator while leaderboard loads
+- [ ] Verify leaderboard tab shows all participants with correct rankings
+- [ ] Verify current user is highlighted in leaderboard
+- [ ] Switch to "Today's Progress" tab
+- [ ] Verify progress bar shows correct completion percentage
+- [ ] Verify activity checklist shows user's selected activities
+- [ ] Complete an activity, return to progress view
+- [ ] Verify progress updates (may require refresh - check if needs auto-refresh)
+- [ ] Tap X button to close modal
+- [ ] Verify returns to challenge detail screen
+
+**Status**: ✅ Code changes complete, ready for testing
+

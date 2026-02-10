@@ -141,6 +141,7 @@ export type SocialSlice = {
   loadComments: (postId: string, which: Visibility) => Promise<void>;
   clearCheckinPosts: () => void;
   clearFeedCache: () => void;
+  clearSocialData: () => void;
   // Circle actions (joinCircle moved to circlesSlice)
   loadCircleData: () => Promise<void>;
   // Following actions
@@ -750,6 +751,32 @@ export const createSocialSlice: StateCreator<
     // Also clear feed state to force fresh fetch
     set({ unifiedFeed: [], circleFeed: [], followFeed: [], unifiedOffset: 0, circleOffset: 0, followOffset: 0 });
     if (__DEV__) console.log('🧹 Cleared feed cache and state');
+  },
+
+  clearSocialData: () => {
+    if (__DEV__) console.log('🧹 Clearing all social data');
+    memoryCache.clearFeedCache();
+    set({
+      circleFeed: [],
+      followFeed: [],
+      unifiedFeed: [],
+      circleOffset: 0,
+      circleHasMore: true,
+      followOffset: 0,
+      followHasMore: true,
+      unifiedOffset: 0,
+      unifiedHasMore: true,
+      currentFeedFilter: null,
+      circleId: null,
+      circleName: null,
+      circleMembers: [],
+      inviteCode: null,
+      following: [],
+      followers: [],
+      feedLoading: false,
+      feedError: null,
+      loadingMore: false
+    });
   },
 
   addPost: async (postData) => {

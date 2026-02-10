@@ -14,6 +14,7 @@ export type NotificationSlice = {
   markAllAsRead: () => Promise<void>;
   subscribeToNotifications: () => void;
   unsubscribeFromNotifications: () => void;
+  clearNotificationsData: () => void;
 };
 
 export const createNotificationSlice: StateCreator<
@@ -90,5 +91,20 @@ export const createNotificationSlice: StateCreator<
       supabase.removeChannel(channel);
       set({ notificationsChannel: null });
     }
+  },
+
+  clearNotificationsData: () => {
+    if (__DEV__) console.log('🧹 Clearing all notifications data');
+    // Unsubscribe from any active channels first
+    const channel = get().notificationsChannel;
+    if (channel) {
+      supabase.removeChannel(channel);
+    }
+    set({
+      notifications: [],
+      unreadCount: 0,
+      notificationsLoading: false,
+      notificationsChannel: null
+    });
   },
 });

@@ -1,3 +1,15 @@
+/**
+ * CircleScreenVision.tsx
+ *
+ * CHANGELOG (2026-02-10):
+ * - Fixed #10: Removed "Coming Soon" alert from Settings save button
+ *   - Settings now auto-save (notification toggles work in real-time)
+ *   - Removed fake save button that did nothing
+ * - Fixed #12: Added confirmation dialog for Leave Circle action
+ *   - User must confirm before leaving (prevents accidental exits)
+ *   - Shows circle name + warning about losing access
+ */
+
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
@@ -9,6 +21,7 @@ import {
   Modal,
   Platform,
   TextInput,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
@@ -974,27 +987,33 @@ export const CircleScreenVision = () => {
 
               <View style={styles.settingsSection}>
                 <Pressable
-                  style={[styles.btn, { marginBottom: 12 }]}
-                  onPress={() => {
-                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                    alert('🚧 Coming Soon\n\nSettings save functionality is being implemented. Stay tuned!');
-                    setShowSettings(false);
-                  }}
-                >
-                  <LinearGradient
-                    colors={['#E7B43A', '#FFD700']}
-                    style={StyleSheet.absoluteFillObject}
-                  />
-                  <Text style={styles.btnText}>Save Changes</Text>
-                </Pressable>
-                <Pressable
                   style={styles.btnDanger}
-                  onPress={async () => {
-                    if (activeCircleId) {
-                      await backendService.leaveCircle(activeCircleId);
-                      setShowSettings(false);
-                      await fetchUserCircles();
-                    }
+                  onPress={() => {
+                    if (!activeCircleId || !activeCircle) return;
+
+                    Alert.alert(
+                      'Leave Circle?',
+                      `Are you sure you want to leave ${activeCircle.name}? You'll lose access to all circle posts and challenges.`,
+                      [
+                        {
+                          text: 'Cancel',
+                          style: 'cancel',
+                          onPress: () => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          },
+                        },
+                        {
+                          text: 'Leave',
+                          style: 'destructive',
+                          onPress: async () => {
+                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                            await backendService.leaveCircle(activeCircleId);
+                            setShowSettings(false);
+                            await fetchUserCircles();
+                          },
+                        },
+                      ]
+                    );
                   }}
                 >
                   <LogOut size={16} color="#ff4444" />

@@ -53,6 +53,7 @@ export type DailySlice = {
   addCompletedAction: (ca: CompletedAction) => void;
   clearCompletedActions: () => void;
   createCelebrationPost: () => Promise<void>;
+  clearDailyData: () => void;
 };
 
 export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
@@ -297,7 +298,7 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
           set((s) => ({
             actions: s.actions.map(a =>
               a.id === id
-                ? { ...a, done: true, streak: a.streak + 1 }
+                ? { ...a, done: true /* TODO: Fix and re-enable streaks - See mvpfix.md Issue #1 */, streak: 0 }
                 : a
             )
           }));
@@ -326,7 +327,7 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
           set((s) => {
             const updatedActions = s.actions.map(a =>
               a.id === id
-                ? { ...a, done: true, streak: a.streak + 1 }
+                ? { ...a, done: true /* TODO: Fix and re-enable streaks - See mvpfix.md Issue #1 */, streak: 0 }
                 : a
             );
 
@@ -473,11 +474,11 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
       // Get user info from auth slice
       const user = (get() as any).user;
       if (!user) return;
-      
+
       // Get unique goals from completed actions
       const completedActions = get().actions.filter(a => a.done);
       const uniqueGoals = new Map();
-      
+
       completedActions.forEach(action => {
         if (action.goalId && action.goalTitle && !uniqueGoals.has(action.goalId)) {
           uniqueGoals.set(action.goalId, {
@@ -486,7 +487,7 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
           });
         }
       });
-      
+
       // Create a special celebration post
       const celebrationPost = {
         type: 'celebration',
@@ -502,10 +503,10 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
           goals: Array.from(uniqueGoals.values())
         }
       };
-      
+
       // Post to social feed
       const response = await backendService.createPost(celebrationPost);
-      
+
       if (response.success) {
         if (__DEV__) console.log('🎉 [CELEBRATION] Celebration post created successfully!');
         // Refresh the social feed to show the celebration
@@ -517,5 +518,15 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
     } catch (error) {
       if (__DEV__) console.error('🔴 [CELEBRATION] Failed to create celebration post:', error);
     }
+  },
+
+  clearDailyData: () => {
+    if (__DEV__) console.log('🧹 Clearing all daily actions data');
+    set({
+      actions: [],
+      completedActions: [],
+      actionsLoading: false,
+      actionsError: null
+    });
   },
 });

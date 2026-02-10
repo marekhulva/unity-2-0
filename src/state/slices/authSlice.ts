@@ -171,16 +171,80 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
   },
 
   logout: async () => {
+    if (__DEV__) console.log('🚪 [LOGOUT] Starting logout process');
+
     await backendService.signOut();
+
+    // CRITICAL: Clear the persisted Zustand store from AsyncStorage
+    // This prevents the persistence layer from restoring user data
+    await AsyncStorage.removeItem('unity-store');
+
+    // Clear all AsyncStorage items (auth + onboarding state)
     await AsyncStorage.removeItem('token');
     await AsyncStorage.removeItem('user');
-    
+    await AsyncStorage.removeItem('isNewUser');
+    await AsyncStorage.removeItem('hasCompletedProfileSetup');
+    await AsyncStorage.removeItem('hasCompletedOnboarding');
+
+    // Get full state to access all clear functions
+    const state = get() as any;
+
+    // Clear ALL user-specific state from ALL slices
+    // This is critical to prevent User A's data from leaking to User B
+    if (__DEV__) console.log('🧹 [LOGOUT] Clearing all user-specific data');
+
+    // Clear challenge data
+    if (typeof state.clearChallengeData === 'function') {
+      state.clearChallengeData();
+    }
+
+    // Clear social/feed data
+    if (typeof state.clearSocialData === 'function') {
+      state.clearSocialData();
+    }
+
+    // Clear goals data
+    if (typeof state.clearGoalsData === 'function') {
+      state.clearGoalsData();
+    }
+
+    // Clear daily actions data
+    if (typeof state.clearDailyData === 'function') {
+      state.clearDailyData();
+    }
+
+    // Clear circles data
+    if (typeof state.clearCirclesData === 'function') {
+      state.clearCirclesData();
+    }
+
+    // Clear daily review data
+    if (typeof state.clearDailyReviewData === 'function') {
+      state.clearDailyReviewData();
+    }
+
+    // Clear notifications data
+    if (typeof state.clearNotificationsData === 'function') {
+      state.clearNotificationsData();
+    }
+
+    // Clear profile data
+    if (typeof state.clearProfileData === 'function') {
+      state.clearProfileData();
+    }
+
+    // Finally, clear auth state
     set({
       isAuthenticated: false,
       user: null,
       token: null,
-      error: null
+      error: null,
+      isNewUser: false,
+      hasCompletedProfileSetup: false,
+      hasCompletedOnboarding: false
     });
+
+    if (__DEV__) console.log('✅ [LOGOUT] Logout complete - all user data cleared');
   },
 
   checkAuth: async () => {

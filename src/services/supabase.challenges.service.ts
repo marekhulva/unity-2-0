@@ -1124,6 +1124,116 @@ class SupabaseChallengeService {
     return { success: true };
   }
 
+  async updateParticipantLinks(
+    participantId: string,
+    linkedActionIds: Record<string, string>
+  ): Promise<{ success: boolean; error?: string }> {
+    if (__DEV__) console.log('🔗 [CHALLENGES] Updating participant links:', participantId);
+
+    const linkedIdsArray = Object.values(linkedActionIds);
+
+    const { error } = await supabase
+      .from('challenge_participants')
+      .update({
+        linked_action_ids: linkedIdsArray,
+      })
+      .eq('id', participantId);
+
+    if (error) {
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error updating links:', error);
+      return { success: false, error: error.message };
+    }
+
+    if (__DEV__) console.log('🟢 [CHALLENGES] Links updated successfully');
+    return { success: true };
+  }
+
+  async updateParticipantActivityTimes(
+    participantId: string,
+    activityTimes: Record<string, string>
+  ): Promise<{ success: boolean; error?: string }> {
+    if (__DEV__) console.log('⏰ [CHALLENGES] Updating participant activity times:', participantId);
+
+    const activityTimesArray: ActivityTime[] = Object.entries(activityTimes).map(([activityId, time]) => ({
+      activity_id: activityId,
+      scheduled_time: time,
+    }));
+
+    const { error } = await supabase
+      .from('challenge_participants')
+      .update({
+        activity_times: activityTimesArray,
+      })
+      .eq('id', participantId);
+
+    if (error) {
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error updating activity times:', error);
+      return { success: false, error: error.message };
+    }
+
+    if (__DEV__) console.log('🟢 [CHALLENGES] Activity times updated successfully');
+    return { success: true };
+  }
+
+  async waitForParticipant(
+    challengeId: string,
+    maxAttempts: number = 10,
+    delayMs: number = 200
+  ): Promise<ChallengeParticipant | null> {
+    if (__DEV__) console.log('⏳ [CHALLENGES] Waiting for participant record to be available...');
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const participant = await this.getMyParticipation(challengeId);
+
+      if (participant) {
+        if (__DEV__) console.log(`🟢 [CHALLENGES] Participant found on attempt ${attempt}`);
+        return participant;
+      }
+
+      if (attempt < maxAttempts) {
+        if (__DEV__) console.log(`⏳ [CHALLENGES] Attempt ${attempt}/${maxAttempts}: Participant not found, waiting ${delayMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+
+    if (__DEV__) console.error('🔴 [CHALLENGES] Participant not found after', maxAttempts, 'attempts');
+    return null;
+  }
+
+  async verifyDataCommitted(
+    participantId: string,
+    expectedLinks: string[],
+    expectedTimesCount: number
+  ): Promise<boolean> {
+    if (__DEV__) console.log('🔍 [CHALLENGES] Verifying data committed for participant:', participantId);
+
+    const { data, error } = await supabase
+      .from('challenge_participants')
+      .select('linked_action_ids, activity_times')
+      .eq('id', participantId)
+      .single();
+
+    if (error || !data) {
+      if (__DEV__) console.error('🔴 [CHALLENGES] Error verifying data:', error);
+      return false;
+    }
+
+    const linksMatch = expectedLinks.length === 0 ||
+                       (data.linked_action_ids && data.linked_action_ids.length >= expectedLinks.length);
+    const timesMatch = data.activity_times && data.activity_times.length >= expectedTimesCount;
+
+    if (__DEV__) console.log('🔍 [CHALLENGES] Verification result:', {
+      linksMatch,
+      timesMatch,
+      actualLinks: data.linked_action_ids?.length || 0,
+      expectedLinks: expectedLinks.length,
+      actualTimes: data.activity_times?.length || 0,
+      expectedTimes: expectedTimesCount,
+    });
+
+    return linksMatch && timesMatch;
+  }
+
   async createChallenge(params: {
     circleId: string;
     name: string;

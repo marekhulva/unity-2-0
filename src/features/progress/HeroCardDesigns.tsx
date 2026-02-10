@@ -16,10 +16,11 @@ export const OptionA_BalancedGrid = ({ consistency = 75, totalScore = 780, strea
           <Text style={optionAStyles.metricValue}>{activeGoals}</Text>
           <Text style={optionAStyles.metricLabel}>Active Goals</Text>
         </View>
-        <View style={optionAStyles.metricBox}>
+        {/* TODO: Fix and re-enable streaks - See mvpfix.md Issue #1 */}
+        {/*         <View style={optionAStyles.metricBox}>
           <Text style={optionAStyles.metricValue}>{streak}</Text>
           <Text style={optionAStyles.metricLabel}>Day Streak</Text>
-        </View>
+        </View> */}
       </View>
 
       {/* Center Consistency Circle */}

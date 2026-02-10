@@ -7,6 +7,7 @@ import { useStore } from '../../state/rootStore';
 import type { Challenge } from '../../types/challenges.types';
 import { JoinChallengeFlow } from './JoinChallengeFlow';
 import { ChallengeLeaderboard } from './ChallengeLeaderboard';
+import { ChallengeDashboard } from './ChallengeDashboard';
 
 interface ChallengeDetailModalProps {
   visible: boolean;
@@ -16,14 +17,22 @@ interface ChallengeDetailModalProps {
 
 export const ChallengeDetailModal = ({ visible, challengeId, onClose }: ChallengeDetailModalProps) => {
   const insets = useSafeAreaInsets();
-  const { currentChallenge, challengesLoading, loadChallenge, fetchMyActiveChallenges, fetchDailyActions } = useStore();
+  const { currentChallenge, challengesLoading, loadChallenge, fetchMyActiveChallenges, fetchDailyActions, loadLeaderboard } = useStore();
   const [showJoinFlow, setShowJoinFlow] = useState(false);
+  const [showProgress, setShowProgress] = useState(false);
 
   useEffect(() => {
     if (visible && challengeId) {
       loadChallenge(challengeId);
     }
   }, [visible, challengeId]);
+
+  const handleViewProgress = async () => {
+    if (challenge?.id && challenge?.my_participation) {
+      await loadLeaderboard(challenge.id);
+      setShowProgress(true);
+    }
+  };
 
   if (!visible) return null;
 
@@ -96,7 +105,7 @@ export const ChallengeDetailModal = ({ visible, challengeId, onClose }: Challeng
                   colors={['rgba(255,215,0,0.15)', 'rgba(255,215,0,0.05)']}
                   style={StyleSheet.absoluteFillObject}
                 />
-                <View style={styles.progressHeader}>
+                <View style={styles.progressCardHeader}>
                   <Trophy size={20} color="#FFD700" />
                   <Text style={styles.progressHeaderText}>Your Progress</Text>
                 </View>
@@ -204,7 +213,7 @@ export const ChallengeDetailModal = ({ visible, challengeId, onClose }: Challeng
               style={[styles.actionButton, isJoined && styles.actionButtonJoined]}
               onPress={() => {
                 if (isJoined) {
-                  if (__DEV__) console.log('View progress');
+                  handleViewProgress();
                 } else {
                   setShowJoinFlow(true);
                 }
@@ -228,6 +237,42 @@ export const ChallengeDetailModal = ({ visible, challengeId, onClose }: Challeng
             fetchDailyActions();
           }}
         />
+
+        <Modal
+          visible={showProgress}
+          animationType="slide"
+          presentationStyle="formSheet"
+          onRequestClose={() => setShowProgress(false)}
+        >
+          <View style={styles.progressModalContainer}>
+            <LinearGradient
+              colors={['#000000', '#000', '#000000']}
+              style={StyleSheet.absoluteFillObject}
+            />
+
+            <View style={[styles.progressHeader, { paddingTop: insets.top + 8 }]}>
+              <TouchableOpacity onPress={() => setShowProgress(false)} style={styles.closeButton}>
+                <X size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Your Progress</Text>
+              <View style={{ width: 40 }} />
+            </View>
+
+            {challenge?.my_participation ? (
+              <View style={styles.progressContent}>
+                <ChallengeDashboard
+                  challenge={challenge}
+                  participantId={challenge.my_participation.id}
+                  myParticipation={challenge.my_participation}
+                />
+              </View>
+            ) : (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>Unable to load progress</Text>
+              </View>
+            )}
+          </View>
+        </Modal>
       </View>
     </Modal>
   );
@@ -448,7 +493,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,215,0,0.3)',
   },
-  progressHeader: {
+  progressCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
@@ -487,5 +532,26 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#FFD700',
     borderRadius: 4,
+  },
+  progressModalContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+    maxWidth: 450,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  progressContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
 });

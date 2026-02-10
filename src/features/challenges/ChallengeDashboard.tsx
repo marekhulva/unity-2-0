@@ -27,18 +27,22 @@ const { width } = Dimensions.get('window');
 interface ChallengeDashboardProps {
   challenge: any;
   participantId: string;
+  myParticipation?: any;
 }
 
 export const ChallengeDashboard: React.FC<ChallengeDashboardProps> = ({
   challenge,
   participantId,
+  myParticipation: myParticipationProp,
 }) => {
-  const { 
+  const {
     leaderboard,
-    myParticipation,
+    myParticipation: myParticipationStore,
     recordActivity,
     getTodayCompletions
   } = useStore();
+
+  const myParticipation = myParticipationProp || myParticipationStore;
   
   if (__DEV__) console.log('📊 [DASHBOARD] Component rendered with:', {
     challengeId: challenge?.id,
@@ -113,7 +117,8 @@ export const ChallengeDashboard: React.FC<ChallengeDashboardProps> = ({
     <View style={styles.container}>
       {/* Header Stats */}
       <View style={styles.statsHeader}>
-        <Animated.View 
+        {/* TODO: Fix and re-enable streaks - See mvpfix.md Issue #1 */}
+        {/* <Animated.View
           entering={FadeInDown.delay(100).springify()}
           style={styles.statCard}
         >
@@ -124,8 +129,8 @@ export const ChallengeDashboard: React.FC<ChallengeDashboardProps> = ({
           <Flame size={20} color="#FFD700" />
           <Text style={styles.statValue}>{myParticipation?.current_streak || 0}</Text>
           <Text style={styles.statLabel}>Day Streak</Text>
-        </Animated.View>
-        
+        </Animated.View> */}
+
         <Animated.View 
           entering={FadeInDown.delay(200).springify()}
           style={styles.statCard}

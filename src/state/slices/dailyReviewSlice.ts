@@ -44,6 +44,9 @@ export interface DailyReviewActions {
   
   // Calculate streak
   calculateStreak: () => Promise<number>;
+
+  // Clear daily review data
+  clearDailyReviewData: () => void;
 }
 
 export type DailyReviewSlice = DailyReviewState & DailyReviewActions;
@@ -191,14 +194,14 @@ export const createDailyReviewSlice: StateCreator<DailyReviewSlice> = (set, get)
 
   calculateStreak: async () => {
     if (__DEV__) console.log('🔥 [REVIEW] Calculating streak');
-    
+
     try {
       const { user } = (get() as any);
       if (!user?.id) {
         if (__DEV__) console.error('❌ [REVIEW] No user found');
         return 0;
       }
-      
+
       const streak = await dailyReviewService.updateStreak(user.id);
       if (__DEV__) console.log('✅ [REVIEW] Streak calculated:', streak);
       return streak;
@@ -206,5 +209,15 @@ export const createDailyReviewSlice: StateCreator<DailyReviewSlice> = (set, get)
       if (__DEV__) console.error('❌ [REVIEW] Error calculating streak:', error);
       return 0;
     }
+  },
+
+  clearDailyReviewData: () => {
+    if (__DEV__) console.log('🧹 Clearing all daily review data');
+    set({
+      currentReview: null,
+      reviewHistory: [],
+      isLoading: false,
+      error: null
+    });
   }
 });

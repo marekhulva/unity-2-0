@@ -32,6 +32,7 @@ export interface CirclesSlice {
   createCircle: (name: string, emoji?: string, description?: string) => Promise<{ success: boolean; data?: Circle; error?: string }>;
   setJoinModalVisible: (visible: boolean) => void;
   clearCirclesError: () => void;
+  clearCirclesData: () => void;
 }
 
 export const createCirclesSlice: StateCreator<CirclesSlice> = (set, get) => ({
@@ -213,5 +214,21 @@ export const createCirclesSlice: StateCreator<CirclesSlice> = (set, get) => ({
   // Clear error messages
   clearCirclesError: () => {
     set({ circlesError: null });
+  },
+
+  // Clear all circles data
+  clearCirclesData: () => {
+    if (__DEV__) console.log('🧹 Clearing all circles data');
+    // Also clear from localStorage
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.removeItem('activeCircleId');
+    }
+    set({
+      userCircles: [],
+      activeCircleId: null,
+      circlesLoading: false,
+      circlesError: null,
+      joinModalVisible: false
+    });
   }
 });

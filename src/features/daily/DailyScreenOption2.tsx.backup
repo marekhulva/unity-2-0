@@ -1,13 +1,3 @@
-/**
- * ISSUE #11 FIX: Weekly progress chart now updates after action completion
- * - Created refreshWeeklyProgress() function to fetch weekly stats
- * - Added calls to refreshWeeklyProgress() after successful completions in:
- *   - handlePrivacySelect (regular actions)
- *   - handleAbstinenceComplete (abstinence actions)
- * - Weekly progress updates immediately after completing any action
- * Date: 2026-02-10
- */
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,7 +9,7 @@ import { PrivacySelectionModal } from './PrivacySelectionModal';
 import { AbstinenceModal } from './AbstinenceModal';
 import { SocialSharePrompt } from '../social/SocialSharePrompt';
 import { LuxuryTheme } from '../../design/luxuryTheme';
-import { Target, Dumbbell, Brain, BookOpen, Edit3, Trash2 } from 'lucide-react-native';
+import { Target, Dumbbell, Brain, BookOpen } from 'lucide-react-native';
 import { HapticManager } from '../../utils/haptics';
 import ChallengeDebugV2 from '../../utils/challengeDebugV2';
 import { supabaseService, supabase } from '../../services/supabase.service';
@@ -63,8 +53,6 @@ export const DailyScreenOption2 = () => {
   const addCompletedAction = useStore(s => s.addCompletedAction);
   const addPost = useStore(s => s.addPost);
   const recordCompletion = useStore(s => s.recordCompletion);
-  const updateAction = useStore(s => s.updateAction);
-  const deleteAction = useStore(s => s.deleteAction);
   const currentUser = useStore(s => s.user);
   const [showSharePrompt, setShowSharePrompt] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -73,30 +61,16 @@ export const DailyScreenOption2 = () => {
   const [weeklyProgress, setWeeklyProgress] = useState<number>(0);
   const [completingActionId, setCompletingActionId] = useState<string | null>(null);
   const [lastTapTime, setLastTapTime] = useState<number>(0);
-  const [showActionMenu, setShowActionMenu] = useState(false);
-  const [actionToEdit, setActionToEdit] = useState<any>(null);
 
   const completed = actions.filter(a => a.done).length;
   const progress = actions.length ? Math.round((completed / actions.length) * 100) : 0;
 
-  // TODO: Fix and re-enable streaks - Currently broken (never resets, not persisted to DB)
-  // See mvpfix.md Issue #1 for details
-  // const currentStreak = useMemo(() => {
-  //   const maxStreak = actions.reduce((max, action) => {
-  //     return Math.max(max, action.streak || 0);
-  //   }, 0);
-  //   return maxStreak;
-  // }, [actions]);
-
-  // Reusable function to fetch weekly progress
-  const refreshWeeklyProgress = async () => {
-    if (currentUser?.id) {
-      if (__DEV__) console.log('🔄 [DAILY] Refreshing weekly progress...');
-      const progress = await supabaseService.getWeeklyCompletionStats(currentUser.id);
-      setWeeklyProgress(progress);
-      if (__DEV__) console.log('✅ [DAILY] Weekly progress updated:', progress);
-    }
-  };
+  const currentStreak = useMemo(() => {
+    const maxStreak = actions.reduce((max, action) => {
+      return Math.max(max, action.streak || 0);
+    }, 0);
+    return maxStreak;
+  }, [actions]);
 
   useEffect(() => {
     if (__DEV__) console.log('🟦 [DAILY-OPTION2] DailyScreenOption2 mounted');
@@ -113,8 +87,14 @@ export const DailyScreenOption2 = () => {
       if (__DEV__) console.log('🟦 [DAILY-OPTION2] Using cached actions:', actions.length);
     }
 
-    // Fetch weekly progress on mount
-    refreshWeeklyProgress();
+    // Fetch weekly progress
+    const loadWeeklyProgress = async () => {
+      if (currentUser?.id) {
+        const progress = await supabaseService.getWeeklyCompletionStats(currentUser.id);
+        setWeeklyProgress(progress);
+      }
+    };
+    loadWeeklyProgress();
   }, [currentUser?.id, actions.length, actionsLoading]);
 
   const { timedActions, abstinenceActions } = useMemo(() => {
@@ -300,8 +280,7 @@ export const DailyScreenOption2 = () => {
               goalTitle: actionToComplete.goalTitle,
               goalColor: actionToComplete.goalColor,
               completedAt: new Date().toISOString(),
-              // TODO: Fix and re-enable streaks - See mvpfix.md Issue #1
-              streak: 0,
+              streak: (actionToComplete.streak || 0) + 1,
               challengeActivityId: actionToComplete.challengeActivityId,
             },
             totalActions
@@ -348,8 +327,7 @@ export const DailyScreenOption2 = () => {
       goalTitle: actionToComplete.goalTitle,
       completedAt: new Date(),
       isPrivate,
-      // TODO: Fix and re-enable streaks - See mvpfix.md Issue #1
-        streak: 0,
+      streak: actionToComplete.streak || 0,
       type: actionType,
       mediaUrl: finalMediaUrl,
       category: 'fitness',
@@ -364,8 +342,7 @@ export const DailyScreenOption2 = () => {
         actionTitle: actionToComplete.title,
         goal: actionToComplete.goalTitle,
         goalColor: actionToComplete.goalColor,
-        // TODO: Fix and re-enable streaks - See mvpfix.md Issue #1
-        streak: 0,
+        streak: actionToComplete.streak || 0,
         photoUri: contentType === 'photo' ? finalMediaUrl : undefined,
         audioUri: contentType === 'audio' ? finalMediaUrl : undefined,
         mediaUrl: finalMediaUrl,
@@ -392,9 +369,6 @@ export const DailyScreenOption2 = () => {
         );
       });
     }
-
-    // Refresh weekly progress after successful completion
-    refreshWeeklyProgress();
     } finally {
       setCompletingActionId(null);
     }
@@ -430,118 +404,77 @@ export const DailyScreenOption2 = () => {
       const actionToComplete = selectedAction;
       setSelectedAction(null);
 
+      toggleAction(actionToComplete.id);
       HapticManager.context.actionCompleted();
 
-      const isPrivate = (!circleIds || circleIds.length === 0) && !includeFollowers;
-      const visibility = isPrivate ? 'private' : 'circle';
+    // Determine visibility
+    const isPrivate = (!circleIds || circleIds.length === 0) && !includeFollowers;
+    const visibility = isPrivate ? 'private' : 'circle';
 
-      const useLivingProgressCards = await featureFlags.isEnabled('use_living_progress_cards');
-      const user = useStore.getState().user;
+    // Check if Living Progress Cards feature is enabled
+    const useLivingProgressCards = await featureFlags.isEnabled('use_living_progress_cards');
+    const user = useStore.getState().user;
 
-      if (useLivingProgressCards && user?.id && !isPrivate && actionToComplete.isFromChallenge) {
-        if (__DEV__) console.log('✅ [DAILY] Using Living Progress Card for abstinence');
+    if (useLivingProgressCards && user?.id && !isPrivate && actionToComplete.isFromChallenge) {
+      // Living Progress Card flow for challenge
+      if (__DEV__) console.log('✅ [DAILY] Using Living Progress Card for abstinence');
 
-        const participantId = actionToComplete.challengeParticipantId;
-        let currentDay, totalDays;
+      try {
+        const progressPost = await backendService.findOrCreateDailyProgressPost(user.id);
 
-        if (participantId) {
-          try {
-            const { data: participant } = await supabase
-              .from('challenge_participants')
-              .select('current_day, challenges(duration_days)')
-              .eq('id', participantId)
-              .single();
+        if (progressPost.success && progressPost.data) {
+          const totalActions = actions.length;
 
-            if (participant) {
-              currentDay = participant.current_day;
-              totalDays = (participant.challenges as any)?.duration_days;
-              if (__DEV__) console.log('📊 [DAILY] Participant data:', { currentDay, totalDays });
-            }
-          } catch (error) {
-            if (__DEV__) console.error('❌ [DAILY] Failed to fetch participant data:', error);
-          }
+          await backendService.updateDailyProgressPost(
+            progressPost.data.id,
+            {
+              actionId: actionToComplete.id,
+              title: actionToComplete.title,
+              goalTitle: actionToComplete.goalTitle,
+              goalColor: actionToComplete.goalColor,
+              completedAt: new Date().toISOString(),
+              streak: (actionToComplete.streak || 0) + 1,
+              comment: didStayOnTrack ? comment : `Did not stay on track${comment ? ': ' + comment : ''}`,
+              photoUri,
+            },
+            totalActions
+          );
+
+          if (__DEV__) console.log('✅ [DAILY] Updated Living Progress Card with abstinence');
+          useStore.getState().fetchUnifiedFeed(true);
         }
-
-        const progressPost = await backendService.findOrCreateDailyProgressPost(
-          user.id,
-          actionToComplete.challengeId,
-          actionToComplete.challengeName,
-          { currentDay, totalDays }
-        );
-
-        if (!progressPost.success || !progressPost.data) {
-          throw new Error('Failed to find or create progress post');
-        }
-
-        const totalActions = actions.filter(a => a.challengeId === actionToComplete.challengeId).length;
-
-        const updateResult = await backendService.updateDailyProgressPost(
-          progressPost.data.id,
-          {
-            actionId: actionToComplete.id,
-            title: actionToComplete.title,
-            goalTitle: actionToComplete.goalTitle,
-            goalColor: actionToComplete.goalColor,
-            completedAt: new Date().toISOString(),
-            streak: 0,
-            comment: didStayOnTrack ? comment : `Did not stay on track${comment ? ': ' + comment : ''}`,
-            photoUri,
-          },
-          totalActions
-        );
-
-        if (!updateResult) {
-          throw new Error('Failed to update Living Progress Card');
-        }
-
-        if (__DEV__) console.log('✅ [DAILY] Updated Living Progress Card with abstinence');
-        useStore.getState().fetchUnifiedFeed(true);
-      } else {
-        if (__DEV__) console.log('❌ [DAILY] Using individual post for abstinence');
-
-        addCompletedAction({
-          id: `${actionToComplete.id}-${Date.now()}`,
-          actionId: actionToComplete.id,
-          title: actionToComplete.title,
-          goalTitle: actionToComplete.goalTitle,
-          completedAt: new Date(),
-          isPrivate,
-          visibility: visibility as any,
-          streak: 0,
-          type: photoUri ? 'photo' : comment ? 'milestone' : 'check',
-          mediaUrl: photoUri,
-          content: didStayOnTrack ? comment : `Did not stay on track${comment ? ': ' + comment : ''}`,
-          category: 'fitness',
-        });
+      } catch (error) {
+        if (__DEV__) console.error('❌ [DAILY] Failed to update Living Progress Card:', error);
       }
+    } else {
+      // Legacy individual post flow
+      if (__DEV__) console.log('❌ [DAILY] Using individual post for abstinence');
+
+      addCompletedAction({
+        id: `${actionToComplete.id}-${Date.now()}`,
+        actionId: actionToComplete.id,
+        title: actionToComplete.title,
+        goalTitle: actionToComplete.goalTitle,
+        completedAt: new Date(),
+        isPrivate,
+        visibility: visibility as any,
+        streak: (actionToComplete.streak || 0) + 1,
+        type: photoUri ? 'photo' : comment ? 'milestone' : 'check',
+        mediaUrl: photoUri,
+        content: didStayOnTrack ? comment : `Did not stay on track${comment ? ': ' + comment : ''}`,
+        category: 'fitness',
+      });
+    }
 
       if (actionToComplete.isFromChallenge && actionToComplete.challengeActivityId) {
-        const challengeSuccess = await recordCompletion(
+        recordCompletion(
           actionToComplete.challengeParticipantId,
           actionToComplete.challengeActivityId,
           undefined
-        );
-
-        if (!challengeSuccess) {
-          throw new Error('Failed to record challenge completion');
-        }
+        ).then(() => {
+          fetchDailyActions();
+        });
       }
-
-      toggleAction(actionToComplete.id);
-      fetchDailyActions();
-
-      // Refresh weekly progress after successful completion
-      refreshWeeklyProgress();
-
-      if (__DEV__) console.log('🟢 [DAILY] Abstinence completion successful');
-    } catch (error: any) {
-      if (__DEV__) console.error('🔴 [DAILY] Abstinence completion failed:', error);
-
-      Alert.alert(
-        'Completion Failed',
-        error.message || 'Failed to save your progress. Please check your connection and try again.',
-        [{ text: 'OK' }]
-      );
     } finally {
       setCompletingActionId(null);
     }
@@ -553,75 +486,6 @@ export const DailyScreenOption2 = () => {
     } catch (error) {
       Alert.alert('Error', 'Failed to refresh actions. Please try again.');
     }
-  };
-
-  const handleActionLongPress = (action: any) => {
-    if (action.isFromChallenge) {
-      Alert.alert(
-        'Challenge Activity',
-        'Challenge activities cannot be edited or deleted. They are managed by your active challenges.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
-    setActionToEdit(action);
-    setShowActionMenu(true);
-    HapticManager.interaction.longPress();
-  };
-
-  const handleEditAction = () => {
-    setShowActionMenu(false);
-
-    if (!actionToEdit) return;
-
-    Alert.prompt(
-      'Edit Action',
-      'Update action title',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Save',
-          onPress: (newTitle) => {
-            if (newTitle && newTitle.trim()) {
-              updateAction(actionToEdit.id, { title: newTitle.trim() });
-              HapticManager.interaction.tap();
-              setActionToEdit(null);
-            }
-          }
-        }
-      ],
-      'plain-text',
-      actionToEdit.title
-    );
-  };
-
-  const handleDeleteAction = () => {
-    setShowActionMenu(false);
-
-    if (!actionToEdit) return;
-
-    Alert.alert(
-      'Delete Action',
-      `Are you sure you want to delete "${actionToEdit.title}"? This action cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel', onPress: () => setActionToEdit(null) },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteAction(actionToEdit.id);
-              HapticManager.error.strong();
-              setActionToEdit(null);
-              await fetchDailyActions();
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete action. Please try again.');
-            }
-          }
-        }
-      ]
-    );
   };
 
   const renderEmptyState = () => (
@@ -691,11 +555,10 @@ export const DailyScreenOption2 = () => {
               <Text style={styles.statValue}>{completed}/{actions.length}</Text>
               <Text style={styles.statLabel}>Complete</Text>
             </View>
-            {/* TODO: Fix and re-enable streaks - See mvpfix.md Issue #1 */}
-            {/* <View style={styles.statCard}>
+            <View style={styles.statCard}>
               <Text style={styles.statValue}>{currentStreak}</Text>
               <Text style={styles.statLabel}>Day Streak</Text>
-            </View> */}
+            </View>
             <View style={styles.statCard}>
               <Text style={styles.statValue}>{getWeekProgress()}%</Text>
               <Text style={styles.statLabel}>This Week</Text>
@@ -736,7 +599,6 @@ export const DailyScreenOption2 = () => {
                       <Pressable
                         style={[styles.card, action.done && styles.cardCompleted]}
                         onPress={() => handleTaskToggle(action)}
-                        onLongPress={() => handleActionLongPress(action)}
                       >
                         <View style={styles.cardHeader}>
                           <Text style={styles.activityIcon}>{icon}</Text>
@@ -787,7 +649,6 @@ export const DailyScreenOption2 = () => {
                       <Pressable
                         style={[styles.card, action.done && styles.cardCompleted]}
                         onPress={() => handleTaskToggle(action)}
-                        onLongPress={() => handleActionLongPress(action)}
                       >
                         <View style={styles.cardHeader}>
                           <Text style={styles.activityIcon}>{icon}</Text>
@@ -820,7 +681,7 @@ export const DailyScreenOption2 = () => {
         progress={progress}
         completedActions={completed}
         totalActions={actions.length}
-        streak={0} // TODO: Fix and re-enable streaks
+        streak={currentStreak}
       />
 
       <PrivacySelectionModal
@@ -831,7 +692,7 @@ export const DailyScreenOption2 = () => {
         }}
         onSelect={handlePrivacySelect}
         actionTitle={selectedAction?.title || ''}
-        streak={0} // TODO: Fix and re-enable streaks
+        streak={selectedAction?.streak || 0}
       />
 
       <AbstinenceModal
@@ -842,7 +703,7 @@ export const DailyScreenOption2 = () => {
         }}
         onComplete={handleAbstinenceComplete}
         actionTitle={selectedAction?.title || ''}
-        streak={0} // TODO: Fix and re-enable streaks
+        streak={selectedAction?.streak || 0}
       />
 
       {actionsLoading && (
@@ -853,32 +714,6 @@ export const DailyScreenOption2 = () => {
             <Text style={styles.loadingText}>Loading your actions...</Text>
           </View>
         </View>
-      )}
-
-      {showActionMenu && actionToEdit && (
-        <Pressable
-          style={styles.actionMenuOverlay}
-          onPress={() => {
-            setShowActionMenu(false);
-            setActionToEdit(null);
-          }}
-          activeOpacity={1}
-        >
-          <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFillObject} />
-          <View style={styles.actionMenuContainer}>
-            <View style={styles.actionMenu}>
-              <Pressable style={styles.menuItem} onPress={handleEditAction}>
-                <Edit3 size={20} color={LuxuryTheme.colors.text.primary} />
-                <Text style={styles.menuText}>Edit Action</Text>
-              </Pressable>
-              <View style={styles.menuDivider} />
-              <Pressable style={styles.menuItem} onPress={handleDeleteAction}>
-                <Trash2 size={20} color="#ef4444" />
-                <Text style={[styles.menuText, { color: '#ef4444' }]}>Delete Action</Text>
-              </Pressable>
-            </View>
-          </View>
-        </Pressable>
       )}
     </SafeAreaView>
   );
@@ -1137,43 +972,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginTop: 16,
     fontWeight: '500',
-  },
-  actionMenuOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1000,
-  },
-  actionMenuContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  actionMenu: {
-    backgroundColor: 'rgba(20, 20, 20, 0.95)',
-    borderRadius: 16,
-    padding: 8,
-    minWidth: 200,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    gap: 12,
-  },
-  menuText: {
-    color: LuxuryTheme.colors.text.primary,
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  menuDivider: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginHorizontal: 12,
   },
 });

@@ -1,5 +1,11 @@
 // State Persistence Manager
 // Handles automatic persistence of Zustand state to AsyncStorage
+//
+// CHANGE LOG:
+// 2026-02-10: Reduced debounce delay from 2000ms to 400ms (Issue #15)
+//   - Minimizes data loss window if app is killed during save
+//   - Still batches rapid changes to prevent excessive writes
+//   - Data loss risk reduced from 2 seconds to 400ms
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StateCreator } from 'zustand';
@@ -110,14 +116,14 @@ export const createPersist = <T extends object>(
       }
     };
 
-    // Debounced save - max 1 save per 2 seconds
+    // Debounced save - max 1 save per 400ms
     let saveTimeout: ReturnType<typeof setTimeout> | null = null;
     const debouncedSave = () => {
       if (saveTimeout) clearTimeout(saveTimeout);
       saveTimeout = setTimeout(() => {
         saveState(get());
         saveTimeout = null;
-      }, 2000);
+      }, 400);
     };
 
     // Create state with persistence

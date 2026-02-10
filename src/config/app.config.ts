@@ -6,10 +6,10 @@ export const AppConfig = {
   // Set to 'custom' to use custom Node.js backend
   backend: 'supabase' as 'supabase' | 'custom',
   
-  // Supabase configuration
+  // Supabase configuration (use environment variables)
   supabase: {
-    url: 'https://ojusijzhshvviqjeyhyn.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qdXNpanpoc2h2dmlxamV5aHluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NjU3MjQsImV4cCI6MjA3MTE0MTcyNH0.rlQ9lIGzoaLTOW-5-W0G1J1A0WwvqZMnhGHW-FwV8GQ',
+    url: process.env.EXPO_PUBLIC_SUPABASE_URL || '',
+    anonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
   },
   
   // Custom backend configuration (no longer used)

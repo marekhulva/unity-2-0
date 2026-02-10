@@ -383,9 +383,10 @@ export const ActionItem: React.FC<ActionItemProps> = ({
 
   const handleEdit = () => {
     setShowActionMenu(false);
+
     Alert.prompt(
       'Edit Action',
-      'Update your action details',
+      'Update action title',
       [
         { text: 'Cancel', style: 'cancel' },
         {
