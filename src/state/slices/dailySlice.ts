@@ -218,7 +218,8 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
             challengeActivityId: activity.id,
             challengeParticipantId: activity.participantId,
             challengeName: activity.challengeName,
-            challengeIcon: activity.emoji || activity.icon // Use emoji field
+            challengeIcon: activity.emoji || activity.icon, // Use emoji field
+            isAbstinence: activity.is_abstinence || false
           };
           
           if (__DEV__) console.log('📦 [ACTIONS] Final action item:', actionItem);
