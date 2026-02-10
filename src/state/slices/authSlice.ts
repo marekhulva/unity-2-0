@@ -138,7 +138,7 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
         if (__DEV__) console.log('🎯 [REGISTER] Setting new user flags for onboarding');
         await AsyncStorage.setItem('isNewUser', 'true');
         await AsyncStorage.setItem('hasCompletedProfileSetup', 'false');
-        await AsyncStorage.setItem('hasCompletedOnboarding', 'false');
+        await AsyncStorage.setItem('hasCompletedOnboarding', 'true'); // MVP: Skip 8-step onboarding
         
         if (__DEV__) console.log('🟢 [REGISTER] Updating store with new user state');
         set({
@@ -149,7 +149,7 @@ export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
           error: null,
           isNewUser: true,
           hasCompletedProfileSetup: false,
-          hasCompletedOnboarding: false
+          hasCompletedOnboarding: true // MVP: Skip onboarding
         });
         
         if (__DEV__) console.log('🎉 [REGISTER] Registration complete - user should see profile setup');
