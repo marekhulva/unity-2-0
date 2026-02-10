@@ -58,10 +58,12 @@ export interface Action {
   
   reminder?: boolean;
   reminderTime?: string; // HH:MM format
-  
+
   // New fields for 75 Hard and similar programs
   requiresTime?: boolean; // Whether this activity needs a specific time
   periodicReminders?: boolean; // For activities like water that need multiple reminders
+
+  isAbstinence?: boolean; // TRUE for "avoid" actions (No Social Media, No Alcohol)
 }
 
 export interface OnboardingState {

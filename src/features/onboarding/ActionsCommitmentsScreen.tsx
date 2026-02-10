@@ -80,6 +80,7 @@ export const ActionsCommitmentsScreen: React.FC<Props> = ({ goal, onSubmit, onBa
     frequency: 'daily',
     timeOfDay: '09:00',
     dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 1 week from now
+    isAbstinence: false,
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
@@ -101,6 +102,7 @@ export const ActionsCommitmentsScreen: React.FC<Props> = ({ goal, onSubmit, onBa
         timeOfDay: template.timeOfDay || '09:00',
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         reminder: true,
+        isAbstinence: false,
       });
       setSelectedDays([]);
     }
@@ -114,7 +116,7 @@ export const ActionsCommitmentsScreen: React.FC<Props> = ({ goal, onSubmit, onBa
 
   const handleCreateCustom = () => {
     if (!customAction.title) return;
-    
+
     const newAction: Action = {
       id: `action-${Date.now()}`,
       type: activeTab,
@@ -125,23 +127,25 @@ export const ActionsCommitmentsScreen: React.FC<Props> = ({ goal, onSubmit, onBa
       frequency: customAction.frequency,
       daysPerWeek: customAction.daysPerWeek,
       specificDays: customAction.specificDays,
-      duration: customAction.duration,
-      timeOfDay: customAction.timeOfDay,
+      duration: customAction.isAbstinence ? undefined : customAction.duration,
+      timeOfDay: customAction.isAbstinence ? undefined : customAction.timeOfDay,
       dueDate: customAction.dueDate,
       reminder: customAction.reminder || false,
-      reminderTime: customAction.timeOfDay,
+      reminderTime: customAction.isAbstinence ? undefined : customAction.timeOfDay,
+      isAbstinence: customAction.isAbstinence || false,
     };
-    
+
     setActions([...actions, newAction]);
     setShowCustomForm(false);
     setEditingTemplate(null);
     setExpandedTemplateIndex(null);
-    setCustomAction({ 
-      type: activeTab, 
+    setCustomAction({
+      type: activeTab,
       reminder: true,
       frequency: 'daily',
       timeOfDay: '09:00',
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      isAbstinence: false,
     });
     setSelectedDays([]);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -247,6 +251,45 @@ export const ActionsCommitmentsScreen: React.FC<Props> = ({ goal, onSubmit, onBa
       style={styles.inlineForm}
     >
         <>
+          <View style={styles.actionTypeRow}>
+            <Text style={styles.inputLabel}>Action Type</Text>
+            <View style={styles.actionTypeOptions}>
+              <TouchableOpacity
+                onPress={() => setCustomAction({ ...customAction, isAbstinence: false })}
+                style={[
+                  styles.actionTypeOption,
+                  !customAction.isAbstinence && styles.actionTypeOptionActive
+                ]}
+              >
+                <Text style={[
+                  styles.actionTypeOptionText,
+                  !customAction.isAbstinence && styles.actionTypeOptionTextActive
+                ]}>
+                  Active
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setCustomAction({ ...customAction, isAbstinence: true })}
+                style={[
+                  styles.actionTypeOption,
+                  customAction.isAbstinence && styles.actionTypeOptionActive
+                ]}
+              >
+                <Text style={[
+                  styles.actionTypeOptionText,
+                  customAction.isAbstinence && styles.actionTypeOptionTextActive
+                ]}>
+                  Abstinence
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.actionTypeHint}>
+              {customAction.isAbstinence
+                ? 'Avoid something (e.g., No Social Media, No Alcohol)'
+                : 'Do something (e.g., Meditate, Workout, Read)'}
+            </Text>
+          </View>
+
           <View style={styles.frequencyRow}>
             <Text style={styles.inputLabel}>Frequency</Text>
             <View style={styles.frequencyOptions}>
@@ -304,39 +347,43 @@ export const ActionsCommitmentsScreen: React.FC<Props> = ({ goal, onSubmit, onBa
               </View>
             </View>
           )}
-          
-          <View style={styles.timeRow}>
-            <Text style={styles.inputLabel}>Time</Text>
-            <TimePickerInput
-              value={customAction.timeOfDay || '09:00'}
-              onChange={(time) => setCustomAction({ ...customAction, timeOfDay: time })}
-            />
-          </View>
-          
-          <View style={styles.durationRow}>
-            <Text style={styles.inputLabel}>Duration (minutes)</Text>
-            <View style={styles.durationOptions}>
-              {[5, 10, 15, 30, 45, 60].map((minutes) => (
-                <TouchableOpacity
-                  key={minutes}
-                  onPress={() => setCustomAction({ ...customAction, duration: minutes })}
-                  style={[
-                    styles.durationOption,
-                    customAction.duration === minutes && styles.durationOptionActive
-                  ]}
-                >
-                  <Text style={[
-                    styles.durationOptionText,
-                    customAction.duration === minutes && styles.durationOptionTextActive
-                  ]}>
-                    {minutes}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+
+          {!customAction.isAbstinence && (
+            <>
+              <View style={styles.timeRow}>
+                <Text style={styles.inputLabel}>Time</Text>
+                <TimePickerInput
+                  value={customAction.timeOfDay || '09:00'}
+                  onChange={(time) => setCustomAction({ ...customAction, timeOfDay: time })}
+                />
+              </View>
+
+              <View style={styles.durationRow}>
+                <Text style={styles.inputLabel}>Duration (minutes)</Text>
+                <View style={styles.durationOptions}>
+                  {[5, 10, 15, 30, 45, 60].map((minutes) => (
+                    <TouchableOpacity
+                      key={minutes}
+                      onPress={() => setCustomAction({ ...customAction, duration: minutes })}
+                      style={[
+                        styles.durationOption,
+                        customAction.duration === minutes && styles.durationOptionActive
+                      ]}
+                    >
+                      <Text style={[
+                        styles.durationOptionText,
+                        customAction.duration === minutes && styles.durationOptionTextActive
+                      ]}>
+                        {minutes}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </>
+          )}
         </>
-      
+
       <View style={styles.reminderRow}>
         <Bell color={LuxuryTheme.colors.text.secondary} size={20} />
         <Text style={styles.reminderText}>Send reminders</Text>
@@ -395,6 +442,46 @@ export const ActionsCommitmentsScreen: React.FC<Props> = ({ goal, onSubmit, onBa
         onChangeText={(text) => setCustomAction({ ...customAction, title: text })}
         editable={!editingTemplate}
       />
+
+      <View style={styles.actionTypeRow}>
+        <Text style={styles.inputLabel}>Action Type</Text>
+        <View style={styles.actionTypeOptions}>
+          <TouchableOpacity
+            onPress={() => setCustomAction({ ...customAction, isAbstinence: false })}
+            style={[
+              styles.actionTypeOption,
+              !customAction.isAbstinence && styles.actionTypeOptionActive
+            ]}
+          >
+            <Text style={[
+              styles.actionTypeOptionText,
+              !customAction.isAbstinence && styles.actionTypeOptionTextActive
+            ]}>
+              Active
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setCustomAction({ ...customAction, isAbstinence: true })}
+            style={[
+              styles.actionTypeOption,
+              customAction.isAbstinence && styles.actionTypeOptionActive
+            ]}
+          >
+            <Text style={[
+              styles.actionTypeOptionText,
+              customAction.isAbstinence && styles.actionTypeOptionTextActive
+            ]}>
+              Abstinence
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.actionTypeHint}>
+          {customAction.isAbstinence
+            ? 'Avoid something (e.g., No Social Media, No Alcohol)'
+            : 'Do something (e.g., Meditate, Workout, Read)'}
+        </Text>
+      </View>
+
       {activeTab === 'commitment' && (
         <>
           <View style={styles.frequencyRow}>
@@ -456,39 +543,43 @@ export const ActionsCommitmentsScreen: React.FC<Props> = ({ goal, onSubmit, onBa
               </View>
             </>
           )}
-          
+
           {/* Time picker for commitments */}
-          <View style={styles.timeRow}>
-            <Text style={styles.inputLabel}>Time of day</Text>
-            <TimePickerInput
-              value={customAction.timeOfDay || '09:00'}
-              onChange={(time) => setCustomAction({ ...customAction, timeOfDay: time })}
-            />
-          </View>
-          
-          {/* Duration input */}
-          <View style={styles.durationRow}>
-            <Text style={styles.inputLabel}>Duration (minutes)</Text>
-            <View style={styles.durationOptions}>
-              {[5, 10, 15, 30, 45, 60].map((minutes) => (
-                <TouchableOpacity
-                  key={minutes}
-                  onPress={() => setCustomAction({ ...customAction, duration: minutes })}
-                  style={[
-                    styles.durationOption,
-                    customAction.duration === minutes && styles.durationOptionActive
-                  ]}
-                >
-                  <Text style={[
-                    styles.durationOptionText,
-                    customAction.duration === minutes && styles.durationOptionTextActive
-                  ]}>
-                    {minutes}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+          {!customAction.isAbstinence && (
+            <>
+              <View style={styles.timeRow}>
+                <Text style={styles.inputLabel}>Time of day</Text>
+                <TimePickerInput
+                  value={customAction.timeOfDay || '09:00'}
+                  onChange={(time) => setCustomAction({ ...customAction, timeOfDay: time })}
+                />
+              </View>
+
+              {/* Duration input */}
+              <View style={styles.durationRow}>
+                <Text style={styles.inputLabel}>Duration (minutes)</Text>
+                <View style={styles.durationOptions}>
+                  {[5, 10, 15, 30, 45, 60].map((minutes) => (
+                    <TouchableOpacity
+                      key={minutes}
+                      onPress={() => setCustomAction({ ...customAction, duration: minutes })}
+                      style={[
+                        styles.durationOption,
+                        customAction.duration === minutes && styles.durationOptionActive
+                      ]}
+                    >
+                      <Text style={[
+                        styles.durationOptionText,
+                        customAction.duration === minutes && styles.durationOptionTextActive
+                      ]}>
+                        {minutes}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </>
+          )}
         </>
       )}
       
@@ -805,6 +896,40 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 8,
+  },
+  actionTypeRow: {
+    marginBottom: 20,
+  },
+  actionTypeOptions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionTypeOption: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: LuxuryTheme.colors.interactive.border,
+    alignItems: 'center',
+  },
+  actionTypeOptionActive: {
+    backgroundColor: 'rgba(231, 180, 58, 0.1)',
+    borderColor: LuxuryTheme.colors.primary.gold,
+  },
+  actionTypeOptionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: LuxuryTheme.colors.text.secondary,
+  },
+  actionTypeOptionTextActive: {
+    color: LuxuryTheme.colors.primary.gold,
+  },
+  actionTypeHint: {
+    fontSize: 11,
+    color: LuxuryTheme.colors.text.muted,
+    marginTop: 8,
+    lineHeight: 16,
   },
   frequencyRow: {
     marginBottom: 20,
