@@ -1,0 +1,298 @@
+# Unity App — FINAL Production Readiness Report
+
+**Date**: Feb 10, 2026 | **Build**: #63 | **Target**: TestFlight
+**Analysis**: 2 full passes, 13 exploration agents, every file reviewed twice
+
+---
+
+## WHAT THIS APP IS
+
+Unity is a goal-tracking + social accountability app. Users set daily actions (Meditate, Workout, Read), join challenges (7 Day Mental Detox), and share progress with circles of friends. Think "habit tracker meets social fitness app."
+
+---
+
+## EXECUTIVE VERDICT
+
+**The app's core works, but it is NOT ready for real users.**
+
+Pass 1 found 30 issues. Pass 2 dug deeper and found 15 more — including 3 that are worse than anything in Pass 1. The streak system (the core motivator) is fundamentally broken, and several buttons literally do nothing.
+
+**Estimated effort to fix**: 3-4 weeks of focused work.
+
+---
+
+## WHAT CHANGED BETWEEN PASS 1 AND PASS 2
+
+| | Pass 1 | Pass 2 (deeper) |
+|---|--------|-----------------|
+| Issues found | 30 | 15 new (45 total) |
+| Critical bugs (P1) | 5 | 3 new (8 total) |
+| Frustrations (P2) | 6 | 5 new (11 total) |
+| Tech debt (P3) | 9 | 4 new (13 total) |
+| Polish (P4) | 10 | 3 new (13 total) |
+| **Worst finding** | Logout leaks data | **Streaks are completely broken** |
+
+Pass 2 traced actual data flows end-to-end (not just reading code structure) and found bugs that only appear when you follow data from tap → database → display.
+
+---
+
+## PRIORITY 1 — WILL BREAK FOR USERS (Fix before any testing)
+
+### 1. STREAKS ARE COMPLETELY BROKEN *(NEW - Pass 2)*
+- **What**: Streaks only go up, never reset. Miss a day? Streak keeps counting.
+- **Why**: Code just does `streak + 1` every time. Never checks "did you do this yesterday?"
+- **Where**: `dailySlice.ts:~300` — streak value is also never saved to database
+- **Impact**: THE CORE MOTIVATOR IS FAKE. Users will notice immediately.
+- **Plain English**: Imagine a fitness app that says "30-day streak!" even though you skipped 2 weeks. That's what this does.
+
+### 2. POSTS CAN SILENTLY DISAPPEAR *(NEW - Pass 2)*
+- **What**: When you share an action to your circle, the post can be created but never show up in anyone's feed
+- **Why**: Posts need a `post_circles` record to be visible. If that insert fails (and it can), the post exists in the database but nobody can see it. The error is swallowed silently.
+- **Where**: `supabase.service.ts:~2086-2103`
+- **Impact**: User shares a win, gets confirmation, but friends never see it. User thinks friends are ignoring them.
+
+### 3. COMPLETING AN ACTION CAN LIE TO YOU *(NEW - Pass 2)*
+- **What**: When you tap to complete an action, the checkmark appears immediately (optimistic update). But if the backend save fails, the checkmark stays even though nothing was saved.
+- **Why**: UI updates before confirming the database write succeeded
+- **Where**: `DailyScreenOption2.tsx` — handlePrivacySelect marks done before backend responds
+- **Impact**: User thinks they logged their action. Tomorrow it's gone.
+
+### 4. Logout leaks other users' data
+- **What**: User A logs out, User B logs in → User B sees User A's challenges
+- **Why**: Logout clears auth but not challenge/action/feed data
+- **Where**: `authSlice.ts:173`
+- **Impact**: Privacy violation
+
+### 5. Double-tap creates duplicate completions
+- **What**: Tapping action twice fast records it twice in database
+- **Why**: No debounce, no server-side duplicate check
+- **Where**: `DailyScreenOption2.tsx:143` + `supabase.challenges.service.ts:315`
+- **Impact**: Inflated streaks, wrong leaderboard
+
+### 6. Abstinence actions don't post to social feed
+- **What**: Completing "No Social Media" doesn't show in friends' feeds
+- **Why**: Missing `addPost()` call for non-living-progress-cards path
+- **Where**: `DailyScreenOption2.tsx:346-442`
+- **Impact**: Social accountability broken for abstinence actions
+
+### 7. Hardcoded test flag in production
+- **What**: `TEST_NEW_UI = true` hardcoded, not a feature flag
+- **Where**: `PrivacySelectionModal.tsx:41`
+
+### 8. Supabase API key hardcoded in source
+- **What**: Anon key in source as fallback string
+- **Where**: `supabase.service.ts:7-8`
+- **Impact**: Key rotation requires code push
+
+---
+
+## PRIORITY 2 — WILL FRUSTRATE USERS (Fix before TestFlight)
+
+### 9. "View Progress" button does nothing *(NEW - Pass 2)*
+- **What**: In challenge detail, "View Progress" just logs to console
+- **Where**: `ChallengeDetailModal.tsx`
+- **Impact**: User taps it expecting to see their progress. Nothing happens.
+
+### 10. Settings "Save" button is fake *(NEW - Pass 2)*
+- **What**: Circle settings "Save Changes" shows a "Coming Soon" alert
+- **Where**: `CircleScreenVision.tsx`
+- **Impact**: User changes settings, taps save, told it doesn't work. Feels broken.
+
+### 11. Weekly progress never updates *(NEW - Pass 2)*
+- **What**: After completing actions, the weekly progress chart doesn't refresh
+- **Why**: Weekly data loaded once on screen mount, never re-fetched after completions
+- **Where**: `DailyScreenOption2.tsx`
+- **Impact**: User completes all actions, progress still shows yesterday's data
+
+### 12. No confirmation for leaving a circle *(NEW - Pass 2)*
+- **What**: "Leave Circle" executes immediately with no "Are you sure?"
+- **Where**: `CircleScreenVision.tsx`
+- **Impact**: Accidental tap = lost circle membership, lost social connections
+
+### 13. Can't edit or delete actions
+- **What**: Created wrong action? Stuck with it forever. No edit, no delete UI.
+- **Impact**: Users will uninstall.
+
+### 14. Too many steps to check off an action
+- **What**: 5 taps to complete one action (tap → modal → circles → photo → post)
+- **Impact**: Users want tap → done. They'll stop logging after day 3.
+
+### 15. App state lost if killed during save
+- **What**: 2-second save delay. Kill app in that window = lost data.
+- **Where**: `persistence.ts:114-121`
+
+### 16. Empty social feed for new users
+- **What**: No circle = blank feed with no guidance on what to do
+- **Where**: `SocialScreenUnified.tsx`
+
+### 17. No value proposition on login screen
+- **What**: Login says "Best" but doesn't explain what app does
+
+### 18. Onboarding is 8 steps long
+- **What**: 8 steps before seeing the app. ~70% will abandon.
+- **Where**: `OnboardingFlow.tsx`
+
+### 19. JoinChallenge uses setTimeout hacks *(NEW - Pass 2)*
+- **What**: Join challenge flow uses `setTimeout(resolve, 500)` and `setTimeout(resolve, 1000)` to wait for database consistency instead of actual confirmation
+- **Where**: `JoinChallengeModal.tsx`
+- **Impact**: On slow networks, the timeouts aren't long enough and data is incomplete
+
+---
+
+## PRIORITY 3 — TECHNICAL DEBT (Fix before public launch)
+
+### 20. Zero automated tests
+### 21. TypeScript strict mode OFF (`strict: false`)
+### 22. Timezone bugs in challenge day calculations
+### 23. Animation memory leak (`withRepeat(-1)` never cleaned up)
+### 24. Leaderboard = O(N) database calls (one per participant)
+### 25. `console.time` leaks to production
+### 26. Notification array grows forever (memory leak)
+### 27. Feature flag hardcoded to always-on (can't remotely disable)
+### 28. Comment button does nothing (just console.log)
+### 29. `as any` type assertions throughout service layer *(NEW - Pass 2)*
+### 30. Photo upload errors only logged, no user alert *(NEW - Pass 2)*
+### 31. Challenge rules displayed as raw JSON *(NEW - Pass 2)*
+### 32. ActionItem missing React.memo (re-renders in FlatList) *(NEW - Pass 2)*
+
+---
+
+## PRIORITY 4 — POLISH (Required for App Store)
+
+### 33. No "leave challenge" button visible
+### 34. No password reset flow
+### 35. No delete account option
+### 36. No accessibility labels
+### 37. No error boundaries (one crash = white screen)
+### 38. No offline handling
+### 39. No image loading states
+### 40. Abstinence modal too vague ("Did you stay on track?" — which action?)
+### 41. Profile can't be edited after onboarding
+### 42. Backup files still in codebase (.backup.tsx)
+### 43. 16 different modals causing modal fatigue *(NEW - Pass 2)*
+### 44. Leaderboard points formula never explained to users *(NEW - Pass 2)*
+### 45. No activities shown in challenge detail before joining *(NEW - Pass 2)*
+
+---
+
+## IMPLEMENTATION PLAN
+
+### Week 1 — Critical Fixes (P1)
+| # | Task | Effort | Files |
+|---|------|--------|-------|
+| 1 | **Fix streak calculation** — check if action was done yesterday before incrementing, reset to 0 if gap, persist to database | 4 hours | dailySlice.ts, supabase.service.ts |
+| 2 | **Fix silent post disappearance** — if post_circles insert fails, retry or alert user | 2 hours | supabase.service.ts |
+| 3 | **Fix optimistic toggle** — only show checkmark after backend confirms | 2 hours | DailyScreenOption2.tsx |
+| 4 | Fix logout to clear ALL state | 1 hour | authSlice.ts, rootStore.ts |
+| 5 | Add debounce to action completion | 2 hours | DailyScreenOption2.tsx, dailySlice.ts |
+| 6 | Fix abstinence social feed posting | 3 hours | DailyScreenOption2.tsx |
+| 7 | Remove TEST_NEW_UI, use feature flag | 30 min | PrivacySelectionModal.tsx |
+| 8 | Move Supabase key to env-only | 30 min | supabase.service.ts |
+
+### Week 2 — User Experience (P2)
+| # | Task | Effort | Files |
+|---|------|--------|-------|
+| 9 | Make "View Progress" button work | 4 hours | ChallengeDetailModal.tsx |
+| 10 | Fix or remove Settings save | 1 hour | CircleScreenVision.tsx |
+| 11 | Refresh weekly progress after completions | 1 hour | DailyScreenOption2.tsx |
+| 12 | Add leave-circle confirmation dialog | 30 min | CircleScreenVision.tsx |
+| 13 | Add edit/delete action UI | 6 hours | New modal + dailySlice + service |
+| 14 | Add "quick complete" (skip sharing flow) | 4 hours | DailyScreenOption2.tsx, PrivacySelectionModal.tsx |
+| 15 | Reduce save debounce to 500ms | 15 min | persistence.ts |
+| 16 | Add empty state CTAs to social feed | 2 hours | SocialScreenUnified.tsx |
+| 17 | Add value prop to login screen | 2 hours | LoginScreen |
+| 18 | Replace setTimeout hacks with actual DB confirmation | 3 hours | JoinChallengeModal.tsx |
+
+### Week 3 — UX Polish + Tech Foundation
+| # | Task | Effort | Files |
+|---|------|--------|-------|
+| 19 | Simplify onboarding (8 steps → 3) | 8 hours | OnboardingFlow.tsx |
+| 20 | Fix timezone handling | 4 hours | supabase.challenges.service.ts |
+| 21 | Fix animation cleanup | 1 hour | ActionItem.tsx |
+| 22 | Add error boundaries between tabs | 2 hours | AppWithAuth.tsx |
+| 23 | Wrap debug logs in __DEV__ | 30 min | AppWithAuth.tsx + others |
+| 24 | Remove backup files | 15 min | Multiple .backup files |
+| 25 | Fix comment button | 3 hours | LivingProgressCard.tsx |
+
+### Week 4 — Testing + Hardening
+| # | Task | Effort | Files |
+|---|------|--------|-------|
+| 26 | Enable TypeScript strict mode | 8 hours | tsconfig.json + fix violations |
+| 27 | Add Jest + critical path tests | 16 hours | New test files |
+| 28 | Batch leaderboard updates | 2 hours | supabase.challenges.service.ts |
+| 29 | Cap notification array | 30 min | notificationSlice.ts |
+| 30 | Add React.memo to ActionItem | 30 min | ActionItem.tsx |
+
+---
+
+## WHAT'S ACTUALLY GOOD
+
+Both passes confirmed these strengths:
+- Visual design is cohesive and premium (black/gold theme)
+- Core daily tracking loop works end-to-end
+- Challenge system is sophisticated (leaderboards, badges, multi-activity)
+- Zustand state management is clean and well-organized
+- Error handler utility is well-built (just underused)
+- Supabase RLS policies are properly configured
+- Haptic feedback throughout feels polished
+- Abstinence modal design is smart (yes/no + optional sharing)
+- AbstinenceModal component is well-built (85/100 quality score)
+- Data architecture is sound (the bugs are in the application layer, not the schema)
+
+---
+
+## BOTTOM LINE
+
+**Pass 1 said**: "Fix 5 things and you're TestFlight-ready."
+**Pass 2 says**: "Not so fast — the streak system is broken, buttons don't work, and posts can vanish."
+
+The real priority order:
+1. **Fix streaks** (the core motivator is literally lying to users)
+2. **Fix silent failures** (posts vanishing, optimistic toggles)
+3. **Fix data leaks** (logout, duplicate completions)
+4. **Reduce friction** (5-step completion, 8-step onboarding)
+5. **Make buttons work** (View Progress, Settings Save, Comment)
+
+**The app's biggest risk is trust.** If streaks are fake, posts disappear, and buttons do nothing — users won't trust the app. And once trust is lost, no amount of polish brings users back. Fix the data integrity issues first, then the UX.
+
+---
+
+## MVP FIX IMPLEMENTATION LOG
+
+### SCOPE DECISIONS (Feb 10, 2026)
+
+**STREAKS: Removed for MVP**
+- Decision: Remove streak display entirely rather than fix
+- Reason: Fixing requires checking yesterday's completion + timezone handling + database persistence = 4+ hours
+- For MVP: Just remove from UI. Can add back properly later.
+- Files to update: DailyScreenOption2.tsx, ActionItem.tsx, any post creation that shows streak
+
+**PRIVACY SETTINGS: Simplify to Public-Only for MVP**
+- Decision: Make all posts public (visible to followers) - remove circle/private options
+- Reason: Too much complexity for small user base. Privacy modal adds 3 extra steps to every completion.
+- For MVP: Remove PrivacySelectionModal, make all completions auto-post publicly
+- Can add privacy controls back in v2 when user base grows
+- Files to update: DailyScreenOption2.tsx, remove PrivacySelectionModal.tsx, simplify post creation flow
+
+**ABSTINENCE ISSUE #6 CLARIFICATION:**
+- Current behavior: Abstinence completions create Living Progress Card (if feature flag on) OR create individual post
+- The bug: For non-living-progress path, the code calls `addCompletedAction()` but never calls `addPost()`
+- Result: Abstinence completion saves locally but creates NO social post at all (not in circles, not for followers, nowhere)
+- With public-only decision: This bug is CRITICAL - abstinence posts won't appear in ANY feed
+- Fix: Make abstinence completions create public posts just like regular actions
+
+---
+
+### PRIORITY 1 IMPLEMENTATION (Target: 1 day)
+
+**Fixes we're doing:**
+1. ~~Fix streaks~~ → REMOVED FEATURE
+2. Fix silent post disappearance (post_circles failure)
+3. Fix optimistic toggle (wait for backend confirmation)
+4. Fix logout data leak
+5. Fix double-tap duplicates
+6. Fix abstinence social feed posting
+7. Remove TEST_NEW_UI hardcode
+8. Move Supabase key to env only
+
+**Implementation notes will go below as we work:**
