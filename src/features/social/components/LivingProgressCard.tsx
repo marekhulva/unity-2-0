@@ -121,18 +121,17 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({
   // Get streak count (fallback to 0)
   const streakCount = (post as any).streakCount || 0;
 
-  // Get first 3 completed actions
-  const visibleActions = completedActions.slice(0, 3);
+  // Show all completed actions
+  const visibleActions = completedActions;
 
   return (
     <View style={[styles.card, isPerfectDay && styles.cardPerfectDay]}>
       {/* Subtle Gold Background Overlay - Always visible */}
       <LinearGradient
         colors={[
-          'rgba(212, 175, 55, 0.08)',
-          'rgba(212, 175, 55, 0.06)',
-          'rgba(212, 175, 55, 0.07)',
-          'rgba(212, 175, 55, 0.03)'
+          'rgba(212, 175, 55, 0.04)',
+          'rgba(212, 175, 55, 0.02)',
+          'transparent'
         ]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -161,6 +160,12 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({
       {displayChallengeName && (
         <View style={styles.challengeHeader}>
           <Text style={styles.challengeHeaderText}>{displayChallengeName}</Text>
+          <LinearGradient
+            colors={['transparent', '#FFD700', 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.challengeHeaderLine}
+          />
         </View>
       )}
 
@@ -252,16 +257,18 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({
               {action.title || action.name || 'Action'}
             </Text>
 
-            {/* Green bottom bar if completed */}
+            {/* Gold bottom bar if completed */}
             {action.completed && <View style={styles.completedBar} />}
           </View>
         ))}
+
       </View>
 
       {/* Footer */}
       <View style={styles.footer}>
-        {/* Completion Stat */}
+        {/* Completion Stat with Percentage */}
         <View style={styles.completionStat}>
+          <Text style={styles.completionPercent}>{percentage}%</Text>
           <Text style={styles.completionNumber}>{actionsToday}/{totalActions}</Text>
           <Text style={styles.completionText}> completed</Text>
         </View>
@@ -315,19 +322,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#0A0A0A',
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     overflow: 'hidden',
     position: 'relative',
-    shadowColor: 'rgba(212, 175, 55, 0.3)',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 4,
   },
   cardPerfectDay: {
-    borderColor: 'rgba(212, 175, 55, 0.3)',
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
+    borderColor: 'rgba(212, 175, 55, 0.2)',
   },
 
   // Gold Background Overlay (always visible)
@@ -342,17 +342,22 @@ const styles = StyleSheet.create({
 
   // Challenge Header
   challengeHeader: {
-    marginBottom: 16,
     alignItems: 'center',
+    marginBottom: 16,
     zIndex: 1,
   },
   challengeHeaderText: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 11,
+    fontWeight: '500',
     color: '#D4AF37',
     textTransform: 'uppercase',
-    letterSpacing: 1.5,
+    letterSpacing: 2.5,
     textAlign: 'center',
+    marginBottom: 8,
+  },
+  challengeHeaderLine: {
+    height: 1,
+    width: '100%',
   },
 
   // Perfect Day Decorations
@@ -367,9 +372,9 @@ const styles = StyleSheet.create({
   goldGlow: {
     position: 'absolute',
     top: 0,
-    left: '20%',
-    right: '20%',
-    height: 60,
+    left: 0,
+    right: 0,
+    height: 80,
     zIndex: 0,
   },
 
@@ -396,7 +401,7 @@ const styles = StyleSheet.create({
     right: 6,
     bottom: 6,
     borderRadius: 999,
-    backgroundColor: '#111111',
+    backgroundColor: '#1A1A1A',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -458,6 +463,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
   },
   moreText: {
     fontSize: 16,
@@ -468,17 +474,19 @@ const styles = StyleSheet.create({
   // Action Tiles
   actionTiles: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     marginBottom: 14,
     zIndex: 1,
   },
   actionTile: {
-    flex: 1,
+    width: '30%',
+    flexGrow: 1,
     padding: 12,
     borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     position: 'relative',
     overflow: 'hidden',
@@ -509,7 +517,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 2,
+    height: 3,
     backgroundColor: '#D4AF37',
   },
 
@@ -519,13 +527,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
     zIndex: 1,
   },
   completionStat: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+  },
+  completionPercent: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#D4AF37',
+    marginRight: 4,
   },
   completionNumber: {
     fontSize: 12,

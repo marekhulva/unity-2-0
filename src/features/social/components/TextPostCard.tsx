@@ -173,24 +173,8 @@ export const TextPostCard: React.FC<TextPostCardProps> = ({
           <View style={styles.userRow}>
             <Text style={styles.username}>{user || 'User'}</Text>
             {goal && (
-              <View
-                style={[
-                  styles.goalTag,
-                  {
-                    backgroundColor: goalColor
-                      ? `${goalColor}20`
-                      : 'rgba(0,255,136,0.12)',
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.goalTagText,
-                    { color: goalColor || '#00FF88' },
-                  ]}
-                >
-                  {goal}
-                </Text>
+              <View style={styles.goalTag}>
+                <Text style={styles.goalTagText}>{goal}</Text>
               </View>
             )}
           </View>
@@ -463,11 +447,13 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     paddingHorizontal: 6,
     borderRadius: 8,
+    backgroundColor: 'rgba(212, 175, 55, 0.12)',
   },
 
   goalTagText: {
     fontSize: 10,
     fontWeight: '700',
+    color: '#D4AF37',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
