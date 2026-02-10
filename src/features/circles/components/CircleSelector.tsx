@@ -174,12 +174,12 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
         <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
 
         <Animated.View
-          entering={SlideInDown.springify().damping(20)}
+          entering={FadeIn.duration(200)}
           style={[
             styles.bottomSheet,
             {
-              maxHeight: height * 0.7,
-              paddingBottom: insets.bottom || 20,
+              maxHeight: height * 0.6,
+              paddingBottom: 20,
             }
           ]}
         >
@@ -305,7 +305,7 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
 
                       <View style={styles.circleItemContent}>
                         <View style={styles.circleItemLeft}>
-                          <Text style={styles.circleEmoji}>{circle.emoji || '👥'}</Text>
+                          <Text style={styles.circleEmoji}>{circle.emoji || '⭐'}</Text>
                           <View style={styles.circleInfo}>
                             <Text style={styles.circleName}>{circle.name}</Text>
                             {circle.member_count !== undefined && (
@@ -400,13 +400,13 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
   },
   bottomSheet: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderRadius: 24,
     overflow: 'hidden',
-    borderTopWidth: 1,
+    borderWidth: 1,
     borderColor: 'rgba(255,215,0,0.2)',
   },
   sheetHandle: {

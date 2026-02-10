@@ -172,7 +172,7 @@ export const TabBarSelector: React.FC<CircleSelectorProps> = ({
               onPressOut={() => setShowTooltip(false)}
               testID={testID}
             >
-              <Text style={styles.activeEmoji}>{emoji || '🌐'}</Text>
+              <Text style={styles.activeEmoji}>{emoji || '⭐'}</Text>
               <Text style={styles.activeTabText}>{abbreviation}</Text>
             </TouchableOpacity>
           </LinearGradient>
@@ -184,7 +184,7 @@ export const TabBarSelector: React.FC<CircleSelectorProps> = ({
             onPressOut={() => setShowTooltip(false)}
             testID={testID}
           >
-            <Text style={styles.emoji}>{emoji || '🔵'}</Text>
+            <Text style={styles.emoji}>{emoji || '⭐'}</Text>
             <Text style={styles.tabText}>{abbreviation}</Text>
           </TouchableOpacity>
         )}

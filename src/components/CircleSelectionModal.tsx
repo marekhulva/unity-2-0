@@ -258,7 +258,7 @@ export const CircleSelectionModal: React.FC<CircleSelectionModalProps> = ({
                       <Check size={14} color="#000" strokeWidth={3} />
                     )}
                   </View>
-                  <Text style={styles.circleEmoji}>{circle.emoji || '⭕'}</Text>
+                  <Text style={styles.circleEmoji}>{circle.emoji || '⭐'}</Text>
                   <View style={styles.circleInfo}>
                     <Text style={styles.circleName}>{circle.name}</Text>
                     <Text style={styles.circleMembers}>

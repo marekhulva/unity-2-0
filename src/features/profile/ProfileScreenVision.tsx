@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '../../state/rootStore';
 import { supabaseService } from '../../services/supabase.service';
 import { supabaseChallengeService } from '../../services/supabase.challenges.service';
-import { LogOut, ChevronRight } from 'lucide-react-native';
+import { LogOut, ChevronRight, Trophy, Target, RefreshCw, Users } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
 // Consistency Circle Component (Memoized for performance)
@@ -42,33 +42,17 @@ const ConsistencyCircle = React.memo(({ percentage }: { percentage: number }) =>
 const ActivityCard = ({ item, type }: { item: any; type: 'challenge' | 'goal' | 'routine' }) => {
   const getIcon = () => {
     switch (type) {
-      case 'challenge': return '🏆';
-      case 'goal': return '🎯';
-      case 'routine': return '🔁';
-    }
-  };
-
-  const getGradient = () => {
-    switch (type) {
-      case 'challenge':
-        return ['rgba(59, 130, 246, 0.2)', 'rgba(37, 99, 235, 0.2)'];
-      case 'goal':
-        return ['rgba(168, 85, 247, 0.2)', 'rgba(147, 51, 234, 0.2)'];
-      case 'routine':
-        return ['rgba(34, 197, 94, 0.2)', 'rgba(22, 163, 74, 0.2)'];
+      case 'challenge': return <Trophy size={20} color="#D4AF37" strokeWidth={2} />;
+      case 'goal': return <Target size={20} color="#D4AF37" strokeWidth={2} />;
+      case 'routine': return <RefreshCw size={20} color="#D4AF37" strokeWidth={2} />;
     }
   };
 
   return (
     <Pressable style={styles.activityCard}>
-      <LinearGradient
-        colors={getGradient()}
-        style={styles.activityIcon}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <Text style={styles.activityIconText}>{getIcon()}</Text>
-      </LinearGradient>
+      <View style={styles.activityIcon}>
+        {getIcon()}
+      </View>
 
       <View style={styles.activityContent}>
         <Text style={styles.activityTitle}>{item.title}</Text>
@@ -84,24 +68,35 @@ const ActivityCard = ({ item, type }: { item: any; type: 'challenge' | 'goal' | 
 
 // Circle Card Component (for My Circles section)
 const CircleCard = ({ circle }: { circle: any }) => {
-  const gradients = [
-    ['#f093fb', '#f5576c'],
-    ['#4facfe', '#00f2fe'],
-    ['#43e97b', '#38f9d7'],
-  ];
+  // Deterministic color selection based on circle ID or name
+  // Uses black and gold theme with subtle variations
+  const getGradientForCircle = (circleId: string, circleName: string) => {
+    const gradients = [
+      ['rgba(212, 175, 55, 0.2)', 'rgba(212, 175, 55, 0.1)'],   // Gold
+      ['rgba(255, 255, 255, 0.12)', 'rgba(212, 175, 55, 0.08)'], // Silver to gold
+      ['rgba(212, 175, 55, 0.15)', 'rgba(255, 255, 255, 0.08)'], // Gold to silver
+    ];
 
-  const gradient = gradients[Math.floor(Math.random() * gradients.length)];
+    // Create deterministic index from circle ID or name hash
+    const hashString = circleId || circleName || '';
+    let hash = 0;
+    for (let i = 0; i < hashString.length; i++) {
+      hash = ((hash << 5) - hash) + hashString.charCodeAt(i);
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    const index = Math.abs(hash) % gradients.length;
+    return gradients[index];
+  };
 
   return (
     <Pressable style={styles.circleCard}>
-      <LinearGradient
-        colors={gradient}
-        style={styles.circleIcon}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <Text style={styles.circleIconText}>{circle.emoji || '🔵'}</Text>
-      </LinearGradient>
+      <View style={styles.circleIcon}>
+        {circle.emoji ? (
+          <Text style={styles.circleIconText}>{circle.emoji}</Text>
+        ) : (
+          <Users size={20} color="#D4AF37" strokeWidth={2} />
+        )}
+      </View>
 
       <View style={styles.circleInfo}>
         <Text style={styles.circleName}>{circle.name}</Text>
@@ -634,6 +629,9 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(212, 175, 55, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.2)',
   },
   activityIconText: {
     fontSize: 20,
@@ -844,6 +842,9 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(212, 175, 55, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.2)',
   },
   circleIconText: {
     fontSize: 20,

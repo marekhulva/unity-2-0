@@ -451,7 +451,7 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
                           <View style={[styles.checkbox, selectedCircleIds.has(circle.id) && styles.checkboxChecked]}>
                             {selectedCircleIds.has(circle.id) && <Check size={14} color="#000" strokeWidth={3} />}
                           </View>
-                          <Text style={styles.circleEmoji}>{circle.emoji || '⭕'}</Text>
+                          <Text style={styles.circleEmoji}>{circle.emoji || '⭐'}</Text>
                           <Text style={[
                             styles.circleName,
                             selectedCircleIds.has(circle.id) && styles.circleNameSelected

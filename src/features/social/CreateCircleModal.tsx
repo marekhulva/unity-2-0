@@ -43,7 +43,7 @@ export const CreateCircleModal: React.FC<CreateCircleModalProps> = ({
 }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [selectedEmoji, setSelectedEmoji] = useState('🔵');
+  const [selectedEmoji, setSelectedEmoji] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isPrivate, setIsPrivate] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -86,7 +86,7 @@ export const CreateCircleModal: React.FC<CreateCircleModalProps> = ({
                 // Reset form
                 setName('');
                 setDescription('');
-                setSelectedEmoji('🔵');
+                setSelectedEmoji('');
                 setIsPrivate(false);
               },
             },

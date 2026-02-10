@@ -2666,7 +2666,7 @@ class SupabaseService {
       .from('circles')
       .insert({
         name,
-        emoji: emoji || '🔵',  // Default to blue circle if no emoji provided
+        emoji: emoji || null,  // No default emoji - will show gold Users icon
         description,
         created_by: user.id,
         join_code: joinCode

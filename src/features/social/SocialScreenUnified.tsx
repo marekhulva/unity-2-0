@@ -206,19 +206,29 @@ export const SocialScreenUnified = () => {
 
   // Handle image picker
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.8,
-    });
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        if (__DEV__) console.log('📸 [IMAGE-PICKER] Permission denied:', status);
+        return;
+      }
 
-    if (!result.canceled && result.assets[0]) {
-      const uri = result.assets[0].uri;
-      if (__DEV__) console.log('📸 [IMAGE-PICKER] Selected image:', uri);
-      setPostPhoto(uri);
-      setComposerExpanded(true);
-    } else {
-      if (__DEV__) console.log('📸 [IMAGE-PICKER] Image selection canceled');
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const uri = result.assets[0].uri;
+        if (__DEV__) console.log('📸 [IMAGE-PICKER] Selected image:', uri);
+        setPostPhoto(uri);
+        setComposerExpanded(true);
+      } else {
+        if (__DEV__) console.log('📸 [IMAGE-PICKER] Image selection canceled');
+      }
+    } catch (error) {
+      console.error('📸 [IMAGE-PICKER] Error:', error);
     }
   };
 

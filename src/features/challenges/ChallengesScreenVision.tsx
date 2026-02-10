@@ -18,20 +18,20 @@ import { JoinChallengeFlow } from './JoinChallengeFlow';
 import { ChallengeLeaderboard } from './ChallengeLeaderboard';
 
 const CATEGORY_GRADIENTS = {
-  fitness: ['#4facfe', '#00f2fe'],
-  mindfulness: ['#43e97b', '#38f9d7'],
-  productivity: ['#fa709a', '#fee140'],
-  reading: ['#30cfd0', '#330867'],
-  nutrition: ['#a8edea', '#fed6e3'],
-  default: ['#f093fb', '#f5576c'],
+  fitness: ['rgba(212, 175, 55, 0.2)', 'rgba(212, 175, 55, 0.1)'],
+  mindfulness: ['rgba(255, 255, 255, 0.12)', 'rgba(212, 175, 55, 0.08)'],
+  productivity: ['rgba(212, 175, 55, 0.15)', 'rgba(255, 255, 255, 0.08)'],
+  reading: ['rgba(212, 175, 55, 0.18)', 'rgba(212, 175, 55, 0.1)'],
+  nutrition: ['rgba(255, 255, 255, 0.1)', 'rgba(212, 175, 55, 0.12)'],
+  default: ['rgba(212, 175, 55, 0.15)', 'rgba(212, 175, 55, 0.08)'],
 };
 
 const FILTER_CATEGORIES = ['All', '💪 Fitness', '🧘 Mindfulness', '📚 Learning', '🍎 Nutrition', '⚡ Productivity'];
 
 const DIFFICULTY_COLORS = {
-  easy: { bg: 'rgba(34, 197, 94, 0.15)', border: 'rgba(34, 197, 94, 0.3)', text: '#22c55e' },
-  medium: { bg: 'rgba(251, 191, 36, 0.15)', border: 'rgba(251, 191, 36, 0.3)', text: '#fbbf24' },
-  hard: { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.3)', text: '#ef4444' },
+  easy: { bg: 'rgba(255, 255, 255, 0.08)', border: 'rgba(212, 175, 55, 0.2)', text: 'rgba(255, 255, 255, 0.7)' },
+  medium: { bg: 'rgba(212, 175, 55, 0.12)', border: 'rgba(212, 175, 55, 0.3)', text: '#D4AF37' },
+  hard: { bg: 'rgba(212, 175, 55, 0.15)', border: 'rgba(212, 175, 55, 0.4)', text: '#FFD700' },
 };
 
 const getCategoryFromName = (name: string): keyof typeof CATEGORY_GRADIENTS => {
@@ -228,10 +228,10 @@ const ChallengeGridCard = ({ challenge, isActive, onPress }: { challenge: Challe
 
         <View style={styles.participantsRow}>
           <View style={styles.avatarStack}>
-            <LinearGradient colors={['#667eea', '#764ba2']} style={styles.miniAvatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <LinearGradient colors={['#f093fb', '#f5576c']} style={styles.miniAvatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <LinearGradient colors={['#4facfe', '#00f2fe']} style={styles.miniAvatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <LinearGradient colors={['#43e97b', '#38f9d7']} style={styles.miniAvatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
+            <LinearGradient colors={['rgba(212, 175, 55, 0.3)', 'rgba(212, 175, 55, 0.15)']} style={styles.miniAvatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
+            <LinearGradient colors={['rgba(255, 255, 255, 0.15)', 'rgba(212, 175, 55, 0.1)']} style={styles.miniAvatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
+            <LinearGradient colors={['rgba(212, 175, 55, 0.25)', 'rgba(212, 175, 55, 0.12)']} style={styles.miniAvatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
+            <LinearGradient colors={['rgba(255, 255, 255, 0.12)', 'rgba(212, 175, 55, 0.08)']} style={styles.miniAvatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
           </View>
           <Text style={styles.participantsCount}>+{challenge.participant_count || 0} joined</Text>
         </View>
