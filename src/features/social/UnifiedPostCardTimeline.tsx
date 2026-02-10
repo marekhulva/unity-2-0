@@ -164,8 +164,8 @@ export const UnifiedPostCardTimeline: React.FC<UnifiedPostCardTimelineProps> = R
           </View>
         )}
 
-        {/* Regular text post */}
-        {post.content && isValidContent(post.content) && !isCheckin && (
+        {/* Content/comment (show for both check-ins and regular posts) */}
+        {post.content && isValidContent(post.content) && !isPhoto && (
           <Text style={styles.postText}>{post.content}</Text>
         )}
 

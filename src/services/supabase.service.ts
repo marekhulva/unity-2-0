@@ -2116,8 +2116,16 @@ class SupabaseService {
     };
   }
 
-  async findOrCreateDailyProgressPost(userId: string) {
-    if (__DEV__) console.log(`📊 [SUPABASE] Finding or creating daily progress post for user: ${userId}`);
+  async findOrCreateDailyProgressPost(
+    userId: string,
+    challengeId: string | null = null,
+    challengeName?: string,
+    challengeMetadata?: {
+      currentDay?: number;
+      totalDays?: number;
+    }
+  ) {
+    if (__DEV__) console.log(`📊 [SUPABASE] Finding or creating daily progress post for user: ${userId}`, challengeId ? `(Challenge: ${challengeId})` : '(Regular)');
 
     const today = new Date().toISOString().split('T')[0];
     if (__DEV__) console.log(`📅 [SUPABASE] Today's date: ${today}`);
@@ -2129,6 +2137,7 @@ class SupabaseService {
       .eq('user_id', userId)
       .eq('progress_date', today)
       .eq('is_daily_progress', true)
+      .eq('challenge_id', challengeId || null)
       .single();
 
     if (__DEV__) console.log(`🔍 [SUPABASE] Search result - data:`, existing ? 'FOUND' : 'NOT FOUND', 'error:', findError);
@@ -2151,7 +2160,16 @@ class SupabaseService {
       content: '',
       visibility: 'circle',
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      is_challenge: challengeId !== null,
+      challenge_id: challengeId,
+      challenge_name: challengeName || null,
+      ...(challengeMetadata && {
+        challenge_progress: {
+          current_day: challengeMetadata.currentDay,
+          total_days: challengeMetadata.totalDays,
+        }
+      }),
     };
     if (__DEV__) console.log(`📤 [SUPABASE] Insert payload:`, JSON.stringify(insertData, null, 2));
 
@@ -2183,6 +2201,7 @@ class SupabaseService {
       goalColor?: string;
       completedAt: string;
       streak: number;
+      challengeActivityId?: string;
     },
     totalActions: number
   ) {

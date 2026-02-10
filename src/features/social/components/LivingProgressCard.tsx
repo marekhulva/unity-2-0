@@ -23,7 +23,16 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({ post }) 
     totalActions = 0,
     actionsToday = 0,
     timestamp,
+    is_challenge,
+    challenge_id,
+    challenge_name,
+    challenge_progress,
   } = post;
+
+  // Challenge detection
+  const isChallenge = is_challenge && challenge_id;
+  const currentDay = (challenge_progress as any)?.current_day;
+  const durationDays = (challenge_progress as any)?.total_days;
 
   const percentage = totalActions > 0 ? Math.round((actionsToday / totalActions) * 100) : 0;
   const isPerfectDay = percentage === 100;
@@ -225,6 +234,7 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({ post }) 
     <View
       style={[
         styles.card,
+        isChallenge && styles.challengeCard,
         debugBorder(tokens.debug.colors.card)
       ]}
       onLayout={onCardLayout}
@@ -285,6 +295,20 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({ post }) 
           style={styles.perfectDayTopLine}
           pointerEvents="none"
         />
+      )}
+
+      {/* Challenge Header (if this is a challenge card) */}
+      {isChallenge && (
+        <View style={styles.challengeHeader}>
+          <Text style={styles.challengeName} allowFontScaling={false}>
+            🏆 {challenge_name || 'Challenge'}
+          </Text>
+          {currentDay && durationDays && (
+            <Text style={styles.challengeDay} allowFontScaling={false}>
+              Day {currentDay}/{durationDays}
+            </Text>
+          )}
+        </View>
       )}
 
       {/* Row 1: Header */}
@@ -627,5 +651,24 @@ const styles = StyleSheet.create({
   footerCount: {
     color: tokens.footer.countColor,
     fontWeight: '600',
+  },
+  challengeCard: {
+    backgroundColor: '#1a1a1a',
+  },
+  challengeHeader: {
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  challengeName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  challengeDay: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
   },
 });

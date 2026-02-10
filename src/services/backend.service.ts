@@ -335,10 +335,23 @@ class BackendService {
     }
   }
 
-  async findOrCreateDailyProgressPost(userId: string) {
+  async findOrCreateDailyProgressPost(
+    userId: string,
+    challengeId: string | null = null,
+    challengeName?: string,
+    challengeMetadata?: {
+      currentDay?: number;
+      totalDays?: number;
+    }
+  ) {
     if (isSupabaseBackend()) {
       try {
-        const post = await supabaseService.findOrCreateDailyProgressPost(userId);
+        const post = await supabaseService.findOrCreateDailyProgressPost(
+          userId,
+          challengeId,
+          challengeName,
+          challengeMetadata
+        );
         return { success: true, data: post };
       } catch (error: any) {
         if (__DEV__) console.error('🔴 [BACKEND] findOrCreateDailyProgressPost error:', error.message);
@@ -358,6 +371,7 @@ class BackendService {
       goalColor?: string;
       completedAt: string;
       streak: number;
+      challengeActivityId?: string;
     },
     totalActions: number
   ) {

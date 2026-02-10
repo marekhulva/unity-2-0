@@ -11,7 +11,7 @@ import { LuxuryTheme } from '../../design/luxuryTheme';
 import { Target, Dumbbell, Brain, BookOpen } from 'lucide-react-native';
 import { HapticManager } from '../../utils/haptics';
 import ChallengeDebugV2 from '../../utils/challengeDebugV2';
-import { supabaseService } from '../../services/supabase.service';
+import { supabaseService, supabase } from '../../services/supabase.service';
 import { featureFlags } from '../../services/featureFlags.service';
 import { backendService } from '../../services/backend.service';
 import { FeedSkeleton } from '../../components/SkeletonLoader';
@@ -183,17 +183,48 @@ export const DailyScreenOption2 = () => {
       });
     }
 
-    // LIVING PROGRESS CARD FLOW (for both challenge and regular actions)
-    if (useLivingProgressCards && user?.id && visibility !== 'private') {
-      if (__DEV__) console.log('✅ [DailyScreen] ===== USING LIVING PROGRESS CARD FLOW =====');
+    // Check if this is a CHALLENGE activity
+    const isChallenge = actionToComplete.isFromChallenge && actionToComplete.challengeId;
+
+    // LIVING PROGRESS CARD FLOW (only for challenge activities)
+    if (useLivingProgressCards && user?.id && visibility !== 'private' && isChallenge) {
+      if (__DEV__) console.log('✅ [DailyScreen] ===== USING LIVING PROGRESS CARD FLOW (CHALLENGE) =====');
 
       // Mark action as complete locally (optimistic update)
       toggleAction(actionToComplete.id);
 
-      // Update Living Progress Card in background
-      backendService.findOrCreateDailyProgressPost(user.id).then(progressPost => {
+      // Get participant data for current day/total days
+      const participantId = actionToComplete.challengeParticipantId;
+      let currentDay, totalDays;
+
+      if (participantId) {
+        try {
+          // Query participant data
+          const { data: participant } = await supabase
+            .from('challenge_participants')
+            .select('current_day, challenges(duration_days)')
+            .eq('id', participantId)
+            .single();
+
+          if (participant) {
+            currentDay = participant.current_day;
+            totalDays = (participant.challenges as any)?.duration_days;
+            if (__DEV__) console.log('📊 [DailyScreen] Participant data:', { currentDay, totalDays });
+          }
+        } catch (error) {
+          if (__DEV__) console.error('❌ [DailyScreen] Failed to fetch participant data:', error);
+        }
+      }
+
+      // Update Living Progress Card in background with challenge metadata
+      backendService.findOrCreateDailyProgressPost(
+        user.id,
+        actionToComplete.challengeId,
+        actionToComplete.challengeName,
+        { currentDay, totalDays }
+      ).then(progressPost => {
         if (progressPost.success && progressPost.data) {
-          const totalActions = actions.length;
+          const totalActions = actions.filter(a => a.challengeId === actionToComplete.challengeId).length;
 
           backendService.updateDailyProgressPost(
             progressPost.data.id,
@@ -204,10 +235,11 @@ export const DailyScreenOption2 = () => {
               goalColor: actionToComplete.goalColor,
               completedAt: new Date().toISOString(),
               streak: (actionToComplete.streak || 0) + 1,
+              challengeActivityId: actionToComplete.challengeActivityId,
             },
             totalActions
           ).then(() => {
-            if (__DEV__) console.log('✅ [DailyScreen] Updated Living Progress Card');
+            if (__DEV__) console.log('✅ [DailyScreen] Updated Living Progress Card for challenge');
             useStore.getState().fetchUnifiedFeed(true);
             if (__DEV__) console.log('🔄 [DailyScreen] Refreshed unified feed');
           }).catch(error => {
@@ -216,13 +248,24 @@ export const DailyScreenOption2 = () => {
         }
       });
 
-      // Skip legacy post creation for Living Progress Cards
-      return;
+      // Check if user added photo/comment (media)
+      const hasMedia = contentType === 'photo' || contentType === 'text';
+
+      if (!hasMedia) {
+        // Just a check - Living Progress Card only, no individual post
+        return;
+      }
+
+      // User added media - fall through to create individual post too (dual posting)
+      if (__DEV__) console.log('📸 [DailyScreen] User added media, creating individual post too (dual posting)');
+    } else {
+      // LEGACY FLOW (for regular actions OR when Living Progress Cards are disabled)
+      if (__DEV__) console.log('❌ [DailyScreen] ===== USING LEGACY INDIVIDUAL POST FLOW =====');
+      toggleAction(actionToComplete.id);
     }
 
-    // LEGACY FLOW (only if Living Progress Cards are disabled)
-    if (__DEV__) console.log('❌ [DailyScreen] ===== USING LEGACY INDIVIDUAL POST FLOW =====');
-    toggleAction(actionToComplete.id);
+    // Create individual post (legacy flow OR dual posting for challenge with media)
+    if (__DEV__) console.log('📝 [DailyScreen] Creating individual post');
 
     // Legacy post creation (for non-Living Progress Card actions)
     const actionType = contentType === 'text' ? 'milestone' : 'check';
