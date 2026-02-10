@@ -60,19 +60,14 @@ export const AbstinenceModal: React.FC<AbstinenceModalProps> = ({
     }
   }, [visible, fetchUserCircles]);
 
-  // Initialize circles: all checked for "yes", none for "no"
+  // Initialize circles: ALWAYS public (all circles + followers)
   useEffect(() => {
     if (visible && userCircles && userCircles.length > 0) {
-      if (selectedAnswer === 'yes') {
-        // Default: all circles checked for positive posts
-        const allCircleIds = new Set(userCircles.map(c => c.id));
-        setSelectedCircleIds(allCircleIds);
-        setIncludeFollowers(true);
-      } else if (selectedAnswer === 'no') {
-        // Default: private for "didn't make it" posts
-        setSelectedCircleIds(new Set());
-        setIncludeFollowers(false);
-      }
+      // ALWAYS default to public: all circles + followers (for both yes and no)
+      const allCircleIds = new Set(userCircles.map(c => c.id));
+      setSelectedCircleIds(allCircleIds);
+      setIncludeFollowers(true);
+      if (__DEV__) console.log('[AbstinenceModal] Initialized PUBLIC posting (all circles + followers)');
     }
   }, [visible, userCircles, selectedAnswer]);
 
@@ -301,11 +296,14 @@ export const AbstinenceModal: React.FC<AbstinenceModalProps> = ({
               </Pressable>
             </View>
 
-            {/* Privacy Section */}
-            <ScrollView style={styles.privacySection} showsVerticalScrollIndicator={false}>
+            {/* ============================================
+                 PRIVACY SECTION - COMMENTED OUT FOR MVP
+                 Everything defaults to PUBLIC (all circles + followers)
+                 To re-enable: uncomment this section
+                 ============================================ */}
+            {/* <ScrollView style={styles.privacySection} showsVerticalScrollIndicator={false}>
               <Text style={styles.privacyLabel}>SHARE WITH</Text>
 
-              {/* Circles */}
               {userCircles && userCircles.length > 0 ? (
                 <>
                   {userCircles.map(circle => {
@@ -335,7 +333,6 @@ export const AbstinenceModal: React.FC<AbstinenceModalProps> = ({
                     );
                   })}
 
-                  {/* Followers */}
                   <Pressable
                     style={[
                       styles.circleOption,
@@ -362,7 +359,14 @@ export const AbstinenceModal: React.FC<AbstinenceModalProps> = ({
               )}
 
               <Text style={styles.privacyHint}>{getPrivacyHint()}</Text>
-            </ScrollView>
+            </ScrollView> */}
+
+            {/* MVP: Show public posting message */}
+            <View style={styles.publicNoticeWrapper}>
+              <Text style={styles.publicPostingNotice}>
+                📢 Sharing publicly with all circles & followers
+              </Text>
+            </View>
 
             {/* Post/Log Button */}
             <Pressable
@@ -637,5 +641,18 @@ const styles = StyleSheet.create({
   },
   submitButtonTextYes: {
     color: '#111',
+  },
+  publicNoticeWrapper: {
+    marginBottom: 14,
+  },
+  publicPostingNotice: {
+    fontSize: 11,
+    color: 'rgba(255,215,0,0.5)',
+    textAlign: 'center',
+    padding: 10,
+    backgroundColor: 'rgba(255,215,0,0.04)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.08)',
   },
 });

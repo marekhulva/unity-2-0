@@ -31,6 +31,13 @@ export const JoinChallengeFlow = ({ visible, challenge, onClose, onSuccess }: Jo
 
   const activities = challenge?.predetermined_activities || [];
 
+  // Filter out abstinence and sleep activities from time picker
+  const timedActivities = activities.filter((activity: any) => {
+    const isAbstinence = activity.is_abstinence === true;
+    const isSleep = activity.title?.toLowerCase().includes('sleep');
+    return !isAbstinence && !isSleep;
+  });
+
   const getFrequencyText = (frequency: string) => {
     const map: Record<string, string> = {
       'daily': 'Every day',
@@ -59,7 +66,8 @@ export const JoinChallengeFlow = ({ visible, challenge, onClose, onSuccess }: Jo
   };
 
   const canProceedFromReview = activities.length > 0;
-  const canProceedFromTimes = activityTimes.length === activities.length;
+  // Only need times for timed activities (not abstinence or sleep)
+  const canProceedFromTimes = activityTimes.length === timedActivities.length;
 
   const renderReviewStep = () => (
     <ScrollView style={styles.scrollView} contentContainerStyle={styles.stepContent}>
@@ -113,7 +121,7 @@ export const JoinChallengeFlow = ({ visible, challenge, onClose, onSuccess }: Jo
       </View>
 
       <View style={styles.section}>
-        {activities.map((activity: any, index: number) => (
+        {timedActivities.map((activity: any, index: number) => (
           <View key={activity.id || index} style={styles.timeCard}>
             <View style={styles.timeCardHeader}>
               <Text style={styles.activityEmoji}>{activity.emoji}</Text>
@@ -167,7 +175,7 @@ export const JoinChallengeFlow = ({ visible, challenge, onClose, onSuccess }: Jo
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Daily Reminders</Text>
-        {activities.map((activity: any, index: number) => {
+        {timedActivities.map((activity: any, index: number) => {
           const activityTime = getActivityTime(activity.id);
           const [hours, minutes] = activityTime.split(':');
           const hour = parseInt(hours);
@@ -194,7 +202,12 @@ export const JoinChallengeFlow = ({ visible, challenge, onClose, onSuccess }: Jo
 
   const handleNext = () => {
     if (currentStep === 'review') {
-      setCurrentStep('times');
+      // Skip times step if there are no timed activities
+      if (timedActivities.length === 0) {
+        setCurrentStep('confirm');
+      } else {
+        setCurrentStep('times');
+      }
     } else if (currentStep === 'times') {
       setCurrentStep('confirm');
     }
@@ -218,7 +231,26 @@ export const JoinChallengeFlow = ({ visible, challenge, onClose, onSuccess }: Jo
     setJoining(true);
 
     try {
-      const formattedTimes: ActivityTimeType[] = activityTimes.map(at => ({
+      // Add default times for abstinence and sleep activities
+      const allActivityTimes = [...activityTimes];
+
+      activities.forEach((activity: any) => {
+        const isAbstinence = activity.is_abstinence === true;
+        const isSleep = activity.title?.toLowerCase().includes('sleep');
+        const alreadyHasTime = activityTimes.some(at => at.activityId === activity.id);
+
+        if ((isAbstinence || isSleep) && !alreadyHasTime) {
+          // Default times: Sleep at 10 PM, abstinence at 9 AM
+          const defaultTime = isSleep ? '22:00' : '09:00';
+          allActivityTimes.push({
+            activityId: activity.id,
+            time: defaultTime
+          });
+          if (__DEV__) console.log(`🏆 [JOIN] Auto-set ${activity.title} time to ${defaultTime}`);
+        }
+      });
+
+      const formattedTimes: ActivityTimeType[] = allActivityTimes.map(at => ({
         activity_id: at.activityId,
         scheduled_time: at.time,
         is_link: false,

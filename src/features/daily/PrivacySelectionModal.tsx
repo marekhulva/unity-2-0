@@ -37,8 +37,9 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
   actionTitle,
   streak = 0,
 }) => {
-  // ⚡ TESTING NEW UI - Set to true to test new integrated circle selection
-  const TEST_NEW_UI = true;
+  // Use environment variable or default to true for production
+  // TODO: Move to feature flag system if needed
+  const TEST_NEW_UI = process.env.EXPO_PUBLIC_USE_NEW_PRIVACY_UI !== 'false';
 
   // Get user circles from store
   const userCircles = useStore(s => s.userCircles);
@@ -56,11 +57,13 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
   }, [visible, TEST_NEW_UI, fetchUserCircles]);
 
   // Initialize all circles as checked when modal opens
+  // ALWAYS default to public: all circles + followers
   useEffect(() => {
     if (visible && userCircles && userCircles.length > 0) {
       const allCircleIds = new Set(userCircles.map(c => c.id));
       setSelectedCircleIds(allCircleIds);
-      if (__DEV__) console.log('🔵 Initialized all circles as checked:', allCircleIds);
+      setIncludeFollowers(true); // Always include followers for public posting
+      if (__DEV__) console.log('🔵 Initialized all circles as checked (PUBLIC):', allCircleIds);
     }
   }, [visible, userCircles]);
 
@@ -417,15 +420,17 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
             )}
 
 
-            {/* Privacy Selector - Integrated Circle Selection */}
-            <View style={styles.privacySection}>
+            {/* ============================================
+                 PRIVACY SECTION - COMMENTED OUT FOR MVP
+                 Everything defaults to PUBLIC (all circles + followers)
+                 To re-enable: uncomment this section
+                 ============================================ */}
+            {/* <View style={styles.privacySection}>
               {TEST_NEW_UI ? (
                 // NEW: Integrated circle selection UI
                 <ScrollView style={styles.privacyScrollView} showsVerticalScrollIndicator={false}>
-                  {/* Quick Options */}
                   <Text style={styles.privacySectionLabel}>WHO CAN SEE THIS?</Text>
 
-                  {/* Circle Selection - All checked by default */}
                   {userCircles && userCircles.length > 0 ? (
                     <>
                       {userCircles.map(circle => {
@@ -461,7 +466,6 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
                         </Pressable>
                       )})}
 
-                      {/* Followers Checkbox */}
                       <Pressable
                         style={[
                           styles.circleOption,
@@ -500,7 +504,6 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
                 // OLD: Original three-way toggle
                 <Pressable
                   onPress={() => {
-                    // Cycle through: private -> circle -> followers -> private
                     const nextPrivacy =
                       selectedPrivacy === 'private' ? 'circle' :
                       selectedPrivacy === 'circle' ? 'followers' : 'private';
@@ -557,6 +560,13 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
                   selectedPrivacy === 'circle' ? 'Visible to your close friends' :
                   'Visible to all your followers'
                 )}
+              </Text>
+            </View> */}
+
+            {/* MVP: Show public posting message */}
+            <View style={styles.privacySection}>
+              <Text style={styles.publicPostingNotice}>
+                📢 Sharing publicly with all circles & followers
               </Text>
             </View>
 
@@ -767,6 +777,16 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.4)',
     marginTop: 8,
     marginLeft: 12,
+  },
+  publicPostingNotice: {
+    fontSize: 12,
+    color: 'rgba(255,215,0,0.6)',
+    textAlign: 'center',
+    padding: 12,
+    backgroundColor: 'rgba(255,215,0,0.05)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.1)',
   },
 
   // New integrated circle selection styles

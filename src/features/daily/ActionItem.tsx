@@ -118,7 +118,6 @@ export const ActionItem: React.FC<ActionItemProps> = ({
     if (__DEV__) console.log('🎯 [ActionItem] handleToggle called:', { id, title, done, isAbstinence });
 
     if (!done) {
-      // Route to abstinence modal for abstinence actions, privacy modal for regular actions
       if (isAbstinence) {
         if (__DEV__) console.log('🎯 [ActionItem] Opening abstinence modal for action:', title);
         setShowAbstinenceModal(true);
@@ -129,33 +128,8 @@ export const ActionItem: React.FC<ActionItemProps> = ({
       HapticManager.interaction.premiumPress();
       if (__DEV__) console.log('🎯 [ActionItem] Modal state set to true');
     } else {
-      // UNCOMPLETE FLOW
-      if (__DEV__) console.log('🎯 [ActionItem] Uncompleting action');
-      const useLivingProgressCards = await featureFlags.isEnabled('use_living_progress_cards');
-
-      if (useLivingProgressCards && user?.id) {
-        // Find today's Living Progress Card and remove this action
-        if (__DEV__) console.log('📊 [ACTION] Removing action from Living Progress Card');
-
-        try {
-          const progressPost = await backendService.findOrCreateDailyProgressPost(user.id);
-
-          if (progressPost.success && progressPost.data) {
-            await backendService.removeActionFromDailyProgress(
-              progressPost.data.id,
-              id
-            );
-
-            if (__DEV__) console.log('✅ [ACTION] Removed from Living Progress Card');
-          }
-        } catch (error) {
-          if (__DEV__) console.error('❌ [ACTION] Failed to remove from Living Progress Card:', error);
-        }
-      }
-
-      // Standard toggle (works for both flows)
-      toggle(id);
-      HapticManager.interaction.tap();
+      if (__DEV__) console.log('🎯 [ActionItem] Action already completed, no uncomplete allowed');
+      HapticManager.interaction.error();
     }
   };
 
@@ -217,7 +191,8 @@ export const ActionItem: React.FC<ActionItemProps> = ({
               goalTitle,
               goalColor,
               completedAt: new Date().toISOString(),
-              streak: streak + 1,
+              // TODO: Fix and re-enable streaks - See mvpfix.md Issue #1
+              streak: 0,
             },
             totalActions
           );
@@ -257,7 +232,8 @@ export const ActionItem: React.FC<ActionItemProps> = ({
         completedAt: new Date(),
         isPrivate: visibility === 'private',
         visibility: mappedVisibility as any,
-        streak: streak + 1,
+        // TODO: Fix and re-enable streaks - See mvpfix.md Issue #1
+        streak: 0,
         type: actionType,
         mediaUrl,
         content,
@@ -271,7 +247,8 @@ export const ActionItem: React.FC<ActionItemProps> = ({
             visibility: mappedVisibility,
             actionTitle: title,
             goal: goalTitle,
-            streak: streak + 1,
+            // TODO: Fix and re-enable streaks - See mvpfix.md Issue #1
+        streak: 0,
             goalColor: goalColor || LuxuryTheme.colors.primary.gold,
             contentType,
           });
@@ -343,7 +320,8 @@ export const ActionItem: React.FC<ActionItemProps> = ({
               goalTitle,
               goalColor,
               completedAt: new Date().toISOString(),
-              streak: streak + 1,
+              // TODO: Fix and re-enable streaks - See mvpfix.md Issue #1
+              streak: 0,
               comment: didStayOnTrack ? comment : `Did not stay on track${comment ? ': ' + comment : ''}`,
               photoUri,
             },
@@ -376,7 +354,8 @@ export const ActionItem: React.FC<ActionItemProps> = ({
         completedAt: new Date(),
         isPrivate,
         visibility: visibility as any,
-        streak: streak + 1,
+        // TODO: Fix and re-enable streaks - See mvpfix.md Issue #1
+        streak: 0,
         type: actionType,
         mediaUrl: photoUri,
         content: didStayOnTrack ? comment : `Did not stay on track${comment ? ': ' + comment : ''}`,
@@ -390,7 +369,8 @@ export const ActionItem: React.FC<ActionItemProps> = ({
             visibility,
             actionTitle: title,
             goal: goalTitle,
-            streak: streak + 1,
+            // TODO: Fix and re-enable streaks - See mvpfix.md Issue #1
+        streak: 0,
             goalColor: goalColor || LuxuryTheme.colors.primary.gold,
             contentType: photoUri ? 'photo' : 'text',
           });
@@ -504,7 +484,8 @@ export const ActionItem: React.FC<ActionItemProps> = ({
                   </View>
                 )}
                 
-                {streak > 0 && (
+                {/* TODO: Fix and re-enable streaks - See mvpfix.md Issue #1 */}
+                {/* {streak > 0 && (
                   <Animated.View style={[styles.streakBadge, streak > 7 && streakBadgeStyle]}>
                     <LinearGradient
                       colors={streak >= 30 
@@ -519,7 +500,7 @@ export const ActionItem: React.FC<ActionItemProps> = ({
                     <Text style={styles.streakText}>{streak}</Text>
                     {streak >= 7 && <Text style={styles.streakLabel}>day{streak !== 1 ? 's' : ''}</Text>}
                   </Animated.View>
-                )}
+                )} */}
               </View>
             </View>
 
@@ -539,7 +520,7 @@ export const ActionItem: React.FC<ActionItemProps> = ({
         onClose={() => setShowPrivacyModal(false)}
         onSelect={handlePrivacySelect}
         actionTitle={title}
-        streak={streak}
+        streak={0} // TODO: Fix and re-enable streaks
       />
 
       {/* Abstinence Modal */}
@@ -548,7 +529,7 @@ export const ActionItem: React.FC<ActionItemProps> = ({
         onClose={() => setShowAbstinenceModal(false)}
         onComplete={handleAbstinenceComplete}
         actionTitle={title}
-        streak={streak}
+        streak={0} // TODO: Fix and re-enable streaks
       />
 
       {/* Action Menu Modal */}

@@ -4,8 +4,16 @@ import ChallengeDebugV2 from '../utils/challengeDebugV2';
 
 // Supabase project configuration
 // Fallback to hardcoded values if env vars not set (for EAS builds)
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://ojusijzhshvviqjeyhyn.supabase.co';
-const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qdXNpanpoc2h2dmlxamV5aHluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NjU3MjQsImV4cCI6MjA3MTE0MTcyNH0.rlQ9lIGzoaLTOW-5-W0G1J1A0WwvqZMnhGHW-FwV8GQ';
+// Supabase URL must be provided via environment variable
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+if (!SUPABASE_URL) {
+  throw new Error('EXPO_PUBLIC_SUPABASE_URL environment variable is required');
+}
+// Supabase anon key must be provided via environment variable
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+if (!SUPABASE_ANON_KEY) {
+  throw new Error('EXPO_PUBLIC_SUPABASE_ANON_KEY environment variable is required');
+}
 
 // Log which database we're using
 if (__DEV__) {
@@ -2090,15 +2098,41 @@ class SupabaseService {
         circle_id: cid
       }));
 
-      const { error: circleError } = await supabase
-        .from('post_circles')
-        .insert(postCircleRelationships);
+      let circleInsertSuccess = false;
+      let retryCount = 0;
+      const MAX_RETRIES = 2;
 
-      if (circleError) {
-        if (__DEV__) console.error('⚠️ [SUPABASE] Error creating post_circles relationships:', circleError);
-        // Don't throw - the post is created, just log the error
-      } else {
-        if (__DEV__) console.log('✅ [SUPABASE] Post_circles relationships created for', finalCircleIds.length, 'circles');
+      while (!circleInsertSuccess && retryCount <= MAX_RETRIES) {
+        const { error: circleError } = await supabase
+          .from('post_circles')
+          .insert(postCircleRelationships);
+
+        if (circleError) {
+          retryCount++;
+          if (__DEV__) console.error(`⚠️ [SUPABASE] Error creating post_circles relationships (attempt ${retryCount}/${MAX_RETRIES + 1}):`, circleError);
+
+          if (retryCount > MAX_RETRIES) {
+            if (__DEV__) console.error('🚨 [SUPABASE] Failed to create post_circles after retries. Deleting orphaned post...');
+
+            const { error: deleteError } = await supabase
+              .from('posts')
+              .delete()
+              .eq('id', data.id);
+
+            if (deleteError) {
+              if (__DEV__) console.error('❌ [SUPABASE] Failed to delete orphaned post:', deleteError);
+            } else {
+              if (__DEV__) console.log('✅ [SUPABASE] Orphaned post deleted successfully');
+            }
+
+            throw new Error('Failed to share post to circles. Please try again.');
+          }
+
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } else {
+          circleInsertSuccess = true;
+          if (__DEV__) console.log('✅ [SUPABASE] Post_circles relationships created for', finalCircleIds.length, 'circles');
+        }
       }
     }
     

@@ -37,6 +37,7 @@ export type GoalsSlice = {
   deleteGoal: (id: string) => Promise<void>;
   updateGoalMilestones: (goalId: string, milestones: Milestone[]) => void;
   toggleMilestoneComplete: (goalId: string, milestoneId: string) => void;
+  clearGoalsData: () => void;
 };
 
 export const createGoalsSlice: StateCreator<GoalsSlice> = (set, get) => ({
@@ -145,8 +146,8 @@ export const createGoalsSlice: StateCreator<GoalsSlice> = (set, get) => ({
     
   toggleMilestoneComplete: (goalId, milestoneId) =>
     set((state) => ({
-      goals: state.goals.map(g => 
-        g.id === goalId 
+      goals: state.goals.map(g =>
+        g.id === goalId
           ? {
               ...g,
               milestones: g.milestones?.map(m =>
@@ -156,4 +157,14 @@ export const createGoalsSlice: StateCreator<GoalsSlice> = (set, get) => ({
           : g
       )
     })),
+
+  clearGoalsData: () => {
+    if (__DEV__) console.log('🧹 Clearing all goals data');
+    memoryCache.clear('goals');
+    set({
+      goals: [],
+      goalsLoading: false,
+      goalsError: null
+    });
+  },
 });

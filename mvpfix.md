@@ -63,11 +63,12 @@ Pass 2 traced actual data flows end-to-end (not just reading code structure) and
 - **Where**: `authSlice.ts:173`
 - **Impact**: Privacy violation
 
-### 5. Double-tap creates duplicate completions
+### 5. ✅ FIXED - Double-tap creates duplicate completions → UNCOMPLETE REMOVED
 - **What**: Tapping action twice fast records it twice in database
 - **Why**: No debounce, no server-side duplicate check
 - **Where**: `DailyScreenOption2.tsx:143` + `supabase.challenges.service.ts:315`
 - **Impact**: Inflated streaks, wrong leaderboard
+- **Fix**: Removed uncomplete feature entirely - actions are final once completed (Feb 10, 2026)
 
 ### 6. Abstinence actions don't post to social feed
 - **What**: Completing "No Social Media" doesn't show in friends' feeds
@@ -287,12 +288,149 @@ The real priority order:
 
 **Fixes we're doing:**
 1. ~~Fix streaks~~ → REMOVED FEATURE
-2. Fix silent post disappearance (post_circles failure)
+2. ✅ **FIXED** Fix silent post disappearance (post_circles failure)
 3. Fix optimistic toggle (wait for backend confirmation)
 4. Fix logout data leak
-5. Fix double-tap duplicates
-6. Fix abstinence social feed posting
+5. ✅ **FIXED** Fix double-tap duplicates → REMOVED UNCOMPLETE FEATURE
+6. ✅ **FIXED** Fix abstinence social feed posting
 7. Remove TEST_NEW_UI hardcode
 8. Move Supabase key to env only
 
 **Implementation notes will go below as we work:**
+
+---
+
+#### Issue #6: Abstinence Social Feed Posting - COMPLETED (Feb 10, 2026)
+
+**Problem**: Abstinence actions weren't creating social posts at all in the non-Living Progress Card path.
+
+**Root Cause**:
+- Living Progress Card path: Updated card but didn't create individual posts even with comment/photo
+- Legacy path: Called `addCompletedAction()` but never `addPost()`, so no posts in database
+
+**Solution Implemented**:
+1. Added `hasMedia` check to detect if user added comment or photo
+2. Living Progress Card path now:
+   - ALWAYS updates Living Progress Card for challenge activities
+   - IF user added media: ALSO creates individual post (dual posting)
+   - IF no media: Just Living Progress Card, no individual post (early return)
+3. Legacy path now:
+   - Creates `addCompletedAction()` as before
+   - ALSO calls `addPost()` if not private (NEW!)
+   - Post includes all challenge metadata
+
+**Files Modified**:
+- `/home/marek/Unity-vision/src/features/daily/DailyScreenOption2.tsx` (handleAbstinenceComplete function, lines 410-535)
+
+**Detailed Documentation**:
+- See `/home/marek/Unity-vision/ABSTINENCE_FIX_REPORT.md` for full technical details
+
+**Testing Required**:
+- [ ] Complete abstinence without comment/photo → Living Progress Card only
+- [ ] Complete abstinence with comment → both Living Progress Card + individual post
+- [ ] Complete abstinence with photo → both Living Progress Card + individual post
+- [ ] Complete abstinence (non-challenge) → individual post created
+- [ ] Complete abstinence privately → no post created
+- [ ] Verify challenge completion tracking still works
+
+**Status**: ✅ Code changes complete, ready for testing
+
+---
+
+### Issue #2: Posts Can Silently Disappear - FIXED (Feb 10, 2026)
+
+**Problem:**
+When creating a post to circles, if the `post_circles` junction table insert failed, the error was swallowed silently. The post would exist in the database but have no `post_circles` records, making it invisible in all feeds (since feeds filter by `post_circles.circle_id`).
+
+**Root Cause:**
+- `supabase.service.ts` lines 2097-2099: Error was logged but not thrown
+- Feed queries (lines 1430, 1457) filter posts based on `post_circles` junction table
+- Result: Post exists in DB but never appears in any feed
+
+**Solution Implemented:**
+1. **Retry logic**: Attempt to insert `post_circles` up to 3 times with 500ms delay between attempts
+2. **Cleanup on failure**: If all retries fail, delete the orphaned post from the database
+3. **Error propagation**: Throw a user-friendly error message
+4. **Error handling in backend layer**: Added try/catch in `backend.service.ts` to return proper error response
+5. **User notification**: Added Alert dialog in `DailyScreenOption2.tsx` to inform user if post sharing fails
+
+**Files Modified:**
+- `/home/marek/Unity-vision/src/services/supabase.service.ts` (lines 2086-2129)
+  - Added retry loop with MAX_RETRIES = 2
+  - Added orphaned post deletion on final failure
+  - Throws error with user-friendly message
+
+- `/home/marek/Unity-vision/src/services/backend.service.ts` (lines 329-343)
+  - Added try/catch around `supabaseService.createPost()`
+  - Returns `{ success: false, error: message }` on failure
+
+- `/home/marek/Unity-vision/src/features/daily/DailyScreenOption2.tsx` (lines 363-370)
+  - Added Alert dialog on post creation failure
+  - Informs user their action was completed but sharing failed
+
+**Testing:**
+To verify the fix works:
+1. Complete an action with circle visibility
+2. If post_circles insert fails:
+   - System retries up to 2 more times
+   - On final failure: orphaned post is deleted
+   - User sees error: "Failed to share post to circles. Please try again."
+   - Action completion still succeeds (local state)
+3. Post will either appear in feeds (success) or user gets notified (failure)
+4. No more silent failures where posts exist but are invisible
+
+---
+
+### Issue #5 (Modified): Removed Uncomplete Feature - COMPLETED (Feb 10, 2026)
+
+**Original Problem**:
+Double-tap creates duplicate completions - tapping action twice fast records it twice in database.
+
+**Deeper Analysis**:
+During log review, discovered that the issue isn't double-tapping - it's users trying to RE-COMPLETE actions to add comments/photos. Example from logs:
+- 11:34:11 - User completes "No Social Media" abstinence action (no comment)
+- 11:34:17 - User tries to complete same action again WITH comment
+- Result: Database blocks with "Activity already completed today"
+
+**Root Cause**:
+- ActionItem.tsx had an "UNCOMPLETE FLOW" (lines 132-159) allowing users to toggle completed actions back to incomplete
+- This flow conflicts with challenge activities' one-completion-per-day database constraint
+- Uncomplete feature makes no sense for public accountability app
+- Users don't want to UNDO completions - they want to EDIT completions (add/change comment or photo)
+
+**Why Uncomplete is Wrong**:
+1. **Conflicts with database**: Challenge activities enforce one completion per day
+2. **Undermines accountability**: Once posted publicly to circles/followers, "uncompleting" is meaningless (everyone already saw it)
+3. **Enables gaming**: Users could complete → get streak → uncomplete → recomplete with better details
+4. **Not what users want**: Logs show users want to ADD CONTENT to existing completion, not undo it
+
+**Solution Implemented**:
+- **Removed uncomplete flow entirely** from ActionItem.tsx
+- Actions are now **final once completed** (builds real accountability)
+- Tapping completed action gives error haptic and does nothing
+- Updated CLAUDE.md to document this design decision
+
+**Files Modified:**
+- `/home/marek/Unity-vision/src/features/daily/ActionItem.tsx` (handleToggle function, lines 117-160)
+  - Removed entire UNCOMPLETE FLOW (Living Progress Card removal + toggle logic)
+  - Replaced with simple log + error haptic when tapping completed action
+
+- `/home/marek/Unity-vision/CLAUDE.md` (lines ~127)
+  - Added "Action Completion is Final" section documenting this decision
+  - Noted that future enhancement may allow EDITING (add/change comment/photo) without affecting completion status
+
+**Impact:**
+- ✅ No more conflicts with challenge database constraints
+- ✅ Cleaner UX - you did it or you didn't
+- ✅ Stronger accountability - actions can't be undone
+- ✅ No gaming the system
+- ⏱️ Future: May need to add EDIT feature for users who want to add/change comments after completing
+
+**Testing Required**:
+- [ ] Tap incomplete action → opens privacy/abstinence modal (normal flow)
+- [ ] Tap completed action → error haptic, no state change
+- [ ] Verify completed actions stay completed after app restart
+- [ ] Verify challenge activities can't be completed twice on same day
+- [ ] Verify regular actions can't be toggled off anymore
+
+**Status**: ✅ Code changes complete, ready for testing

@@ -328,8 +328,16 @@ class BackendService {
 
   async createPost(post: any) {
     if (isSupabaseBackend()) {
-      const newPost = await supabaseService.createPost(post);
-      return { success: true, data: newPost };
+      try {
+        const newPost = await supabaseService.createPost(post);
+        return { success: true, data: newPost };
+      } catch (error: any) {
+        if (__DEV__) console.error('[BACKEND] createPost error:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to create post'
+        };
+      }
     } else {
       return apiService.createPost(post);
     }

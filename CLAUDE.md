@@ -65,6 +65,76 @@ Co-Authored-By: Claude <noreply@anthropic.com>" && git push origin circle-view-t
 - RLS policies are enabled - respect user context
 - UTC timestamps, display in local timezone
 
+### Action Completion & Sharing System (MVP)
+
+**Current MVP Approach: Public-Only Posting**
+- All action completions are shared publicly (all circles + followers)
+- Privacy selection UI has been commented out (not deleted)
+- Users cannot choose to keep posts private in MVP
+
+**How It Works:**
+
+1. **Regular Actions (Timed activities)**
+   - User taps action → `PrivacySelectionModal` opens
+   - Modal shows: Photo/Comment options + public notice
+   - Defaults: All circles + followers selected
+   - File: `src/features/daily/PrivacySelectionModal.tsx`
+
+2. **Abstinence Actions (No X, Don't Y)**
+   - User taps action → `AbstinenceModal` opens
+   - Modal shows: Yes/No + Photo/Comment + public notice
+   - Defaults: All circles + followers selected
+   - File: `src/features/daily/AbstinenceModal.tsx`
+
+3. **Living Progress Cards**
+   - Challenge actions update daily Living Progress Card
+   - Always shows in feed (public)
+   - Aggregates all challenge actions for that day
+   - Individual posts only created if user adds comment/photo
+
+**Data Flow:**
+```
+User completes action
+  ↓
+Modal opens with public notice
+  ↓
+User adds comment/photo (optional)
+  ↓
+handlePrivacySelect / handleAbstinenceComplete called
+  ↓
+selectedCircleIds = all user circles
+includeFollowers = true (always)
+  ↓
+Backend creates post with visibility
+  ↓
+Post appears in all circles' feeds + followers' feeds
+```
+
+**Where Privacy Code Lives (Commented Out):**
+- `PrivacySelectionModal.tsx` lines ~421-562 (circle selection UI)
+- `AbstinenceModal.tsx` lines ~304-365 (circle selection UI)
+
+**To Re-Enable Privacy Controls:**
+1. Uncomment the privacy sections in both modals
+2. Remove the public notice sections
+3. User will be able to choose which circles see posts
+4. Default behavior: all circles checked on modal open
+
+**Key State Variables:**
+- `selectedCircleIds: Set<string>` - Which circles see the post
+- `includeFollowers: boolean` - Whether followers see it
+- In MVP: Always initialized to ALL circles + followers = true
+
+**Action Completion is Final:**
+- Once an action is completed, it CANNOT be uncompleted
+- Removed uncomplete flow from `ActionItem.tsx` (Feb 10, 2026)
+- Reasoning:
+  - Conflicts with challenge database constraint (one completion per day)
+  - Undermines social accountability (everyone already saw the post)
+  - Users actually want to EDIT completions (add comment/photo), not undo them
+- Tapping completed action gives error haptic, does nothing
+- Future: May add EDIT feature to change comment/photo without affecting completion status
+
 ## Code Style Guidelines
 - NO comments unless explicitly requested
 - Follow existing patterns in codebase
