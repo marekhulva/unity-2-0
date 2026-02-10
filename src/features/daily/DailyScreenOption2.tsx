@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useStore } from '../../state/rootStore';
 import { PrivacySelectionModal } from './PrivacySelectionModal';
+import { AbstinenceModal } from './AbstinenceModal';
 import { SocialSharePrompt } from '../social/SocialSharePrompt';
 import { LuxuryTheme } from '../../design/luxuryTheme';
 import { Target, Dumbbell, Brain, BookOpen } from 'lucide-react-native';
@@ -55,6 +56,7 @@ export const DailyScreenOption2 = () => {
   const currentUser = useStore(s => s.user);
   const [showSharePrompt, setShowSharePrompt] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showAbstinenceModal, setShowAbstinenceModal] = useState(false);
   const [selectedAction, setSelectedAction] = useState<any>(null);
   const [weeklyProgress, setWeeklyProgress] = useState<number>(0);
 
@@ -141,7 +143,14 @@ export const DailyScreenOption2 = () => {
   const handleTaskToggle = (action: any) => {
     if (!action.done) {
       setSelectedAction(action);
-      setShowPrivacyModal(true);
+      // Route to abstinence modal for abstinence actions
+      if (action.isAbstinence) {
+        if (__DEV__) console.log('🎯 [DAILY] Opening abstinence modal for:', action.title);
+        setShowAbstinenceModal(true);
+      } else {
+        if (__DEV__) console.log('🎯 [DAILY] Opening privacy modal for:', action.title);
+        setShowPrivacyModal(true);
+      }
       HapticManager.interaction.premiumPress();
     } else {
       toggleAction(action.id);
@@ -330,6 +339,104 @@ export const DailyScreenOption2 = () => {
       // Don't await - let it happen in background
       addPost(postData).catch((error) => {
         if (__DEV__) console.error('❌ Failed to save post to database:', error);
+      });
+    }
+  };
+
+  const handleAbstinenceComplete = async (
+    didStayOnTrack: boolean,
+    comment?: string,
+    photoUri?: string,
+    circleIds?: string[],
+    includeFollowers?: boolean
+  ) => {
+    if (__DEV__) console.log('🎯 [DAILY] handleAbstinenceComplete called:', {
+      action: selectedAction?.title,
+      didStayOnTrack,
+      hasComment: !!comment,
+      hasPhoto: !!photoUri,
+      circleIds,
+      includeFollowers
+    });
+
+    if (!selectedAction) return;
+
+    // Close modal and clear selection
+    setShowAbstinenceModal(false);
+    const actionToComplete = selectedAction;
+    setSelectedAction(null);
+
+    // Mark as complete
+    toggleAction(actionToComplete.id);
+    HapticManager.context.actionCompleted();
+
+    // Determine visibility
+    const isPrivate = (!circleIds || circleIds.length === 0) && !includeFollowers;
+    const visibility = isPrivate ? 'private' : 'circle';
+
+    // Check if Living Progress Cards feature is enabled
+    const useLivingProgressCards = await featureFlags.isEnabled('use_living_progress_cards');
+    const user = useStore.getState().user;
+
+    if (useLivingProgressCards && user?.id && !isPrivate && actionToComplete.isFromChallenge) {
+      // Living Progress Card flow for challenge
+      if (__DEV__) console.log('✅ [DAILY] Using Living Progress Card for abstinence');
+
+      try {
+        const progressPost = await backendService.findOrCreateDailyProgressPost(user.id);
+
+        if (progressPost.success && progressPost.data) {
+          const totalActions = actions.length;
+
+          await backendService.updateDailyProgressPost(
+            progressPost.data.id,
+            {
+              actionId: actionToComplete.id,
+              title: actionToComplete.title,
+              goalTitle: actionToComplete.goalTitle,
+              goalColor: actionToComplete.goalColor,
+              completedAt: new Date().toISOString(),
+              streak: (actionToComplete.streak || 0) + 1,
+              comment: didStayOnTrack ? comment : `Did not stay on track${comment ? ': ' + comment : ''}`,
+              photoUri,
+            },
+            totalActions
+          );
+
+          if (__DEV__) console.log('✅ [DAILY] Updated Living Progress Card with abstinence');
+          useStore.getState().fetchUnifiedFeed(true);
+        }
+      } catch (error) {
+        if (__DEV__) console.error('❌ [DAILY] Failed to update Living Progress Card:', error);
+      }
+    } else {
+      // Legacy individual post flow
+      if (__DEV__) console.log('❌ [DAILY] Using individual post for abstinence');
+
+      addCompletedAction({
+        id: `${actionToComplete.id}-${Date.now()}`,
+        actionId: actionToComplete.id,
+        title: actionToComplete.title,
+        goalTitle: actionToComplete.goalTitle,
+        completedAt: new Date(),
+        isPrivate,
+        visibility: visibility as any,
+        streak: (actionToComplete.streak || 0) + 1,
+        type: photoUri ? 'photo' : comment ? 'milestone' : 'check',
+        mediaUrl: photoUri,
+        content: didStayOnTrack ? comment : `Did not stay on track${comment ? ': ' + comment : ''}`,
+        category: 'fitness',
+      });
+    }
+
+    // Record challenge completion if applicable
+    if (actionToComplete.isFromChallenge && actionToComplete.challengeActivityId) {
+      recordCompletion(
+        actionToComplete.challengeParticipantId,
+        actionToComplete.challengeActivityId,
+        undefined
+      ).then(() => {
+        fetchDailyActions();
       });
     }
   };
@@ -545,6 +652,17 @@ export const DailyScreenOption2 = () => {
           setSelectedAction(null);
         }}
         onSelect={handlePrivacySelect}
+        actionTitle={selectedAction?.title || ''}
+        streak={selectedAction?.streak || 0}
+      />
+
+      <AbstinenceModal
+        visible={showAbstinenceModal}
+        onClose={() => {
+          setShowAbstinenceModal(false);
+          setSelectedAction(null);
+        }}
+        onComplete={handleAbstinenceComplete}
         actionTitle={selectedAction?.title || ''}
         streak={selectedAction?.streak || 0}
       />
