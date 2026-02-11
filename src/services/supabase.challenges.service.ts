@@ -408,7 +408,12 @@ class SupabaseChallengeService {
         (1000 * 60 * 60 * 24)
     ) + 1;
 
-    const daysSoFar = Math.min(currentDay, totalDays);
+    // Exclude today from consistency score (only count fully completed days)
+    // Exception: if challenge is over (currentDay > totalDays), count all days
+    const challengeOver = currentDay > totalDays;
+    const completedDaysSoFar = challengeOver
+      ? totalDays
+      : Math.max(currentDay - 1, 0);
 
     // Count total completions
     const { data: allCompletions } = await supabase
@@ -417,14 +422,19 @@ class SupabaseChallengeService {
       .eq('user_id', userId)
       .eq('challenge_id', challengeId);
 
-    const totalCompletions = allCompletions?.length || 0;
+    // Only count completions from completed days (exclude today, unless challenge is over)
+    const today = this.getLocalDateString(new Date());
+    const pastCompletions = challengeOver
+      ? (allCompletions || [])
+      : (allCompletions?.filter(c => c.completion_date !== today) || []);
+    const totalCompletions = pastCompletions.length;
 
-    // Calculate expected activities accounting for day-specific ones
+    // Calculate expected activities accounting for day-specific ones (completed days only)
     const predActivities = challenge.predetermined_activities || [];
     const selectedIds = new Set(participant.selected_activity_ids || []);
 
     let expectedActivities = 0;
-    for (let day = 1; day <= daysSoFar; day++) {
+    for (let day = 1; day <= completedDaysSoFar; day++) {
       for (const act of predActivities) {
         if (selectedIds.size > 0 && !selectedIds.has(act.id)) continue;
         const startDay = act.start_day || 1;
@@ -437,7 +447,7 @@ class SupabaseChallengeService {
       ? Math.min(100, Math.round((totalCompletions / expectedActivities) * 100))
       : 0;
 
-    if (__DEV__) console.log(`📊 Challenge consistency: ${totalCompletions}/${expectedActivities} activities (${daysSoFar} days, day-aware) = ${completionPercentage}%`);
+    if (__DEV__) console.log(`📊 Challenge consistency: ${totalCompletions}/${expectedActivities} activities (${completedDaysSoFar} completed days, excludes today) = ${completionPercentage}%`);
 
     const daysTaken = currentDay > totalDays ? totalDays : currentDay;
 
@@ -729,6 +739,31 @@ class SupabaseChallengeService {
     return challenges;
   }
 
+  async getActiveChallengesForUser(targetUserId: string): Promise<any[]> {
+    const { data: participations, error } = await supabase
+      .from('challenge_participants')
+      .select(`
+        current_day,
+        completion_percentage,
+        challenges!inner (
+          id,
+          name,
+          duration_days
+        )
+      `)
+      .eq('user_id', targetUserId)
+      .eq('status', 'active');
+
+    if (error || !participations) return [];
+
+    return participations.map((p: any) => ({
+      id: p.challenges.id,
+      title: p.challenges.name,
+      subtitle: `Day ${p.current_day}/${p.challenges.duration_days}`,
+      consistency: p.completion_percentage || 0,
+    }));
+  }
+
   async getMyCompletedChallenges(): Promise<ChallengeWithDetails[]> {
     if (__DEV__) console.log('✅ [CHALLENGES] Fetching my completed challenges');
 
@@ -943,12 +978,12 @@ class SupabaseChallengeService {
       // Auto-expiry: if past duration, finalize the challenge and skip its activities
       if (currentDay > challenge.duration_days) {
         if (__DEV__) console.log('⏰ [CHALLENGES] Challenge', challenge.name, 'expired (day', currentDay, '>', challenge.duration_days, ') — finalizing');
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await this.updateParticipantProgress(challenge.id, user.id);
-        }
+        await this.updateParticipantProgress(challenge.id, user.id);
         continue;
       }
+
+      // Recalculate progress on load so missed days are reflected
+      await this.updateParticipantProgress(challenge.id, user.id);
 
       // If selectedIds contains undefined/null, it means the user joined before IDs were added
       // In that case, include ALL activities from the challenge

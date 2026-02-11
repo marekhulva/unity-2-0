@@ -8,10 +8,11 @@ import {
   ActivityIndicator,
   TextInput,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Search, Zap, ArrowLeft, Dumbbell, Brain, BookOpen, Apple, Star } from 'lucide-react-native';
+import { Search, Zap, ArrowLeft, Dumbbell, Brain, BookOpen, Apple, Star, Lock } from 'lucide-react-native';
 import { useStore } from '../../state/rootStore';
 import type { ChallengeWithDetails } from '../../types/challenges.types';
 import { JoinChallengeFlow } from './JoinChallengeFlow';
@@ -313,7 +314,10 @@ export const ChallengesScreenVision = () => {
   };
 
   // Filter and search logic
-  const allChallenges = [...globalChallenges, ...circleChallenges];
+  const allChallenges = [
+    ...globalChallenges.filter(c => c.name !== '7 Day Mental Detox'),
+    ...circleChallenges,
+  ];
 
   const filteredChallenges = allChallenges.filter(challenge => {
     // Search filter

@@ -198,6 +198,25 @@ export const ActionItem: React.FC<ActionItemProps> = ({
           );
 
           if (__DEV__) console.log('✅ [ACTION] Updated Living Progress Card');
+
+          if (content || mediaUri) {
+            try {
+              await backendService.createPost({
+                type: mediaUri ? 'photo' : 'checkin',
+                visibility: 'circle',
+                content: content || '',
+                mediaUrl: mediaUri,
+                actionTitle: title,
+                goalTitle: goalTitle,
+                goalColor: goalColor,
+                streak: 0,
+              });
+              if (__DEV__) console.log('✅ [ACTION] Individual post created with photo/comment');
+            } catch (postError) {
+              if (__DEV__) console.error('❌ [ACTION] Failed to create individual post:', postError);
+            }
+          }
+
           useStore.getState().fetchUnifiedFeed(true);
           if (__DEV__) console.log('🔄 [ACTION] Refreshed unified feed');
         }
@@ -322,11 +341,34 @@ export const ActionItem: React.FC<ActionItemProps> = ({
               streak: 0,
               comment: didStayOnTrack ? comment : `Did not stay on track${comment ? ': ' + comment : ''}`,
               photoUri,
+              failed: !didStayOnTrack,
             },
             totalActions
           );
 
           if (__DEV__) console.log('✅ [ACTION] Updated Living Progress Card with abstinence completion');
+
+          if (comment || photoUri) {
+            try {
+              const postContent = didStayOnTrack
+                ? (comment || '')
+                : `Did not stay on track${comment ? ': ' + comment : ''}`;
+              await backendService.createPost({
+                type: photoUri ? 'photo' : 'checkin',
+                visibility: 'circle',
+                content: postContent,
+                mediaUrl: photoUri,
+                actionTitle: title,
+                goalTitle: goalTitle,
+                goalColor: goalColor,
+                streak: 0,
+              });
+              if (__DEV__) console.log('✅ [ACTION] Individual abstinence post created');
+            } catch (postError) {
+              if (__DEV__) console.error('❌ [ACTION] Failed to create individual post:', postError);
+            }
+          }
+
           useStore.getState().fetchUnifiedFeed(true);
           if (__DEV__) console.log('🔄 [ACTION] Refreshed unified feed');
         }

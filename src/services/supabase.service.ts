@@ -3336,6 +3336,33 @@ class SupabaseService {
     };
   }
 
+  async getCirclesForUser(targetUserId: string) {
+    const { data: memberships, error } = await supabase
+      .from('circle_members')
+      .select(`
+        circle_id,
+        circles:circle_id (
+          id,
+          name,
+          emoji,
+          circle_members!circle_id(count)
+        )
+      `)
+      .eq('user_id', targetUserId);
+
+    if (error) {
+      if (__DEV__) console.error('[CIRCLES] Error fetching circles for user:', error);
+      return [];
+    }
+
+    return (memberships || []).map((m: any) => ({
+      id: m.circles.id,
+      name: m.circles.name,
+      emoji: m.circles.emoji || '🔵',
+      member_count: m.circles.circle_members?.[0]?.count || 0,
+    }));
+  }
+
 }
 
 export const supabaseService = new SupabaseService();// Refresh

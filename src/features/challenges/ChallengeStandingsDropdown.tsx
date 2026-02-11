@@ -226,7 +226,7 @@ export const ChallengeStandingsDropdown: React.FC<ChallengeStandingsDropdownProp
                 )}
               </View>
               <Text style={styles.standingStreak}>
-                {entry.current_streak > 0 ? `${entry.current_streak} day streak 🔥` : 'No streak'}
+                Day {Math.min(entry.current_day || 1, durationDays)}/{durationDays}
               </Text>
             </View>
             <View style={styles.standingProgressWrap}>

@@ -238,23 +238,32 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({
 
       {/* Action Tiles */}
       <View style={styles.actionTiles}>
-        {visibleActions.map((action, index) => (
-          <View key={action.actionId || index} style={styles.actionTile}>
-            {/* Checkmark if completed */}
-            {action.completed && <Text style={styles.checkMark}>✓</Text>}
+        {visibleActions.map((action, index) => {
+          const isFailed = action.failed === true;
+          return (
+            <View key={action.actionId || index} style={[styles.actionTile, isFailed && styles.actionTileFailed]}>
+              {isFailed ? (
+                <Text style={styles.failedMark}>✕</Text>
+              ) : (
+                action.completed && <Text style={styles.checkMark}>✓</Text>
+              )}
 
-            {/* Action Emoji */}
-            <Text style={styles.actionEmoji}>{action.emoji || '✓'}</Text>
+              <Text style={[styles.actionEmoji, isFailed && styles.actionEmojiMuted]}>
+                {action.emoji || '✓'}
+              </Text>
 
-            {/* Action Name */}
-            <Text style={styles.actionName} numberOfLines={2}>
-              {action.title || action.name || 'Action'}
-            </Text>
+              <Text style={[styles.actionName, isFailed && styles.actionNameFailed]} numberOfLines={2}>
+                {action.title || action.name || 'Action'}
+              </Text>
 
-            {/* Gold bottom bar if completed */}
-            {action.completed && <View style={styles.completedBar} />}
-          </View>
-        ))}
+              {isFailed ? (
+                <View style={styles.failedBar} />
+              ) : (
+                action.completed && <View style={styles.completedBar} />
+              )}
+            </View>
+          );
+        })}
 
       </View>
 
@@ -492,6 +501,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#D4AF37',
     fontWeight: '700',
+  },
+  failedMark: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    fontSize: 14,
+    color: '#E74C3C',
+    fontWeight: '700',
+  },
+  actionTileFailed: {
+    borderColor: 'rgba(231, 76, 60, 0.25)',
+    backgroundColor: 'rgba(231, 76, 60, 0.06)',
+  },
+  actionEmojiMuted: {
+    opacity: 0.4,
+  },
+  actionNameFailed: {
+    color: 'rgba(255, 255, 255, 0.4)',
+  },
+  failedBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    backgroundColor: '#E74C3C',
   },
   actionEmoji: {
     fontSize: 20,

@@ -109,7 +109,13 @@ const CircleCard = ({ circle }: { circle: any }) => {
   );
 };
 
-export const ProfileScreen: React.FC = () => {
+interface ProfileScreenProps {
+  userId?: string;
+  isInModal?: boolean;
+  source?: string;
+}
+
+export const ProfileScreen: React.FC<ProfileScreenProps> = ({ userId, isInModal, source }) => {
   const insets = useSafeAreaInsets();
   const currentUser = useStore(s => s.user);
   const goals = useStore(s => s.goals);
@@ -120,8 +126,12 @@ export const ProfileScreen: React.FC = () => {
   const loadFollowing = useStore(s => s.loadFollowing);
   const logout = useStore(s => s.logout);
 
+  const isOwnProfile = !userId || userId === currentUser?.id;
+
+  const [profileData, setProfileData] = useState<any>(null);
   const [circles, setCircles] = useState<any[]>([]);
   const [userPosts, setUserPosts] = useState<any[]>([]);
+  const [showFullJourney, setShowFullJourney] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Timeline entry type for My Journey
@@ -190,6 +200,20 @@ export const ProfileScreen: React.FC = () => {
       const startTime = Date.now();
 
       try {
+        if (!isOwnProfile && userId) {
+          if (__DEV__) console.log('[PROFILE-VISION] Fetching other user profile:', userId);
+          const [data, userCircles, userChallenges] = await Promise.all([
+            supabaseService.getUserProfile(userId),
+            supabaseService.getCirclesForUser(userId),
+            supabaseChallengeService.getActiveChallengesForUser(userId),
+          ]);
+          setProfileData({ ...data, challenges: userChallenges });
+          setUserPosts(data.posts || []);
+          setCircles(userCircles || []);
+          setLoading(false);
+          return;
+        }
+
         // Check cache (5 minute expiry)
         const cacheAge = Date.now() - (dataCache.lastFetch || 0);
         const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -249,30 +273,42 @@ export const ProfileScreen: React.FC = () => {
     };
 
     fetchData();
-  }, [currentUser?.id]);
+  }, [userId, currentUser?.id]);
+
+  // Determine display user info
+  const displayUser = isOwnProfile
+    ? { name: currentUser?.name, avatar: currentUser?.avatar, bio: null }
+    : { name: profileData?.profile?.name || profileData?.profile?.username, avatar: profileData?.profile?.avatar_url, bio: profileData?.profile?.bio };
+
+  const displayGoals = isOwnProfile ? goals : (profileData?.goals || []);
+  const displayStats = isOwnProfile
+    ? { followers: followers.length, following: following.length, circles: circles.length }
+    : { followers: profileData?.stats?.postsCount || 0, following: 0, circles: 0 };
 
   // Separate goals by type and add subtitles
-  const regularGoals = goals.filter(g => g.type === 'goal').map(goal => ({
+  const regularGoals = displayGoals.filter((g: any) => g.type === 'goal').map((goal: any) => ({
     ...goal,
     subtitle: goal.metric || goal.deadline ?
       `${goal.metric || 'Goal'}${goal.deadline ? ` • ${new Date(goal.deadline).toLocaleDateString()}` : ''}` :
       'In progress'
   }));
 
-  const routines = goals.filter(g => g.type === 'routine').map(routine => ({
+  const routines = displayGoals.filter((g: any) => g.type === 'routine').map((routine: any) => ({
     ...routine,
     subtitle: 'Daily routine'
   }));
 
   // Transform challenges to match ActivityCard interface
-  const transformedChallenges = activeChallenges.map(challenge => ({
-    id: challenge.id,
-    title: challenge.name,
-    subtitle: challenge.my_participation
-      ? `Day ${challenge.my_participation.current_day}/${challenge.duration_days}`
-      : `${challenge.duration_days} days`,
-    consistency: challenge.my_participation?.completion_percentage || 0,
-  }));
+  const transformedChallenges = isOwnProfile
+    ? activeChallenges.map(challenge => ({
+        id: challenge.id,
+        title: challenge.name,
+        subtitle: challenge.my_participation
+          ? `Day ${challenge.my_participation.current_day}/${challenge.duration_days}`
+          : `${challenge.duration_days} days`,
+        consistency: challenge.my_participation?.completion_percentage || 0,
+      }))
+    : (profileData?.challenges || []);
 
   // Render helper for action entries (from daily_progress cards)
   const renderActionEntry = (action: any) => {
@@ -368,47 +404,35 @@ export const ProfileScreen: React.FC = () => {
                 end={{ x: 1, y: 1 }}
               />
               <View style={styles.avatarInner}>
-                {currentUser?.avatar ? (
+                {displayUser.avatar ? (
                   <Image
-                    source={{ uri: currentUser.avatar }}
+                    source={{ uri: displayUser.avatar }}
                     style={styles.avatarImage}
                     contentFit="cover"
                     transition={200}
                     cachePolicy="memory-disk"
                   />
                 ) : (
-                  <Text style={styles.avatarText}>{currentUser?.name?.charAt(0) || 'U'}</Text>
+                  <Text style={styles.avatarText}>{displayUser.name?.charAt(0) || 'U'}</Text>
                 )}
               </View>
             </View>
           </View>
 
           {/* Username */}
-          <Text style={styles.username}>{currentUser?.name || 'User'}</Text>
+          <Text style={styles.username}>{displayUser.name || 'User'}</Text>
 
           {/* Bio */}
-          <Text style={styles.bio}>Currently mastering discipline & consistency</Text>
+          {displayUser.bio ? (
+            <Text style={styles.bio}>{displayUser.bio}</Text>
+          ) : null}
 
-          {/* Social Stats */}
-          <View style={styles.socialStats}>
-            <View style={styles.socialStat}>
-              <Text style={styles.socialNumber}>{followers.length}</Text>
-              <Text style={styles.socialLabel}>Followers</Text>
-            </View>
-            <View style={styles.socialStat}>
-              <Text style={styles.socialNumber}>{following.length}</Text>
-              <Text style={styles.socialLabel}>Following</Text>
-            </View>
-            <View style={styles.socialStat}>
-              <Text style={styles.socialNumber}>{circles.length}</Text>
-              <Text style={styles.socialLabel}>Circles</Text>
-            </View>
-          </View>
+          {/* Social Stats removed for MVP */}
         </View>
 
         {/* What I'm Working On */}
         <View style={styles.section}>
-          <Text style={styles.sectionHeader}>What I'm Working On</Text>
+          <Text style={styles.sectionHeader}>{isOwnProfile ? 'What I\'m Working On' : 'Working On'}</Text>
 
           {transformedChallenges.map(challenge => (
             <ActivityCard key={challenge.id} item={challenge} type="challenge" />
@@ -422,7 +446,7 @@ export const ProfileScreen: React.FC = () => {
             <ActivityCard key={routine.id} item={routine} type="routine" />
           ))}
 
-          {goals.length === 0 && (
+          {displayGoals.length === 0 && transformedChallenges.length === 0 && (
             <Text style={styles.emptyText}>No active goals yet</Text>
           )}
         </View>
@@ -430,8 +454,8 @@ export const ProfileScreen: React.FC = () => {
         {/* My Journey */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderWithSubtitle}>
-            <Text style={styles.sectionHeader}>My Journey</Text>
-            <Text style={styles.sectionSubtitle}>Last 5 posts • Past 7 days</Text>
+            <Text style={styles.sectionHeader}>{isOwnProfile ? 'My Journey' : 'Journey'}</Text>
+            <Text style={styles.sectionSubtitle}>Recent activity</Text>
           </View>
 
           {userPosts.length > 0 ? (
@@ -443,57 +467,70 @@ export const ProfileScreen: React.FC = () => {
                   style={styles.timelineLine}
                 />
 
-                {expandTimelineEntries(userPosts).map((entry, index) => {
-                  const isFirstEntry = index === 0;
+                {(() => {
+                  const allEntries = expandTimelineEntries(userPosts);
+                  const PREVIEW_COUNT = 5;
+                  const visibleEntries = showFullJourney ? allEntries : allEntries.slice(0, PREVIEW_COUNT);
 
-                  return (
-                    <View key={entry.id} style={styles.timelineEvent}>
-                      {/* Timeline dot or milestone */}
-                      <View style={isFirstEntry ? styles.timelineMilestone : styles.timelineDot}>
-                        {isFirstEntry && <Text style={styles.milestoneIcon}>🏆</Text>}
+                  return visibleEntries.map((entry, index) => {
+                    const isFirstEntry = index === 0;
+
+                    return (
+                      <View key={entry.id} style={styles.timelineEvent}>
+                        <View style={isFirstEntry ? styles.timelineMilestone : styles.timelineDot}>
+                          {isFirstEntry && <Text style={styles.milestoneIcon}>🏆</Text>}
+                        </View>
+
+                        {entry.type === 'action'
+                          ? renderActionEntry(entry.action!)
+                          : renderPostEntry(entry.post!, index)
+                        }
                       </View>
-
-                      {/* Render based on type */}
-                      {entry.type === 'action'
-                        ? renderActionEntry(entry.action!)
-                        : renderPostEntry(entry.post!, index)
-                      }
-                    </View>
-                  );
-                })}
+                    );
+                  });
+                })()}
               </View>
 
-              {/* View Full Journey button hidden until implemented */}
+              {expandTimelineEntries(userPosts).length > 5 && (
+                <Pressable
+                  style={styles.viewAllButton}
+                  onPress={() => setShowFullJourney(!showFullJourney)}
+                >
+                  <Text style={styles.viewAllText}>
+                    {showFullJourney ? 'Show Less' : `View Full Journey (${expandTimelineEntries(userPosts).length} entries) →`}
+                  </Text>
+                </Pressable>
+              )}
             </>
           ) : (
             <Text style={styles.emptyText}>No posts yet</Text>
           )}
         </View>
 
-        {/* My Circles */}
-        <View style={styles.section}>
-          <Text style={styles.sectionHeader}>My Circles</Text>
+        {/* Circles */}
+        {circles.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionHeader}>{isOwnProfile ? 'My Circles' : 'Circles'}</Text>
 
-          {circles.length > 0 ? (
-            circles.map(circle => (
+            {circles.map(circle => (
               <CircleCard key={circle.id} circle={circle} />
-            ))
-          ) : (
-            <Text style={styles.emptyText}>Not part of any circles yet</Text>
-          )}
-        </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
 
-      {/* Logout Button */}
-      <Pressable
-        style={styles.logoutButton}
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          logout();
-        }}
-      >
-        <LogOut size={20} color="rgba(255, 255, 255, 0.6)" strokeWidth={2} />
-      </Pressable>
+      {/* Logout Button - only on own profile */}
+      {isOwnProfile && (
+        <Pressable
+          style={styles.logoutButton}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            logout();
+          }}
+        >
+          <LogOut size={20} color="rgba(255, 255, 255, 0.6)" strokeWidth={2} />
+        </Pressable>
+      )}
     </View>
   );
 };

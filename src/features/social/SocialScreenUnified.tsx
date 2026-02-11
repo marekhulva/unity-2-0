@@ -24,7 +24,6 @@ import {
   UserPlus,
   Camera,
   Image as ImageIcon,
-  Mic,
   X,
   Send
 } from 'lucide-react-native';
@@ -365,7 +364,7 @@ export const SocialScreenUnified = () => {
             </View>
             <TextInput
               style={styles.composerInput}
-              placeholder="What did you complete today?"
+              placeholder="Motivate your teammates"
               placeholderTextColor="rgba(255,255,255,0.35)"
               value={postText}
               onChangeText={setPostText}
@@ -379,9 +378,6 @@ export const SocialScreenUnified = () => {
               <View style={styles.mediaButtons}>
                 <Pressable style={styles.mediaButton} onPress={pickImage}>
                   <ImageIcon size={20} color="rgba(255,255,255,0.6)" />
-                </Pressable>
-                <Pressable style={styles.mediaButton}>
-                  <Mic size={20} color="rgba(255,255,255,0.6)" />
                 </Pressable>
               </View>
 

@@ -511,7 +511,7 @@ const ModePills: React.FC<{
 
   return (
     <View style={pillStyles.container}>
-      {(['text', 'photo', 'audio'] as PostMode[]).map((mode) => {
+      {(['text', 'photo'] as PostMode[]).map((mode) => {
         const isActive = activeMode === mode;
         const modeColor = getModeColor(mode);
         
