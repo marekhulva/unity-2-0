@@ -743,11 +743,11 @@ export const DailyScreenOption2 = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#000' }]} />
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
 
       {/* Header - Pinned like Social page */}
-      <View style={styles.headerTop}>
+      <View style={styles.header}>
         <Text style={styles.logoText}>UNITY</Text>
         <Text style={styles.dateText}>{getDateString()}</Text>
       </View>
@@ -954,6 +954,7 @@ export const DailyScreenOption2 = () => {
         </Pressable>
       )}
     </SafeAreaView>
+    </View>
   );
 };
 
@@ -962,13 +963,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
+  safeArea: {
+    flex: 1,
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     paddingTop: 0,
   },
-  headerTop: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',

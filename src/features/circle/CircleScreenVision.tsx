@@ -25,7 +25,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle as SvgCircle } from 'react-native-svg';
 import {
   Users,
@@ -56,6 +56,7 @@ import { backendService } from '../../services/backend.service';
 import { ProfileScreen } from '../profile/ProfileScreenVision';
 import { JoinCircleModal } from '../social/JoinCircleModal';
 import { ChallengeDetailModal } from '../challenges/ChallengeDetailModal';
+import { ChallengeStandingsDropdown } from '../challenges/ChallengeStandingsDropdown';
 import { CreateChallengeModal } from '../challenges/CreateChallengeModal';
 import { CreateCircleModal } from '../social/CreateCircleModal';
 
@@ -101,6 +102,7 @@ export const CircleScreenVision = () => {
   const [showCircleSwitcher, setShowCircleSwitcher] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(null);
+  const [expandedStandingsId, setExpandedStandingsId] = useState<string | null>(null);
   const [showCreateChallenge, setShowCreateChallenge] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
@@ -245,7 +247,8 @@ export const CircleScreenVision = () => {
 
   if (!userCircles || userCircles.length === 0) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.container}>
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.emptyStateContainer}>
           <Users size={80} color="#E7B43A" />
           <Text style={styles.emptyStateTitle}>Join a Circle</Text>
@@ -287,12 +290,14 @@ export const CircleScreenVision = () => {
             await fetchUserCircles();
           }}
         />
+      </SafeAreaView>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
       {/* Header - Same as Social page */}
       <View style={styles.header}>
         <Text style={styles.logoText}>UNITY</Text>
@@ -353,6 +358,60 @@ export const CircleScreenVision = () => {
           </Pressable>
         </View>
 
+        {/* Active Challenges - Top Section */}
+        {circleChallenges.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>🎯 Active Challenges</Text>
+              <Pressable onPress={() => setActiveTab('community')}>
+                <Text style={styles.sectionLink}>See All →</Text>
+              </Pressable>
+            </View>
+            {circleChallenges.slice(0, 3).map((challenge, index) => {
+              const isExpanded = expandedStandingsId === challenge.id;
+              return (
+                <Animated.View
+                  key={challenge.id}
+                  entering={FadeInDown.delay(index * 100).springify()}
+                  style={isExpanded && styles.challengeCardExpanded}
+                >
+                  <Pressable
+                    style={[styles.challengeCardCompact, isExpanded && styles.challengeCardCompactActive]}
+                    onPress={() => setSelectedChallengeId(challenge.id)}
+                  >
+                    <View style={[styles.challengeIcon, { backgroundColor: 'transparent' }]}>
+                      <LinearGradient
+                        colors={['#4facfe', '#00f2fe']}
+                        style={StyleSheet.absoluteFillObject}
+                      />
+                      <Text style={styles.challengeIconText}>{challenge.emoji || '🎯'}</Text>
+                    </View>
+                    <View style={styles.challengeContent}>
+                      <Text style={styles.challengeTitleCompact}>{challenge.name}</Text>
+                      <Text style={styles.challengeMeta}>
+                        {challenge.duration_days} days • {challenge.participant_count || 0} participants
+                      </Text>
+                    </View>
+                    <Pressable
+                      style={[styles.standingsBtn, isExpanded && styles.standingsBtnActive]}
+                      onPress={() => setExpandedStandingsId(isExpanded ? null : challenge.id)}
+                    >
+                      <Trophy size={14} color="#D4AF37" />
+                    </Pressable>
+                  </Pressable>
+                  {isExpanded && (
+                    <ChallengeStandingsDropdown
+                      challengeId={challenge.id}
+                      durationDays={challenge.duration_days}
+                      participantCount={challenge.participant_count || 0}
+                    />
+                  )}
+                </Animated.View>
+              );
+            })}
+          </View>
+        )}
+
         {/* Tab Buttons */}
         <View style={styles.tabBar}>
           <Pressable
@@ -381,36 +440,7 @@ export const CircleScreenVision = () => {
 
         {activeTab === 'overview' && (
           <View style={styles.pageContent}>
-            <LinearGradient
-              colors={['rgba(231,180,58,0.05)', 'transparent']}
-              style={styles.circleHeader}
-            >
-              <View style={[styles.circleIconLarge, { backgroundColor: 'transparent' }]}>
-                <LinearGradient
-                  colors={['#E7B43A', '#FFD700']}
-                  style={StyleSheet.absoluteFillObject}
-                />
-                <Text style={styles.circleIconLargeText}>{activeCircle?.emoji || '💪'}</Text>
-              </View>
-              <Text style={styles.circleDescription}>
-                {activeCircle?.description || 'A community dedicated to growth and accountability'}
-              </Text>
-              <View style={styles.circleStats}>
-                <View style={styles.circleStat}>
-                  <Text style={styles.statValue}>{membersWithStats.length}</Text>
-                  <Text style={styles.statLabel}>Members</Text>
-                </View>
-                <View style={styles.circleStat}>
-                  <Text style={styles.statValue}>{circleChallenges.length}</Text>
-                  <Text style={styles.statLabel}>Active Challenges</Text>
-                </View>
-                <View style={styles.circleStat}>
-                  <Text style={styles.statValue}>{circlePosts.length}</Text>
-                  <Text style={styles.statLabel}>Total Posts</Text>
-                </View>
-              </View>
-            </LinearGradient>
-
+            {/* Recent Activity - commented out for now
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Recent Activity</Text>
               {postsLoading ? (
@@ -423,7 +453,6 @@ export const CircleScreenVision = () => {
                 </View>
               ) : (
                 <View style={styles.journeyTimeline}>
-                  {/* Timeline vertical line */}
                   <LinearGradient
                     colors={['#E7B43A', 'rgba(231,180,58,0)']}
                     style={styles.timelineLine}
@@ -436,14 +465,11 @@ export const CircleScreenVision = () => {
 
                     return (
                       <View key={post.id} style={styles.timelineEvent}>
-                        {/* Timeline dot or milestone */}
                         <View style={isFirstPost ? styles.timelineMilestone : styles.timelineDot}>
                           {isFirstPost && <Text style={styles.milestoneIcon}>🏆</Text>}
                         </View>
 
-                        {/* Post content */}
                         <View style={styles.timelineContent}>
-                          {/* User info header */}
                           <View style={styles.timelineUserHeader}>
                             <View style={styles.timelineUserAvatar}>
                               <Text style={styles.timelineUserAvatarText}>
@@ -499,6 +525,7 @@ export const CircleScreenVision = () => {
                 </View>
               )}
             </View>
+            */}
 
             {membersWithStats.length > 0 && (
               <View style={styles.section}>
@@ -530,42 +557,6 @@ export const CircleScreenVision = () => {
                     );
                   })}
                 </View>
-              </View>
-            )}
-
-            {circleChallenges.length > 0 && (
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>🎯 Active Challenges</Text>
-                  <Pressable onPress={() => setActiveTab('community')}>
-                    <Text style={styles.sectionLink}>See All →</Text>
-                  </Pressable>
-                </View>
-                {circleChallenges.slice(0, 3).map((challenge, index) => (
-                  <Animated.View
-                    key={challenge.id}
-                    entering={FadeInDown.delay(index * 100).springify()}
-                  >
-                    <Pressable
-                      style={styles.challengeCardCompact}
-                      onPress={() => setSelectedChallengeId(challenge.id)}
-                    >
-                      <View style={[styles.challengeIcon, { backgroundColor: 'transparent' }]}>
-                        <LinearGradient
-                          colors={['#4facfe', '#00f2fe']}
-                          style={StyleSheet.absoluteFillObject}
-                        />
-                        <Text style={styles.challengeIconText}>{challenge.emoji || '🎯'}</Text>
-                      </View>
-                      <View style={styles.challengeContent}>
-                        <Text style={styles.challengeTitleCompact}>{challenge.name}</Text>
-                        <Text style={styles.challengeMeta}>
-                          {challenge.duration_days} days • {challenge.participant_count || 0} participants
-                        </Text>
-                      </View>
-                    </Pressable>
-                  </Animated.View>
-                ))}
               </View>
             )}
 
@@ -886,6 +877,7 @@ export const CircleScreenVision = () => {
         onClose={() => setSelectedChallengeId(null)}
       />
 
+
       <CreateChallengeModal
         visible={showCreateChallenge}
         onClose={() => setShowCreateChallenge(false)}
@@ -1027,6 +1019,7 @@ export const CircleScreenVision = () => {
           </Animated.View>
         </View>
       </Modal>
+    </SafeAreaView>
     </View>
   );
 };
@@ -1035,6 +1028,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  safeArea: {
+    flex: 1,
   },
 
   header: {
@@ -1338,6 +1334,34 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 10,
     gap: 12,
+  },
+  standingsBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(212,175,55,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(212,175,55,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  standingsBtnActive: {
+    backgroundColor: 'rgba(212,175,55,0.2)',
+    borderColor: 'rgba(212,175,55,0.4)',
+  },
+  challengeCardExpanded: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(212,175,55,0.1)',
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  challengeCardCompactActive: {
+    marginBottom: 0,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
 
   challengeIcon: {

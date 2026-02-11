@@ -244,7 +244,7 @@ export const AbstinenceModal: React.FC<AbstinenceModalProps> = ({
                     selectedAnswer === 'yes' && styles.yesButtonTextActive,
                   ]}
                 >
-                  {selectedAnswer === 'yes' ? '✓ Yes' : '✦ Yes'}
+                  YES
                 </Text>
               </Pressable>
 
@@ -263,7 +263,7 @@ export const AbstinenceModal: React.FC<AbstinenceModalProps> = ({
                     selectedAnswer === 'no' && styles.noButtonTextActive,
                   ]}
                 >
-                  {selectedAnswer === 'no' ? '✕ No' : 'No'}
+                  NO
                 </Text>
               </Pressable>
             </View>
@@ -445,56 +445,57 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   question: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: 'rgba(255,255,255,0.5)',
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.85)',
+    marginBottom: 4,
   },
   answerRow: {
-    marginBottom: 14,
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 20,
   },
   answerButton: {
-    width: '100%',
-    padding: 14,
-    borderRadius: 14,
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   yesButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: 'rgba(212,175,55,0.25)',
-    marginBottom: 8,
-  },
-  yesButtonActive: {
-    backgroundColor: 'rgba(212,175,55,0.12)',
+    backgroundColor: 'rgba(212,175,55,0.08)',
+    borderWidth: 1.5,
     borderColor: 'rgba(212,175,55,0.3)',
   },
-  noButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+  yesButtonActive: {
+    backgroundColor: '#D4AF37',
+    borderColor: '#D4AF37',
   },
-  noButtonActive: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
+  noButton: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.12)',
   },
+  noButtonActive: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
   answerButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   yesButtonText: {
     color: '#D4AF37',
   },
   yesButtonTextActive: {
-    color: '#D4AF37',
+    color: '#000000',
   },
   noButtonText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: 'rgba(255,255,255,0.2)',
+    color: 'rgba(255,255,255,0.4)',
   },
   noButtonTextActive: {
-    color: 'rgba(255,255,255,0.5)',
+    color: 'rgba(255,255,255,0.9)',
   },
   divider: {
     height: 1,
