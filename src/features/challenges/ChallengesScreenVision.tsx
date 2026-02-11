@@ -288,7 +288,7 @@ const LockedChallengeCard = ({ challenge }: { challenge: typeof LOCKED_CHALLENGE
       <View style={lockedStyles.overlay} />
       <View style={lockedStyles.lockBadge}>
         <Lock size={16} color="#FFD700" />
-        <Text style={lockedStyles.lockText}>COMING SOON</Text>
+        <Text style={lockedStyles.lockText}>LOCKED</Text>
       </View>
     </View>
     <View style={styles.challengeInfo}>

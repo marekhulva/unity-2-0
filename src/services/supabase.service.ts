@@ -1379,6 +1379,7 @@ class SupabaseService {
           celebration_type,
           metadata,
           post_reactions!left(user_id),
+          post_likes!left(user_id),
           post_comments!left(id, content, user_id, created_at),
           post_circles!left(circle_id)
         `, { count: 'exact' })
@@ -1496,6 +1497,10 @@ class SupabaseService {
         const reactionCount = post.post_reactions?.length || 0;
         const userReacted = post.post_reactions?.some((r: any) => r.user_id === user.id) || false;
 
+        // Count likes and check if current user liked
+        const likeCount = post.post_likes?.length || 0;
+        const userLiked = post.post_likes?.some((l: any) => l.user_id === user.id) || false;
+
         // Count comments and transform them
         const commentCount = post.post_comments?.length || 0;
         const comments = post.post_comments?.map((c: any) => ({
@@ -1510,12 +1515,15 @@ class SupabaseService {
         return {
           ...post,
           profiles: profiles?.find(p => p.id === post.user_id) || null,
-          reactionCount,  // Changed from likeCount
-          userReacted,    // Changed from userLiked
+          reactionCount,  // Fire reactions 🔥
+          userReacted,
+          likeCount,      // Heart likes ❤️
+          userLiked,
           commentCount,
           comments,  // Include transformed comments
           // Clean up the raw data
           post_reactions: undefined,
+          post_likes: undefined,
           post_comments: undefined,
           post_circles: undefined,  // Clean up the junction table data
           // Keep old reactions format for backward compatibility
@@ -1584,6 +1592,7 @@ class SupabaseService {
           metadata,
           profiles(name, avatar_url),
           post_reactions!left(user_id),
+          post_likes!left(user_id),
           post_comments!left(id, content, user_id, created_at)
         `)
         .in('user_id', idsToQuery)  // Only posts from people you follow + self
@@ -1596,10 +1605,12 @@ class SupabaseService {
         throw error;
       }
 
-      // Process reactions and comments
+      // Process reactions, likes, and comments
       const postsWithMetrics = data?.map(post => {
         const reactionCount = post.post_reactions?.length || 0;
         const userReacted = post.post_reactions?.some((r: any) => r.user_id === user.id) || false;
+        const likeCount = post.post_likes?.length || 0;
+        const userLiked = post.post_likes?.some((l: any) => l.user_id === user.id) || false;
         const commentCount = post.post_comments?.length || 0;
         const comments = post.post_comments?.map((c: any) => ({
           id: c.id,
@@ -1612,11 +1623,14 @@ class SupabaseService {
 
         return {
           ...post,
-          reactionCount,  // Changed from likeCount
-          userReacted,    // Changed from userLiked
+          reactionCount,  // Fire reactions 🔥
+          userReacted,
+          likeCount,      // Heart likes ❤️
+          userLiked,
           commentCount,
           comments,  // Include comments
           post_reactions: undefined,
+          post_likes: undefined,
           post_comments: undefined,
           reactions: userReacted ? { '🔥': reactionCount } : {}
         };
@@ -1680,6 +1694,7 @@ class SupabaseService {
             is_celebration, celebration_type, metadata,
             is_daily_progress, progress_date, completed_actions, total_actions, actions_today, updated_at,
             post_reactions!left(user_id),
+            post_likes!left(user_id),
             post_comments!left(id, content, user_id, created_at)
           `)
           .in('user_id', followingUserIds)
@@ -1704,6 +1719,8 @@ class SupabaseService {
         const postsWithProfiles = posts?.map(post => {
           const reactionCount = post.post_reactions?.length || 0;
           const userReacted = post.post_reactions?.some((r: any) => r.user_id === user.id) || false;
+          const likeCount = post.post_likes?.length || 0;
+          const userLiked = post.post_likes?.some((l: any) => l.user_id === user.id) || false;
           const commentCount = post.post_comments?.length || 0;
           const comments = post.post_comments?.map((c: any) => ({
             id: c.id,
@@ -1719,9 +1736,12 @@ class SupabaseService {
             profiles: profiles?.find(p => p.id === post.user_id) || null,
             reactionCount,
             userReacted,
+            likeCount,
+            userLiked,
             commentCount,
             comments,
             post_reactions: undefined,
+            post_likes: undefined,
             post_comments: undefined
           };
         }) || [];
@@ -1778,6 +1798,7 @@ class SupabaseService {
           is_celebration, celebration_type, metadata,
           is_daily_progress, progress_date, completed_actions, total_actions, actions_today, updated_at,
           post_reactions!left(user_id),
+          post_likes!left(user_id),
           post_comments!left(id, content, user_id, created_at)
         `)
         .in('user_id', combinedUserIds)
@@ -1798,10 +1819,12 @@ class SupabaseService {
         .select('id, name, avatar_url')
         .in('id', userIds);
 
-      // Transform posts with profiles, reactions, comments
+      // Transform posts with profiles, reactions, likes, comments
       const postsWithProfiles = posts?.map(post => {
         const reactionCount = post.post_reactions?.length || 0;
         const userReacted = post.post_reactions?.some((r: any) => r.user_id === user.id) || false;
+        const likeCount = post.post_likes?.length || 0;
+        const userLiked = post.post_likes?.some((l: any) => l.user_id === user.id) || false;
         const commentCount = post.post_comments?.length || 0;
         const comments = post.post_comments?.map((c: any) => ({
           id: c.id,
@@ -1817,9 +1840,12 @@ class SupabaseService {
           profiles: profiles?.find(p => p.id === post.user_id) || null,
           reactionCount,
           userReacted,
+          likeCount,
+          userLiked,
           commentCount,
           comments,
           post_reactions: undefined,
+          post_likes: undefined,
           post_comments: undefined
         };
       }) || [];
