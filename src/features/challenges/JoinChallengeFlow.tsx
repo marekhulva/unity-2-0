@@ -15,7 +15,7 @@ interface JoinChallengeFlowProps {
   onSuccess: () => void;
 }
 
-type Step = 'review' | 'times' | 'confirm';
+type Step = 'review' | 'date' | 'times' | 'confirm';
 
 interface ActivityTime {
   activityId: string;
@@ -28,6 +28,7 @@ export const JoinChallengeFlow = ({ visible, challenge, onClose, onSuccess }: Jo
   const [currentStep, setCurrentStep] = useState<Step>('review');
   const [activityTimes, setActivityTimes] = useState<ActivityTime[]>([]);
   const [joining, setJoining] = useState(false);
+  const [selectedStartDate, setSelectedStartDate] = useState<Date>(new Date());
 
   const activities = challenge?.predetermined_activities || [];
 
@@ -146,6 +147,50 @@ export const JoinChallengeFlow = ({ visible, challenge, onClose, onSuccess }: Jo
     </ScrollView>
   );
 
+  const getDateOption = (label: string, date: Date) => {
+    const isSelected = selectedStartDate.toDateString() === date.toDateString();
+    return (
+      <TouchableOpacity
+        key={label}
+        style={[styles.dateOption, isSelected && styles.dateOptionSelected]}
+        onPress={() => setSelectedStartDate(date)}
+      >
+        <Text style={[styles.dateOptionLabel, isSelected && styles.dateOptionLabelSelected]}>{label}</Text>
+        <Text style={[styles.dateOptionDate, isSelected && styles.dateOptionDateSelected]}>
+          {date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+        </Text>
+        {isSelected && <Check size={20} color="#000" />}
+      </TouchableOpacity>
+    );
+  };
+
+  const renderDateStep = () => {
+    const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dayAfter = new Date();
+    dayAfter.setDate(dayAfter.getDate() + 2);
+    const nextMonday = new Date();
+    nextMonday.setDate(nextMonday.getDate() + ((8 - nextMonday.getDay()) % 7 || 7));
+
+    return (
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.stepContent}>
+        <View style={styles.heroSection}>
+          <Text style={styles.emoji}>📅</Text>
+          <Text style={styles.title}>When Do You Start?</Text>
+          <Text style={styles.subtitle}>Choose when your {challenge?.duration_days}-day challenge begins</Text>
+        </View>
+
+        <View style={styles.section}>
+          {getDateOption('Today', today)}
+          {getDateOption('Tomorrow', tomorrow)}
+          {getDateOption('In 2 Days', dayAfter)}
+          {nextMonday.getTime() > dayAfter.getTime() && getDateOption('Next Monday', nextMonday)}
+        </View>
+      </ScrollView>
+    );
+  };
+
   const renderConfirmStep = () => (
     <ScrollView style={styles.scrollView} contentContainerStyle={styles.stepContent}>
       <View style={styles.heroSection}>
@@ -169,7 +214,11 @@ export const JoinChallengeFlow = ({ visible, challenge, onClose, onSuccess }: Jo
         </View>
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Start Date</Text>
-          <Text style={styles.summaryValue}>Today</Text>
+          <Text style={styles.summaryValue}>
+            {selectedStartDate.toDateString() === new Date().toDateString()
+              ? 'Today'
+              : selectedStartDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+          </Text>
         </View>
       </View>
 
@@ -202,7 +251,8 @@ export const JoinChallengeFlow = ({ visible, challenge, onClose, onSuccess }: Jo
 
   const handleNext = () => {
     if (currentStep === 'review') {
-      // Skip times step if there are no timed activities
+      setCurrentStep('date');
+    } else if (currentStep === 'date') {
       if (timedActivities.length === 0) {
         setCurrentStep('confirm');
       } else {
@@ -214,10 +264,16 @@ export const JoinChallengeFlow = ({ visible, challenge, onClose, onSuccess }: Jo
   };
 
   const handleBack = () => {
-    if (currentStep === 'times') {
+    if (currentStep === 'date') {
       setCurrentStep('review');
+    } else if (currentStep === 'times') {
+      setCurrentStep('date');
     } else if (currentStep === 'confirm') {
-      setCurrentStep('times');
+      if (timedActivities.length === 0) {
+        setCurrentStep('date');
+      } else {
+        setCurrentStep('times');
+      }
     }
   };
 
@@ -267,7 +323,8 @@ export const JoinChallengeFlow = ({ visible, challenge, onClose, onSuccess }: Jo
       const success = await joinChallenge(
         challenge.id,
         selectedActivityIds,
-        formattedTimes
+        formattedTimes,
+        selectedStartDate
       );
 
       if (success) {
@@ -285,9 +342,10 @@ export const JoinChallengeFlow = ({ visible, challenge, onClose, onSuccess }: Jo
 
   const getStepTitle = () => {
     switch (currentStep) {
-      case 'review': return 'Step 1 of 3';
-      case 'times': return 'Step 2 of 3';
-      case 'confirm': return 'Step 3 of 3';
+      case 'review': return 'Step 1 of 4';
+      case 'date': return 'Step 2 of 4';
+      case 'times': return 'Step 3 of 4';
+      case 'confirm': return 'Step 4 of 4';
     }
   };
 
@@ -317,6 +375,7 @@ export const JoinChallengeFlow = ({ visible, challenge, onClose, onSuccess }: Jo
         </View>
 
         {currentStep === 'review' && renderReviewStep()}
+        {currentStep === 'date' && renderDateStep()}
         {currentStep === 'times' && renderTimesStep()}
         {currentStep === 'confirm' && renderConfirmStep()}
 
@@ -601,5 +660,36 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#000',
+  },
+  dateOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    marginBottom: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  dateOptionSelected: {
+    backgroundColor: 'rgba(255,215,0,0.15)',
+    borderColor: 'rgba(255,215,0,0.4)',
+  },
+  dateOptionLabel: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.7)',
+  },
+  dateOptionLabelSelected: {
+    color: '#FFFFFF',
+  },
+  dateOptionDate: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.4)',
+    marginRight: 12,
+  },
+  dateOptionDateSelected: {
+    color: '#FFD700',
   },
 });

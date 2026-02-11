@@ -32,7 +32,8 @@ export type ChallengeSlice = {
   joinChallenge: (
     challengeId: string,
     selectedActivityIds: string[],
-    activityTimes: ActivityTime[]
+    activityTimes: ActivityTime[],
+    personalStartDate?: Date
   ) => Promise<boolean>;
   leaveChallenge: (participantId: string, keepActivities: boolean) => Promise<boolean>;
   recordCompletion: (participantId: string, activityId: string, linkedActionId?: string, photoUrl?: string) => Promise<boolean>;
@@ -207,7 +208,8 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
   joinChallenge: async (
     challengeId: string,
     selectedActivityIds: string[],
-    activityTimes: ActivityTime[]
+    activityTimes: ActivityTime[],
+    personalStartDate?: Date
   ) => {
     if (__DEV__) console.log('🏆 [STORE] Joining challenge:', challengeId);
     set({ challengesLoading: true });
@@ -216,7 +218,8 @@ export const createChallengeSlice: StateCreator<ChallengeSlice> = (set, get) => 
       const result = await supabaseChallengeService.joinChallenge(
         challengeId,
         selectedActivityIds,
-        activityTimes
+        activityTimes,
+        personalStartDate
       );
 
       if (result.success) {

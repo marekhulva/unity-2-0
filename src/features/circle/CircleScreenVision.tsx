@@ -65,7 +65,6 @@ import { JoinCircleModal } from '../social/JoinCircleModal';
 import { ChallengeDetailModal } from '../challenges/ChallengeDetailModal';
 import { ChallengeStandingsDropdown } from '../challenges/ChallengeStandingsDropdown';
 import { supabaseChallengeService } from '../../services/supabase.challenges.service';
-import { CreateChallengeModal } from '../challenges/CreateChallengeModal';
 import { CreateCircleModal } from '../social/CreateCircleModal';
 
 type TabType = 'overview' | 'community';
@@ -122,7 +121,6 @@ export const CircleScreenVision = () => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(null);
   const [expandedStandingsId, setExpandedStandingsId] = useState<string | null>(null);
-  const [showCreateChallenge, setShowCreateChallenge] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [myParticipations, setMyParticipations] = useState<Record<string, any>>({});
 
@@ -272,11 +270,11 @@ export const CircleScreenVision = () => {
 
     if (memberFilter === 'all') return true;
     if (memberFilter === 'admins') return member.role === 'admin';
-    if (memberFilter === 'mostActive') return (member.points || 0) > 500;
+    if (memberFilter === 'mostActive') return (member.consistencyPercentage || 0) > 50;
     return true;
   });
 
-  const sortedLeaderboard = [...membersWithStats].sort((a, b) => b.points - a.points);
+  const sortedLeaderboard = [...membersWithStats].sort((a, b) => b.consistencyPercentage - a.consistencyPercentage);
 
   if (!userCircles || userCircles.length === 0) {
     return (
@@ -375,7 +373,7 @@ export const CircleScreenVision = () => {
         {circleChallenges.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>🎯 Active Challenges</Text>
+              <Text style={styles.sectionTitle}>Active Challenges</Text>
               <Pressable onPress={() => setActiveTab('community')}>
                 <Text style={styles.sectionLink}>See All →</Text>
               </Pressable>
@@ -418,12 +416,24 @@ export const CircleScreenVision = () => {
                         <Text style={styles.challengeDayText}>Day {Math.min(myDay, challenge.duration_days)}/{challenge.duration_days}</Text>
                       )}
                     </View>
-                    <Pressable
-                      style={[styles.standingsBtn, isExpanded && styles.standingsBtnActive]}
-                      onPress={() => setExpandedStandingsId(isExpanded ? null : challenge.id)}
-                    >
-                      <Trophy size={14} color="#D4AF37" />
-                    </Pressable>
+                    <View style={styles.challengeActions}>
+                      {!myP ? (
+                        <Pressable
+                          style={styles.joinBtn}
+                          onPress={() => setSelectedChallengeId(challenge.id)}
+                        >
+                          <Text style={styles.joinBtnText}>Join</Text>
+                        </Pressable>
+                      ) : (
+                        <Pressable
+                          style={[styles.standingsBtn, isExpanded && styles.standingsBtnActive]}
+                          onPress={() => setExpandedStandingsId(isExpanded ? null : challenge.id)}
+                        >
+                          <Trophy size={14} color="#D4AF37" />
+                          <Text style={styles.standingsBtnText}>Standings</Text>
+                        </Pressable>
+                      )}
+                    </View>
                   </Pressable>
                   {isExpanded && (
                     <ChallengeStandingsDropdown
@@ -556,7 +566,7 @@ export const CircleScreenVision = () => {
             {membersWithStats.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>🏆 Top Contributors</Text>
+                  <Text style={styles.sectionTitle}>Top Contributors</Text>
                   <Pressable onPress={() => setActiveTab('community')}>
                     <Text style={styles.sectionLink}>View Full Leaderboard →</Text>
                   </Pressable>
@@ -564,21 +574,31 @@ export const CircleScreenVision = () => {
                 <View style={styles.podium}>
                   {sortedLeaderboard.slice(0, 3).map((member, index) => {
                     const displayName = member.profiles?.username || member.profiles?.name || 'User';
-                    const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
                     return (
                       <Pressable
                         key={member.user_id}
                         style={[styles.podiumPlace, index === 0 && styles.podiumFirst]}
                         onPress={() => handleMemberPress(member.user_id)}
                       >
-                        <Text style={styles.podiumMedal}>{medal}</Text>
-                        <View style={[styles.podiumAvatar, index === 0 && styles.podiumAvatarFirst]}>
-                          <Text style={styles.podiumAvatarText}>
-                            {displayName.substring(0, 2).toUpperCase()}
-                          </Text>
+                        <View style={styles.podiumAvatarWrap}>
+                          <View style={[
+                            styles.podiumAvatar,
+                            index === 0 && styles.podiumAvatarFirst,
+                            index === 0 && styles.podiumAvatarGold,
+                            index > 0 && styles.podiumAvatarSilver,
+                          ]}>
+                            <Text style={styles.podiumAvatarText}>
+                              {displayName.substring(0, 2).toUpperCase()}
+                            </Text>
+                          </View>
+                          <View style={[styles.podiumRankBadge, index === 0 && styles.podiumRankBadgeFirst]}>
+                            <Text style={[styles.podiumRankText, index === 0 && styles.podiumRankTextFirst]}>
+                              {index + 1}
+                            </Text>
+                          </View>
                         </View>
                         <Text style={styles.podiumName} numberOfLines={1}>{displayName}</Text>
-                        <Text style={styles.podiumPoints}>{member.points} pts</Text>
+                        <Text style={styles.podiumPoints}>{member.consistencyPercentage}%</Text>
                       </Pressable>
                     );
                   })}
@@ -589,7 +609,7 @@ export const CircleScreenVision = () => {
             {membersWithStats.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>👥 Members</Text>
+                  <Text style={styles.sectionTitle}>Members</Text>
                   <Pressable onPress={() => setActiveTab('community')}>
                     <Text style={styles.sectionLink}>View All ({membersWithStats.length}) →</Text>
                   </Pressable>
@@ -628,7 +648,7 @@ export const CircleScreenVision = () => {
           <View style={styles.pageContent}>
             {/* Full Leaderboard Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🏆 Leaderboard</Text>
+              <Text style={styles.sectionTitle}>Leaderboard</Text>
 
               {/* Full Rankings */}
               {isLoading ? (
@@ -664,7 +684,7 @@ export const CircleScreenVision = () => {
                           {member.consistencyPercentage}% consistency
                         </Text>
                       </View>
-                      <Text style={styles.rankingPoints}>{member.points}</Text>
+                      <Text style={styles.rankingPoints}>{member.consistencyPercentage}%</Text>
                     </Pressable>
                   );
                 })
@@ -673,7 +693,7 @@ export const CircleScreenVision = () => {
 
             {/* All Challenges Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🎯 All Challenges</Text>
+              <Text style={styles.sectionTitle}>All Challenges</Text>
 
               {/* Challenge Cards */}
               {challengesLoading ? (
@@ -715,7 +735,7 @@ export const CircleScreenVision = () => {
 
             {/* All Members Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>👥 Members ({circleMembers.length})</Text>
+              <Text style={styles.sectionTitle}>Members ({circleMembers.length})</Text>
 
               {/* Search Bar */}
               <View style={styles.searchContainer}>
@@ -785,7 +805,7 @@ export const CircleScreenVision = () => {
                           )}
                         </View>
                         <Text style={styles.memberStats}>
-                          Joined {new Date(member.joined_at || member.created_at).toLocaleDateString()} • {member.points || 0} pts
+                          {member.consistencyPercentage || 0}% consistency
                         </Text>
                       </View>
                     </Pressable>
@@ -885,17 +905,6 @@ export const CircleScreenVision = () => {
         onClose={() => setSelectedChallengeId(null)}
       />
 
-
-      <CreateChallengeModal
-        visible={showCreateChallenge}
-        onClose={() => setShowCreateChallenge(false)}
-        circleId={activeCircleId || ''}
-        circleName={activeCircle?.name || 'Circle'}
-        onSuccess={() => {
-          setShowCreateChallenge(false);
-          if (activeCircleId) fetchCircleChallenges(activeCircleId);
-        }}
-      />
 
       <JoinCircleModal
         visible={showJoinCircleModal}
@@ -1344,20 +1353,45 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     gap: 12,
   },
+  challengeActions: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 0,
+  },
+  joinBtn: {
+    backgroundColor: 'rgba(212,175,55,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(212,175,55,0.4)',
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+  },
+  joinBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#E7B43A',
+  },
   standingsBtn: {
-    width: 32,
-    height: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     borderRadius: 8,
     backgroundColor: 'rgba(212,175,55,0.1)',
     borderWidth: 1,
     borderColor: 'rgba(212,175,55,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
     flexShrink: 0,
   },
   standingsBtnActive: {
     backgroundColor: 'rgba(212,175,55,0.2)',
     borderColor: 'rgba(212,175,55,0.4)',
+  },
+  standingsBtnText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#D4AF37',
   },
   challengeCardExpanded: {
     backgroundColor: 'rgba(255,255,255,0.03)',
@@ -1969,18 +2003,6 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
 
-  createChallengeButton: {
-    marginTop: 24,
-    height: 48,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    overflow: 'hidden',
-  },
-
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.8)',
@@ -2245,28 +2267,66 @@ const styles = StyleSheet.create({
   },
 
   podiumFirst: {
-    transform: [{ scale: 1.1 }],
+    transform: [{ scale: 1.08 }],
   },
 
-  podiumMedal: {
-    fontSize: 32,
-    marginBottom: 8,
+  podiumAvatarWrap: {
+    position: 'relative',
+    marginBottom: 10,
   },
 
   podiumAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(231,180,58,0.2)',
+    width: 52,
+    height: 52,
+    borderRadius: 9999,
+    backgroundColor: 'rgba(255,255,255,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
 
   podiumAvatarFirst: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 62,
+    height: 62,
+  },
+
+  podiumAvatarGold: {
+    borderColor: '#FFD700',
+    backgroundColor: 'rgba(255,215,0,0.1)',
+  },
+
+  podiumAvatarSilver: {
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+
+  podiumRankBadge: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    width: 20,
+    height: 20,
+    borderRadius: 9999,
+    backgroundColor: '#1A1A1A',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  podiumRankBadgeFirst: {
+    backgroundColor: '#FFD700',
+    borderColor: '#FFD700',
+  },
+
+  podiumRankText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: 'rgba(255,255,255,0.6)',
+  },
+
+  podiumRankTextFirst: {
+    color: '#000',
   },
 
   podiumAvatarText: {

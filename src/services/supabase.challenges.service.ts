@@ -214,7 +214,8 @@ class SupabaseChallengeService {
   async joinChallenge(
     challengeId: string,
     selectedActivityIds: string[],
-    activityTimes: ActivityTime[]
+    activityTimes: ActivityTime[],
+    personalStartDate?: Date
   ): Promise<{ success: boolean; data?: ChallengeParticipant; error?: string }> {
     if (__DEV__) console.log('🏆 [CHALLENGES] Joining challenge:', challengeId);
 
@@ -236,8 +237,8 @@ class SupabaseChallengeService {
       return { success: false, error: 'Challenge not found' };
     }
 
-    const personalStartDate = new Date();
-    const personalEndDate = new Date();
+    const startDate = personalStartDate || new Date();
+    const personalEndDate = new Date(startDate);
     personalEndDate.setDate(personalEndDate.getDate() + challenge.duration_days);
 
     const { data, error } = await supabase
@@ -247,9 +248,9 @@ class SupabaseChallengeService {
         user_id: user.id,
         selected_activity_ids: selectedActivityIds,
         activity_times: activityTimes,
-        personal_start_date: personalStartDate.toISOString(),
+        personal_start_date: startDate.toISOString(),
         personal_end_date: personalEndDate.toISOString(),
-        current_day: 1,
+        current_day: startDate <= new Date() ? 1 : 0,
         completed_days: 0,
         current_streak: 0,
         longest_streak: 0,
@@ -263,7 +264,7 @@ class SupabaseChallengeService {
       return { success: false, error: error.message };
     }
 
-    if (__DEV__) console.log('🟢 [CHALLENGES] Successfully joined challenge with personal start date:', personalStartDate.toISOString());
+    if (__DEV__) console.log('🟢 [CHALLENGES] Successfully joined challenge with personal start date:', startDate.toISOString());
     return { success: true, data };
   }
 
@@ -932,6 +933,12 @@ class SupabaseChallengeService {
       const currentDay = daysSinceStart + 1; // 1-based
 
       if (__DEV__) console.log('📅 [CHALLENGES] Challenge', challenge.name, '- Current Day:', currentDay);
+
+      // Pre-start guard: if challenge hasn't started yet, skip its activities
+      if (currentDay < 1) {
+        if (__DEV__) console.log('⏳ [CHALLENGES] Challenge', challenge.name, 'starts in', Math.abs(currentDay) + 1, 'days — hiding activities');
+        continue;
+      }
 
       // Auto-expiry: if past duration, finalize the challenge and skip its activities
       if (currentDay > challenge.duration_days) {
