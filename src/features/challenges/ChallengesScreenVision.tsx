@@ -643,9 +643,6 @@ export const ChallengesScreenVision = () => {
 
         {/* Coming Soon - Locked Challenges */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Coming Soon</Text>
-          </View>
           <View style={styles.challengesGrid}>
             {LOCKED_CHALLENGES.map((challenge) => (
               <LockedChallengeCard key={challenge.id} challenge={challenge} />

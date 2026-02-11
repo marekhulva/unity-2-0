@@ -380,6 +380,9 @@ class BackendService {
       completedAt: string;
       streak: number;
       challengeActivityId?: string;
+      failed?: boolean;
+      comment?: string;
+      photoUri?: string;
     },
     totalActions: number
   ) {

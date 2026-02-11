@@ -2241,6 +2241,9 @@ class SupabaseService {
       completedAt: string;
       streak: number;
       challengeActivityId?: string;
+      failed?: boolean;
+      comment?: string;
+      photoUri?: string;
     },
     totalActions: number
   ) {
@@ -2288,9 +2291,13 @@ class SupabaseService {
     if (__DEV__) console.log(`📊 [SUPABASE] Updated actions count: ${updatedActions.length}`);
     if (__DEV__) console.log(`📤 [SUPABASE] Updating post with new data...`);
 
+    // Count only successful actions (not failed)
+    const successfulActionsCount = updatedActions.filter((a: any) => !a.failed).length;
+    if (__DEV__) console.log(`✅ [SUPABASE] Successful actions: ${successfulActionsCount}, Failed: ${updatedActions.length - successfulActionsCount}`);
+
     const updatePayload = {
       completed_actions: updatedActions,
-      actions_today: updatedActions.length,
+      actions_today: successfulActionsCount,
       total_actions: totalActions,
       updated_at: new Date().toISOString()
     };
