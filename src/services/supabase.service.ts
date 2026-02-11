@@ -2492,6 +2492,127 @@ class SupabaseService {
     }
   }
 
+  async toggleLike(postId: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    // Get post author info for notifications
+    const { data: post } = await supabase
+      .from('posts')
+      .select('user_id, content, profiles!user_id(username)')
+      .eq('id', postId)
+      .single();
+
+    // Check if user already liked
+    const { data: existing } = await supabase
+      .from('post_likes')
+      .select('id')
+      .eq('post_id', postId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (existing) {
+      // Remove like if already exists (toggle off)
+      const { error } = await supabase
+        .from('post_likes')
+        .delete()
+        .eq('post_id', postId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Get updated like count
+      const { count } = await supabase
+        .from('post_likes')
+        .select('*', { count: 'exact', head: true })
+        .eq('post_id', postId);
+
+      return { liked: false, like_count: count || 0 };
+    } else {
+      // Add new like
+      const { error } = await supabase
+        .from('post_likes')
+        .insert({
+          post_id: postId,
+          user_id: user.id
+        });
+
+      if (error) throw error;
+
+      // Get updated like count
+      const { count } = await supabase
+        .from('post_likes')
+        .select('*', { count: 'exact', head: true })
+        .eq('post_id', postId);
+
+      // Send notification to post author (if not liking own post)
+      if (post && post.user_id !== user.id) {
+        const { supabaseNotificationService } = await import('./supabase.notifications.service');
+        const { data: actorProfile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', user.id)
+          .single();
+
+        await supabaseNotificationService.createSocialNotification({
+          userId: post.user_id,
+          type: 'like',
+          actorUserId: user.id,
+          actorName: actorProfile?.username || 'Someone',
+          postId,
+          postTitle: post.content?.substring(0, 50) || 'your post'
+        });
+      }
+
+      return { liked: true, like_count: count || 0 };
+    }
+  }
+
+  async getLikes(postId: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const { data: likes, error, count } = await supabase
+      .from('post_likes')
+      .select('*, profiles!user_id(username, avatar_url)', { count: 'exact' })
+      .eq('post_id', postId);
+
+    if (error) throw error;
+
+    const userLiked = user ? likes?.some(like => like.user_id === user.id) : false;
+
+    return {
+      likes: likes || [],
+      like_count: count || 0,
+      user_liked: userLiked
+    };
+  }
+
+  async getBatchLikes(postIds: string[]) {
+    if (!postIds || postIds.length === 0) return {};
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const { data: likes, error } = await supabase
+      .from('post_likes')
+      .select('post_id, user_id')
+      .in('post_id', postIds);
+
+    if (error) throw error;
+
+    // Group likes by post_id
+    const likesByPost: Record<string, { like_count: number; user_liked: boolean }> = {};
+
+    postIds.forEach(postId => {
+      const postLikes = likes?.filter(like => like.post_id === postId) || [];
+      likesByPost[postId] = {
+        like_count: postLikes.length,
+        user_liked: user ? postLikes.some(like => like.user_id === user.id) : false
+      };
+    });
+
+    return likesByPost;
+  }
+
   async addComment(postId: string, content: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');

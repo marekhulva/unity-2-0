@@ -254,6 +254,54 @@ const ChallengeGridCard = ({ challenge, isActive, onPress }: { challenge: Challe
   );
 };
 
+const LOCKED_CHALLENGES = [
+  {
+    id: 'locked-75-hard',
+    name: '75 HARD Mental Toughness',
+    author: 'Andy Frisella',
+    coverImage: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b',
+    duration: '75 days',
+    category: 'FITNESS',
+  },
+  {
+    id: 'locked-testosterone',
+    name: 'Natural Testosterone Optimization',
+    author: 'Dr. Andrew Huberman',
+    coverImage: 'https://images.unsplash.com/photo-1583521214690-73421a1829a9',
+    duration: '8 weeks',
+    category: 'HEALTH',
+  },
+  {
+    id: 'locked-jj-basketball',
+    name: "JJ's Elite Basketball Program",
+    author: 'JJ Murray',
+    coverImage: 'https://images.unsplash.com/photo-1608245449230-4ac19066d2d0',
+    duration: '12 weeks',
+    category: 'FITNESS',
+  },
+];
+
+const LockedChallengeCard = ({ challenge }: { challenge: typeof LOCKED_CHALLENGES[0] }) => (
+  <View style={styles.challengeCard}>
+    <View style={styles.challengeThumbnail}>
+      <Image source={{ uri: challenge.coverImage }} style={StyleSheet.absoluteFillObject} />
+      <View style={lockedStyles.overlay} />
+      <View style={lockedStyles.lockBadge}>
+        <Lock size={16} color="#FFD700" />
+        <Text style={lockedStyles.lockText}>COMING SOON</Text>
+      </View>
+    </View>
+    <View style={styles.challengeInfo}>
+      <Text style={styles.challengeCategory}>{challenge.category}</Text>
+      <Text style={[styles.challengeName, { opacity: 0.6 }]}>{challenge.name}</Text>
+      <View style={styles.challengeMeta}>
+        <Text style={styles.metaText}>⏱ {challenge.duration}</Text>
+        <Text style={[styles.metaText, { opacity: 0.5 }]}>by {challenge.author}</Text>
+      </View>
+    </View>
+  </View>
+);
+
 export const ChallengesScreenVision = () => {
   const insets = useSafeAreaInsets();
   const [selectedFilter, setSelectedFilter] = useState('All');
@@ -592,10 +640,49 @@ export const ChallengesScreenVision = () => {
             </View>
           )}
         </View>
+
+        {/* Coming Soon - Locked Challenges */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Coming Soon</Text>
+          </View>
+          <View style={styles.challengesGrid}>
+            {LOCKED_CHALLENGES.map((challenge) => (
+              <LockedChallengeCard key={challenge.id} challenge={challenge} />
+            ))}
+          </View>
+        </View>
       </ScrollView>
     </View>
   );
 };
+
+const lockedStyles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+  lockBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    borderWidth: 1,
+    borderColor: 'rgba(212,175,55,0.4)',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  lockText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FFD700',
+    letterSpacing: 1,
+  },
+});
 
 const styles = StyleSheet.create({
   container: {

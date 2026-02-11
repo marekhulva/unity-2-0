@@ -64,16 +64,26 @@ export const DailyReviewModal: React.FC = () => {
   const actions = useStore(s => s.actions);
   const toggleAction = useStore(s => s.toggleAction);
 
+  // Ref for cleanup
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Debug logging
   useEffect(() => {
     if (__DEV__) console.log('🔴 [DAILY REVIEW MODAL] isOpen changed:', isOpen);
   }, [isOpen]);
-  
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    };
+  }, []);
+
   // Daily review backend integration
   const initializeReview = useStore(s => s.initializeTodayReview);
   const saveReviewProgress = useStore(s => s.saveReviewProgress);
   const currentReview = useStore(s => s.currentReview);
-  
+
   const [currentStep, setCurrentStep] = useState(0);
   const [missedActionIndex, setMissedActionIndex] = useState(0);
   const [missedActions, setMissedActions] = useState<MissedAction[]>([]);
@@ -83,7 +93,7 @@ export const DailyReviewModal: React.FC = () => {
     gratitude: '',
   });
   const [totalPoints, setTotalPoints] = useState(0);
-  
+
   const slideAnimation = useSharedValue(0);
   const progressAnimation = useSharedValue(0);
   
@@ -192,13 +202,16 @@ export const DailyReviewModal: React.FC = () => {
     
     if (success) {
       if (__DEV__) console.log('✅ [REVIEW] Review saved successfully!');
+
+      // Only schedule close if save succeeded
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = setTimeout(() => {
+        close();
+      }, 1500);
     } else {
       if (__DEV__) console.error('❌ [REVIEW] Failed to save review');
+      // Don't auto-close on failure - let user retry
     }
-    
-    setTimeout(() => {
-      close();
-    }, 1500);
   };
   
   const modalAnimatedStyle = useAnimatedStyle(() => ({

@@ -77,11 +77,23 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const recordingRef = useRef<Audio.Recording | null>(null);
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const submitTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // NEW: State for integrated circle selection
   const [selectedCircleIds, setSelectedCircleIds] = useState<Set<string>>(new Set());
   const [includeFollowers, setIncludeFollowers] = useState(true); // Default: followers included
   const [isSubmitting, setIsSubmitting] = useState(false); // Prevent duplicate submissions
+
+  // Cleanup intervals/timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+      if (submitTimeoutRef.current) clearTimeout(submitTimeoutRef.current);
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    };
+  }, []);
 
   // Keyboard toolbar hook for Android/Web
   const { keyboardHeight, isKeyboardVisible, toolbarStyle } = useKeyboardToolbar();
@@ -175,15 +187,16 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
       
       recordingRef.current = recording;
       setIsRecording(true);
-      
+
       // Update duration every second
-      const interval = setInterval(async () => {
+      if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = setInterval(async () => {
         if (recordingRef.current) {
           const status = await recordingRef.current.getStatusAsync();
           if (status.isRecording) {
             setRecordingDuration(Math.floor(status.durationMillis / 1000));
           } else {
-            clearInterval(interval);
+            if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
           }
         }
       }, 1000);
@@ -200,7 +213,13 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
 
   const stopRecording = async () => {
     if (!recordingRef.current) return;
-    
+
+    // Clear interval immediately
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+
     try {
       await recordingRef.current.stopAndUnloadAsync();
       
@@ -295,7 +314,8 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
     onSelect(selectedPrivacy, contentType, content, mediaUri || undefined, newVisibility);
 
     // Reset for next time
-    setTimeout(() => {
+    if (submitTimeoutRef.current) clearTimeout(submitTimeoutRef.current);
+    submitTimeoutRef.current = setTimeout(() => {
       setSelectedMedia(null);
       setSelectedPrivacy('circle');
       setCommentText('');
@@ -308,7 +328,8 @@ export const PrivacySelectionModal: React.FC<PrivacySelectionModalProps> = ({
   const handleClose = () => {
     onClose();
     // Reset state after close
-    setTimeout(() => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = setTimeout(() => {
       setSelectedMedia(null);
       setSelectedPrivacy('circle');
       setCommentText('');

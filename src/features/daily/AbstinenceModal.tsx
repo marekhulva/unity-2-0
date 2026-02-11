@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -44,6 +44,10 @@ export const AbstinenceModal: React.FC<AbstinenceModalProps> = ({
   const userCircles = useStore(s => s.userCircles);
   const fetchUserCircles = useStore(s => s.fetchUserCircles);
 
+  // Refs for cleanup
+  const submitTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // State
   const [selectedAnswer, setSelectedAnswer] = useState<'yes' | 'no' | null>(null);
   const [commentText, setCommentText] = useState('');
@@ -51,6 +55,14 @@ export const AbstinenceModal: React.FC<AbstinenceModalProps> = ({
   const [selectedCircleIds, setSelectedCircleIds] = useState<Set<string>>(new Set());
   const [includeFollowers, setIncludeFollowers] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (submitTimeoutRef.current) clearTimeout(submitTimeoutRef.current);
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    };
+  }, []);
 
   // Load circles when modal opens
   useEffect(() => {
@@ -167,7 +179,8 @@ export const AbstinenceModal: React.FC<AbstinenceModalProps> = ({
     );
 
     // Reset state
-    setTimeout(() => {
+    if (submitTimeoutRef.current) clearTimeout(submitTimeoutRef.current);
+    submitTimeoutRef.current = setTimeout(() => {
       setSelectedAnswer(null);
       setCommentText('');
       setPhotoUri(null);
@@ -181,7 +194,8 @@ export const AbstinenceModal: React.FC<AbstinenceModalProps> = ({
   const handleClose = () => {
     onClose();
     // Reset state after close
-    setTimeout(() => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = setTimeout(() => {
       setSelectedAnswer(null);
       setCommentText('');
       setPhotoUri(null);
