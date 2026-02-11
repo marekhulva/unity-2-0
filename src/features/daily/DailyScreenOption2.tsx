@@ -115,7 +115,7 @@ export const DailyScreenOption2 = () => {
 
     // Fetch weekly progress on mount
     refreshWeeklyProgress();
-  }, [currentUser?.id, actions.length, actionsLoading]);
+  }, [currentUser?.id]);
 
   const { timedActions, abstinenceActions } = useMemo(() => {
     const timed: any[] = [];
@@ -496,8 +496,28 @@ export const DailyScreenOption2 = () => {
 
         if (__DEV__) console.log('✅ [DAILY] Updated Living Progress Card with abstinence');
         useStore.getState().fetchUnifiedFeed(true);
-      } else {
-        if (__DEV__) console.log('❌ [DAILY] Using individual post for abstinence');
+
+        // Check if user added photo/comment (media) - if so, create individual post too (dual posting)
+        const hasMedia = !!photoUri || !!comment;
+
+        if (!hasMedia) {
+          // Just a check - Living Progress Card only, no individual post
+          if (__DEV__) console.log('📋 [DAILY] No media for abstinence, Living Progress Card only');
+          toggleAction(actionToComplete.id);
+          fetchDailyActions();
+          refreshWeeklyProgress();
+          return;
+        }
+
+        // User added media - fall through to create individual post too (dual posting)
+        if (__DEV__) console.log('📸 [DAILY] User added media for abstinence, creating individual post too (dual posting)');
+      }
+
+      // Create individual post (either fallback when Living Progress Cards disabled, OR dual posting when media exists)
+      const needsIndividualPost = !useLivingProgressCards || !user?.id || isPrivate || !actionToComplete.isFromChallenge || (!!photoUri || !!comment);
+
+      if (needsIndividualPost) {
+        if (__DEV__) console.log('📝 [DAILY] Creating individual post for abstinence');
 
         addCompletedAction({
           id: `${actionToComplete.id}-${Date.now()}`,
@@ -513,6 +533,33 @@ export const DailyScreenOption2 = () => {
           content: didStayOnTrack ? comment : `Did not stay on track${comment ? ': ' + comment : ''}`,
           category: 'fitness',
         });
+
+        // Post to backend if not private
+        if (!isPrivate && (circleIds || includeFollowers)) {
+          const postDataForBackend = {
+            type: photoUri ? 'checkin' : 'milestone',
+            visibility: visibility,
+            content: didStayOnTrack ? (comment || `Completed: ${actionToComplete.title}`) : `Did not stay on track${comment ? ': ' + comment : ''}`,
+            actionTitle: actionToComplete.title,
+            goal: actionToComplete.goalTitle,
+            goalColor: actionToComplete.goalColor,
+            streak: 0,
+            actionType: 'abstinence',
+            didStayOnTrack,
+            photoUri: photoUri,
+            mediaUrl: photoUri,
+            // Multi-circle visibility model (matches regular actions)
+            isPrivate: false,
+            isExplore: false,
+            isNetwork: false,
+            circleIds: circleIds,
+            includeFollowers: includeFollowers,
+          };
+
+          addPost(postDataForBackend).catch(error => {
+            if (__DEV__) console.error('❌ [DAILY] Failed to create individual post for abstinence:', error);
+          });
+        }
       }
 
       if (actionToComplete.isFromChallenge && actionToComplete.challengeActivityId) {

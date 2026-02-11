@@ -308,9 +308,9 @@ export const SocialScreenUnified = () => {
       return null; // Skip this post
     }
 
-    // Render Living Progress Card for daily_progress posts AND challenge check-ins
-    const shouldUseLivingProgressCard = (item.type === 'daily_progress' && item.isDailyProgress) ||
-        (item.type === 'checkin' && (item.isChallenge || item.challengeName));
+    // Render Living Progress Card ONLY for daily_progress posts (aggregated view)
+    // Individual check-ins (even from challenges) should show as regular cards with photos/comments
+    const shouldUseLivingProgressCard = (item.type === 'daily_progress' && item.isDailyProgress);
 
     if (shouldUseLivingProgressCard) {
       if (__DEV__) {
