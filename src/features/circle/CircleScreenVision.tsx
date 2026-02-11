@@ -349,15 +349,19 @@ export const CircleScreenVision = () => {
         <Pressable
           style={styles.circleCard}
           onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setShowCircleSwitcher(true);
+            if ((userCircles?.length || 0) > 1) {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setShowCircleSwitcher(true);
+            }
           }}
         >
           <View style={{ flex: 1 }}>
             <Text style={styles.circleNameCentered}>{activeCircle?.name || 'Circle'}</Text>
             <Text style={styles.circleMemberCountCentered}>{activeCircle?.member_count || 0} members</Text>
           </View>
-          <ChevronDown size={16} color="#E7B43A" />
+          {(userCircles?.length || 0) > 1 && (
+            <ChevronDown size={16} color="#E7B43A" />
+          )}
           <Pressable
             style={styles.circleCardBtn}
             onPress={() => {
@@ -939,7 +943,7 @@ export const CircleScreenVision = () => {
             <View style={styles.modalBody}>
               <View style={styles.settingsSection}>
                 <Text style={styles.sectionTitle}>General</Text>
-                <Pressable style={styles.settingItem}>
+                <View style={styles.settingItem}>
                   <View style={styles.settingIcon}>
                     <Edit size={16} color="#E7B43A" />
                   </View>
@@ -947,9 +951,8 @@ export const CircleScreenVision = () => {
                     <Text style={styles.settingLabel}>Circle Name</Text>
                     <Text style={styles.settingDescription}>{activeCircle?.name}</Text>
                   </View>
-                  <Text style={styles.settingArrow}>›</Text>
-                </Pressable>
-                <Pressable style={styles.settingItem}>
+                </View>
+                <View style={styles.settingItem}>
                   <View style={styles.settingIcon}>
                     <Globe size={16} color="#E7B43A" />
                   </View>
@@ -959,42 +962,7 @@ export const CircleScreenVision = () => {
                       {activeCircle?.is_private ? 'Private' : 'Public'}
                     </Text>
                   </View>
-                  <Text style={styles.settingArrow}>›</Text>
-                </Pressable>
-              </View>
-
-              <View style={styles.settingsSection}>
-                <Text style={styles.sectionTitle}>Notifications</Text>
-                <Pressable style={styles.settingItem}>
-                  <View style={styles.settingIcon}>
-                    <Bell size={16} color="#E7B43A" />
-                  </View>
-                  <View style={styles.settingInfo}>
-                    <Text style={styles.settingLabel}>New posts</Text>
-                    <Text style={styles.settingDescription}>Get notified when someone posts</Text>
-                  </View>
-                  <Pressable
-                    style={[styles.toggleSwitch, notificationSettings.newPosts && styles.toggleSwitchActive]}
-                    onPress={() => setNotificationSettings(prev => ({ ...prev, newPosts: !prev.newPosts }))}
-                  >
-                    <View style={[styles.toggleKnob, notificationSettings.newPosts && styles.toggleKnobActive]} />
-                  </Pressable>
-                </Pressable>
-                <Pressable style={styles.settingItem}>
-                  <View style={styles.settingIcon}>
-                    <Target size={16} color="#E7B43A" />
-                  </View>
-                  <View style={styles.settingInfo}>
-                    <Text style={styles.settingLabel}>Challenge updates</Text>
-                    <Text style={styles.settingDescription}>New challenges and milestones</Text>
-                  </View>
-                  <Pressable
-                    style={[styles.toggleSwitch, notificationSettings.challengeUpdates && styles.toggleSwitchActive]}
-                    onPress={() => setNotificationSettings(prev => ({ ...prev, challengeUpdates: !prev.challengeUpdates }))}
-                  >
-                    <View style={[styles.toggleKnob, notificationSettings.challengeUpdates && styles.toggleKnobActive]} />
-                  </Pressable>
-                </Pressable>
+                </View>
               </View>
 
               <View style={styles.settingsSection}>

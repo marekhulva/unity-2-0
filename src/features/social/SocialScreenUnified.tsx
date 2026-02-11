@@ -229,7 +229,7 @@ export const SocialScreenUnified = () => {
         if (__DEV__) console.log('📸 [IMAGE-PICKER] Image selection canceled');
       }
     } catch (error) {
-      console.error('📸 [IMAGE-PICKER] Error:', error);
+      if (__DEV__) console.error('📸 [IMAGE-PICKER] Error:', error);
     }
   };
 

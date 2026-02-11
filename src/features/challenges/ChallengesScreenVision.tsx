@@ -365,38 +365,10 @@ export const ChallengesScreenVision = () => {
             )}
           </View>
 
-          {/* Detail Tabs */}
-          <View style={styles.detailTabs}>
-            <Pressable
-              style={[styles.detailTab, detailTab === 'overview' && styles.detailTabActive]}
-              onPress={() => setDetailTab('overview')}
-            >
-              <Text style={[styles.detailTabText, detailTab === 'overview' && styles.detailTabTextActive]}>
-                Overview
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[styles.detailTab, detailTab === 'feed' && styles.detailTabActive]}
-              onPress={() => setDetailTab('feed')}
-            >
-              <Text style={[styles.detailTabText, detailTab === 'feed' && styles.detailTabTextActive]}>
-                Feed
-              </Text>
-            </Pressable>
-            {challenge.has_forum && (
-              <Pressable
-                style={[styles.detailTab, detailTab === 'forum' && styles.detailTabActive]}
-                onPress={() => setDetailTab('forum')}
-              >
-                <Text style={[styles.detailTabText, detailTab === 'forum' && styles.detailTabTextActive]}>
-                  Forum
-                </Text>
-              </Pressable>
-            )}
-          </View>
+          {/* Detail section - Feed and Forum tabs hidden until implemented */}
 
-          {/* Overview Tab Content */}
-          {detailTab === 'overview' && (
+          {/* Challenge Details */}
+          {true && (
             <>
               <View style={styles.detailInfoCard}>
                 <Text style={styles.detailInfoText}>📅 {challenge.duration_days} days</Text>
@@ -476,31 +448,7 @@ export const ChallengesScreenVision = () => {
             </>
           )}
 
-          {/* Feed Tab Content */}
-          {detailTab === 'feed' && (
-            <View style={styles.tabContent}>
-              <View style={styles.comingSoon}>
-                <Text style={styles.comingSoonEmoji}>📱</Text>
-                <Text style={styles.comingSoonTitle}>Community Feed Coming Soon</Text>
-                <Text style={styles.comingSoonText}>
-                  See posts, progress updates, and motivation from other participants
-                </Text>
-              </View>
-            </View>
-          )}
-
-          {/* Forum Tab Content */}
-          {detailTab === 'forum' && challenge.has_forum && (
-            <View style={styles.tabContent}>
-              <View style={styles.comingSoon}>
-                <Text style={styles.comingSoonEmoji}>💬</Text>
-                <Text style={styles.comingSoonTitle}>Challenge Forum Coming Soon</Text>
-                <Text style={styles.comingSoonText}>
-                  Ask questions, share tips, and connect with other challengers
-                </Text>
-              </View>
-            </View>
-          )}
+          {/* Feed and Forum tab content removed - not implemented yet */}
         </ScrollView>
 
         <JoinChallengeFlow

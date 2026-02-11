@@ -218,9 +218,7 @@ export const ActionItem: React.FC<ActionItemProps> = ({
                         contentType === 'text' ? 'milestone' :
                         'check';
 
-      const mediaUrl = mediaUri || (contentType === 'photo'
-        ? `https://picsum.photos/400/400?random=${Date.now()}`
-        : undefined);
+      const mediaUrl = mediaUri || undefined;
 
       const mappedVisibility = visibility === 'public' ? 'circle' : visibility;
 
@@ -237,7 +235,7 @@ export const ActionItem: React.FC<ActionItemProps> = ({
         type: actionType,
         mediaUrl,
         content,
-        category: 'fitness',
+        category: goalTitle || 'general',
       });
 
       if (visibility !== 'private' && contentType !== 'check') {
@@ -359,7 +357,7 @@ export const ActionItem: React.FC<ActionItemProps> = ({
         type: actionType,
         mediaUrl: photoUri,
         content: didStayOnTrack ? comment : `Did not stay on track${comment ? ': ' + comment : ''}`,
-        category: 'fitness',
+        category: goalTitle || 'general',
       });
 
       if (!isPrivate && (photoUri || comment)) {

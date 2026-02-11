@@ -56,7 +56,7 @@ function MainTabs() {
   // Fetch data when tabs mount - but check if we already have data
   useEffect(() => {
     const loadAllData = async () => {
-      console.time('⚡ Data loaded in');
+      if (__DEV__) console.time('⚡ Data loaded in');
       if (__DEV__) console.log('🟦 [MAIN] MainTabs mounted, checking if data needs loading...');
 
       // Check if we already have data (from AppWithAuth initial load)
@@ -83,7 +83,7 @@ function MainTabs() {
         });
       }
 
-      console.timeEnd('⚡ Data loaded in');
+      if (__DEV__) console.timeEnd('⚡ Data loaded in');
       if (__DEV__) console.log('✅ Initial load complete!');
     };
 

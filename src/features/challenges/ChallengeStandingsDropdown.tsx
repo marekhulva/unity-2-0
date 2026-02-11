@@ -65,7 +65,7 @@ export const ChallengeStandingsDropdown: React.FC<ChallengeStandingsDropdownProp
   const myEntry = leaderboard.find(e => e.user_id === currentUser?.id);
   const currentDay = myEntry?.current_day
     ? Math.min(myEntry.current_day, durationDays)
-    : (leaderboard.length > 0 ? Math.min(Math.max(...leaderboard.map(e => e.current_day || 0), 1), durationDays) : 1);
+    : 1;
 
   if (loading) {
     return (
@@ -426,11 +426,13 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(255,255,255,0.04)',
   },
   standingRowCurrent: {
-    backgroundColor: 'rgba(212,175,55,0.04)',
+    backgroundColor: 'rgba(212,175,55,0.08)',
     borderRadius: 8,
     paddingHorizontal: 8,
     marginHorizontal: -8,
     borderBottomWidth: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(212,175,55,0.15)',
   },
   standingRank: {
     width: 20,
@@ -474,15 +476,17 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
   youBadge: {
-    backgroundColor: 'rgba(212,175,55,0.12)',
-    paddingVertical: 1,
-    paddingHorizontal: 5,
+    backgroundColor: 'rgba(212,175,55,0.2)',
+    paddingVertical: 2,
+    paddingHorizontal: 6,
     borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(212,175,55,0.3)',
   },
   youBadgeText: {
-    fontSize: 8,
-    fontWeight: '700',
-    color: '#D4AF37',
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#E7B43A',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },

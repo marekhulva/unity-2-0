@@ -104,7 +104,7 @@ export const AbstinenceModal: React.FC<AbstinenceModalProps> = ({
         if (__DEV__) console.log('[AbstinenceModal] Photo selected:', result.assets[0].uri);
       }
     } catch (error) {
-      console.error('[AbstinenceModal] Photo picker error:', error);
+      if (__DEV__) console.error('[AbstinenceModal] Photo picker error:', error);
     }
   };
 

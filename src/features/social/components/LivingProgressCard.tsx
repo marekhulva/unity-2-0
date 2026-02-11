@@ -80,14 +80,11 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({
     try {
       await onToggleLike(id, visibility);
     } catch (error) {
-      console.error('Failed to toggle like:', error);
+      if (__DEV__) console.error('Failed to toggle like:', error);
     }
   };
 
-  const handleCommentPress = () => {
-    // TODO: Implement comment modal/section
-    console.log('Comment button pressed');
-  };
+  // Comment functionality not yet implemented
 
   // Time ago calculation
   const getTimeAgo = (): string => {
@@ -236,10 +233,7 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({
           </View>
         </View>
 
-        {/* More Button */}
-        <Pressable style={styles.moreButton}>
-          <Text style={styles.moreText}>···</Text>
-        </Pressable>
+        {/* More button hidden until implemented */}
       </View>
 
       {/* Action Tiles */}
@@ -294,9 +288,9 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({
           </Animated.View>
         )}
 
-        {/* Comment Button */}
-        {isChallenge && (
-          <Pressable style={styles.actionButton} onPress={handleCommentPress}>
+        {/* Comment button hidden until implemented */
+        false && isChallenge && (
+          <Pressable style={styles.actionButton}>
             <MessageCircle
               size={18}
               color="rgba(255,255,255,0.6)"

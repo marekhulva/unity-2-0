@@ -183,9 +183,7 @@ export const TextPostCard: React.FC<TextPostCardProps> = ({
           </Text>
         </View>
 
-        <Pressable style={styles.moreButton}>
-          <Text style={styles.moreText}>···</Text>
-        </Pressable>
+        {/* More button hidden until implemented */}
       </View>
 
       {/* Check-in Card (Optional) */}
@@ -237,25 +235,11 @@ export const TextPostCard: React.FC<TextPostCardProps> = ({
       {/* Engagement Row */}
       {hasReactions && (
         <View style={styles.engagementRow}>
-          <View style={styles.engagementFaces}>
-            {engagementAvatars.map((emoji, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.engagementFace,
-                  index > 0 && { marginLeft: -6 },
-                ]}
-              >
-                <Text style={styles.engagementFaceEmoji}>{emoji}</Text>
-              </View>
-            ))}
-          </View>
-
           <Text style={styles.engagementText}>
-            <Text style={styles.engagementBold}>Sarah</Text>
-            {', '}
-            <Text style={styles.engagementBold}>you</Text>
-            {` and ${reactionCount > 2 ? reactionCount - 2 : 'others'}`}
+            {userReacted
+              ? `You and ${reactionCount > 1 ? `${reactionCount - 1} other${reactionCount > 2 ? 's' : ''}` : ''} reacted`
+              : `${reactionCount} reaction${reactionCount !== 1 ? 's' : ''}`
+            }
           </Text>
         </View>
       )}

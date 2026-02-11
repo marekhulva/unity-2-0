@@ -49,7 +49,7 @@ const ActivityCard = ({ item, type }: { item: any; type: 'challenge' | 'goal' | 
   };
 
   return (
-    <Pressable style={styles.activityCard}>
+    <View style={styles.activityCard}>
       <View style={styles.activityIcon}>
         {getIcon()}
       </View>
@@ -62,7 +62,7 @@ const ActivityCard = ({ item, type }: { item: any; type: 'challenge' | 'goal' | 
       </View>
 
       <ConsistencyCircle percentage={item.consistency || 0} />
-    </Pressable>
+    </View>
   );
 };
 
@@ -89,7 +89,7 @@ const CircleCard = ({ circle }: { circle: any }) => {
   };
 
   return (
-    <Pressable style={styles.circleCard}>
+    <View style={styles.circleCard}>
       <View style={styles.circleIcon}>
         {circle.emoji ? (
           <Text style={styles.circleIconText}>{circle.emoji}</Text>
@@ -105,9 +105,7 @@ const CircleCard = ({ circle }: { circle: any }) => {
           {circle.active_challenges ? ` • ${circle.active_challenges} active challenge${circle.active_challenges !== 1 ? 's' : ''}` : ''}
         </Text>
       </View>
-
-      <ChevronRight size={16} color="rgba(255,255,255,0.3)" />
-    </Pressable>
+    </View>
   );
 };
 
@@ -465,9 +463,7 @@ export const ProfileScreen: React.FC = () => {
                 })}
               </View>
 
-              <Pressable style={styles.viewAllButton}>
-                <Text style={styles.viewAllText}>View Full Journey →</Text>
-              </Pressable>
+              {/* View Full Journey button hidden until implemented */}
             </>
           ) : (
             <Text style={styles.emptyText}>No posts yet</Text>

@@ -359,9 +359,7 @@ export const DailyScreenOption2 = () => {
 
     // Legacy post creation (for non-Living Progress Card actions)
     const actionType = contentType === 'text' ? 'milestone' : 'check';
-    const finalMediaUrl = mediaUri || (contentType === 'photo'
-      ? `https://picsum.photos/400/400?random=${Date.now()}`
-      : undefined);
+    const finalMediaUrl = mediaUri || undefined;
     const isPrivate = newVisibility ? newVisibility.isPrivate : visibility === 'private';
 
     addCompletedAction({
@@ -375,7 +373,7 @@ export const DailyScreenOption2 = () => {
         streak: 0,
       type: actionType,
       mediaUrl: finalMediaUrl,
-      category: 'fitness',
+      category: actionToComplete.goalTitle || 'general',
     });
 
     // Post creation happens in background with optimistic updates
@@ -554,7 +552,7 @@ export const DailyScreenOption2 = () => {
           type: photoUri ? 'photo' : comment ? 'milestone' : 'check',
           mediaUrl: photoUri,
           content: didStayOnTrack ? comment : `Did not stay on track${comment ? ': ' + comment : ''}`,
-          category: 'fitness',
+          category: actionToComplete.goalTitle || 'general',
         });
 
         // Post to backend if not private
@@ -864,11 +862,7 @@ export const DailyScreenOption2 = () => {
               </>
             )}
 
-            {actions.length > 0 && (
-              <View style={styles.addActionSection}>
-                <AddActionButton onPress={() => {}} />
-              </View>
-            )}
+            {/* Add Action button removed - handler not implemented yet */}
           </>
         )}
       </ScrollView>

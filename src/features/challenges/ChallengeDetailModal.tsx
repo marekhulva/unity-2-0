@@ -306,7 +306,15 @@ export const ChallengeDetailModal = ({ visible, challengeId, onClose }: Challeng
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Rules</Text>
                 <View style={styles.rulesCard}>
-                  <Text style={styles.rulesText}>{JSON.stringify(challenge.rules)}</Text>
+                  {typeof challenge.rules === 'string' ? (
+                    <Text style={styles.rulesText}>{challenge.rules}</Text>
+                  ) : (
+                    Object.entries(challenge.rules).map(([key, value]) => (
+                      <Text key={key} style={styles.rulesText}>
+                        {'\u2022'} {typeof value === 'string' ? value : String(value)}
+                      </Text>
+                    ))
+                  )}
                 </View>
               </View>
             )}
