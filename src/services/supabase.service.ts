@@ -368,8 +368,8 @@ class SupabaseService {
     return data;
   }
 
-  async completeAction(id: string) {
-    if (__DEV__) console.log('🔵 [SUPABASE] Completing action:', id);
+  async completeAction(id: string, failed: boolean = false, failureReason?: string) {
+    if (__DEV__) console.log('🔵 [SUPABASE] Completing action:', id, { failed, failureReason });
 
     // Get current user
     const { user } = await this.verifySession();
@@ -381,7 +381,9 @@ class SupabaseService {
       .insert({
         action_id: id,
         user_id: user.id,
-        completed_at: new Date().toISOString()
+        completed_at: new Date().toISOString(),
+        failed: failed,
+        failure_reason: failureReason
       });
 
     if (completionError) {
@@ -396,7 +398,8 @@ class SupabaseService {
       .from('actions')
       .update({
         completed: true,
-        completed_at: new Date().toISOString()
+        completed_at: new Date().toISOString(),
+        failed: failed
       })
       .eq('id', id)
       .eq('user_id', user.id)
@@ -445,7 +448,8 @@ class SupabaseService {
       .from('actions')
       .update({
         completed: false,
-        completed_at: null
+        completed_at: null,
+        failed: false
       })
       .eq('id', id)
       .eq('user_id', user.id)

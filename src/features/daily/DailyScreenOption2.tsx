@@ -86,7 +86,7 @@ export const DailyScreenOption2 = () => {
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [actionToEdit, setActionToEdit] = useState<any>(null);
 
-  const completed = actions.filter(a => a.done).length;
+  const completed = actions.filter(a => a.done && !a.failed).length;
   const progress = actions.length ? Math.round((completed / actions.length) * 100) : 0;
 
   // TODO: Fix and re-enable streaks - Currently broken (never resets, not persisted to DB)

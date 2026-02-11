@@ -26,6 +26,7 @@ interface ActionItemProps {
   title: string;
   goalTitle?: string;
   done?: boolean;
+  failed?: boolean;
   streak: number;
   time?: string;
   type?: 'goal' | 'performance' | 'commitment' | 'oneTime' | 'one-time';
@@ -55,13 +56,14 @@ export const ActionItem: React.FC<ActionItemProps> = ({
   title,
   goalTitle,
   done = false,
+  failed = false,
   streak,
   time,
   type = 'goal',
   goalColor,
   isAbstinence = false
 }) => {
-  if (__DEV__) console.log('🎯 [ActionItem] Rendering:', { id, title, done, goalTitle, goalColor, isAbstinence });
+  if (__DEV__) console.log('🎯 [ActionItem] Rendering:', { id, title, done, failed, goalTitle, goalColor, isAbstinence });
   const toggle = useStore(s => s.toggleAction);
   const updateAction = useStore(s => s.updateAction);
   const deleteAction = useStore(s => s.deleteAction);
@@ -293,8 +295,16 @@ export const ActionItem: React.FC<ActionItemProps> = ({
       includeFollowers
     });
 
-    // Mark action as complete
-    toggle(id);
+    // Determine if this was a failure
+    const failed = !didStayOnTrack;
+    const failureReason = !didStayOnTrack && comment
+      ? comment
+      : !didStayOnTrack
+        ? 'Did not stay on track'
+        : undefined;
+
+    // Mark action as complete (or failed)
+    toggle(id, failed, failureReason);
     if (streak >= 7) {
       HapticManager.context.streakExtended();
     } else {
@@ -471,13 +481,15 @@ export const ActionItem: React.FC<ActionItemProps> = ({
   return (
     <Animated.View entering={FadeIn} style={animatedStyle}>
       <TouchableOpacity onPress={handleToggle} onLongPress={handleLongPress} activeOpacity={0.7}>
-        <View style={[styles.card, done && styles.cardDone]}>
+        <View style={[styles.card, done && !failed && styles.cardDone, failed && styles.cardFailed]}>
           <BlurView intensity={10} tint="dark" style={StyleSheet.absoluteFillObject} />
-          
+
           {/* Subtle gradient overlay */}
           <LinearGradient
-            colors={done 
-              ? ['rgba(34, 197, 94, 0.05)', 'rgba(34, 197, 94, 0.02)']
+            colors={done
+              ? failed
+                ? ['rgba(239, 68, 68, 0.05)', 'rgba(239, 68, 68, 0.02)']
+                : ['rgba(34, 197, 94, 0.05)', 'rgba(34, 197, 94, 0.02)']
               : ['rgba(255, 255, 255, 0.03)', 'rgba(255, 255, 255, 0.01)']}
             style={StyleSheet.absoluteFillObject}
           />
@@ -486,14 +498,27 @@ export const ActionItem: React.FC<ActionItemProps> = ({
             {/* Premium Checkbox */}
             <Animated.View style={[styles.checkbox, checkboxStyle]}>
               {done ? (
-                <View style={styles.checkboxChecked}>
-                  <LinearGradient
-                    colors={[LuxuryTheme.colors.primary.gold, LuxuryTheme.colors.primary.champagne]}
-                    style={StyleSheet.absoluteFillObject}
-                  />
-                  <CheckCircle2 color="#000" size={24} strokeWidth={3} />
-                </View>
+                failed ? (
+                  // Failed state: Red X
+                  <View style={styles.checkboxFailed}>
+                    <LinearGradient
+                      colors={['#ef4444', '#dc2626']}
+                      style={StyleSheet.absoluteFillObject}
+                    />
+                    <Text style={styles.failedMark}>✕</Text>
+                  </View>
+                ) : (
+                  // Success state: Green/Gold checkmark
+                  <View style={styles.checkboxChecked}>
+                    <LinearGradient
+                      colors={[LuxuryTheme.colors.primary.gold, LuxuryTheme.colors.primary.champagne]}
+                      style={StyleSheet.absoluteFillObject}
+                    />
+                    <CheckCircle2 color="#000" size={24} strokeWidth={3} />
+                  </View>
+                )
               ) : (
+                // Not done: Empty circle
                 <Circle color={LuxuryTheme.colors.text.tertiary} size={24} strokeWidth={1.5} />
               )}
             </Animated.View>
@@ -610,6 +635,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(34, 197, 94, 0.03)',
     borderColor: 'rgba(34, 197, 94, 0.15)',
   },
+  cardFailed: {
+    backgroundColor: 'rgba(239, 68, 68, 0.03)',
+    borderColor: 'rgba(239, 68, 68, 0.15)',
+  },
   row: { 
     flexDirection: 'row', 
     alignItems: 'center',
@@ -625,6 +654,19 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  checkboxFailed: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  failedMark: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
   content: {
     flex: 1,

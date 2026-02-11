@@ -15,6 +15,8 @@ export type ActionItem = {
   time?: string;
   streak: number;
   done?: boolean;
+  failed?: boolean;            // True if action was attempted but user failed (abstinence violations)
+  failure_reason?: string;     // Optional reason for failure
   // Abstinence flag
   isAbstinence?: boolean;      // True for "avoid" actions (No Social Media, No Alcohol)
   // Challenge-related fields
@@ -46,7 +48,7 @@ export type DailySlice = {
   actionsLoading: boolean;
   actionsError: string | null;
   fetchDailyActions: () => Promise<void>;
-  toggleAction: (id: string) => Promise<void>;
+  toggleAction: (id: string, failed?: boolean, failureReason?: string) => Promise<void>;
   addAction: (a: Partial<ActionItem>) => Promise<void>;
   updateAction: (id: string, updates: Partial<ActionItem>) => Promise<void>;
   deleteAction: (id: string) => Promise<void>;
@@ -249,8 +251,8 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
     }
   },
   
-  toggleAction: async (id) => {
-    if (__DEV__) console.log('🟦 [ACTIONS] toggleAction called for ID:', id);
+  toggleAction: async (id, failed?: boolean, failureReason?: string) => {
+    if (__DEV__) console.log('🟦 [ACTIONS] toggleAction called for ID:', id, { failed, failureReason });
 
     // Find the action to check if it's from a challenge
     const action = get().actions.find(a => a.id === id);
@@ -272,7 +274,7 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
           set((s) => ({
             actions: s.actions.map(a =>
               a.id === id
-                ? { ...a, done: false }
+                ? { ...a, done: false, failed: false, failure_reason: undefined }
                 : a
             )
           }));
@@ -321,14 +323,14 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
         }
       } else {
         // Regular action completion
-        const response = await backendService.completeAction(id);
+        const response = await backendService.completeAction(id, failed, failureReason);
         if (__DEV__) console.log('🟦 [ACTIONS] Complete action response:', response);
 
         if (response.success) {
           set((s) => {
             const updatedActions = s.actions.map(a =>
               a.id === id
-                ? { ...a, done: true /* TODO: Fix and re-enable streaks - See mvpfix.md Issue #1 */, streak: 0 }
+                ? { ...a, done: true, failed: failed || false, failure_reason: failureReason /* TODO: Fix and re-enable streaks - See mvpfix.md Issue #1 */, streak: 0 }
                 : a
             );
 
