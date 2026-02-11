@@ -4,16 +4,8 @@ import ChallengeDebugV2 from '../utils/challengeDebugV2';
 
 // Supabase project configuration
 // Fallback to hardcoded values if env vars not set (for EAS builds)
-// Supabase URL must be provided via environment variable
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
-if (!SUPABASE_URL) {
-  throw new Error('EXPO_PUBLIC_SUPABASE_URL environment variable is required');
-}
-// Supabase anon key must be provided via environment variable
-const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-if (!SUPABASE_ANON_KEY) {
-  throw new Error('EXPO_PUBLIC_SUPABASE_ANON_KEY environment variable is required');
-}
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://ojusijzhshvviqjeyhyn.supabase.co';
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qdXNpanpoc2h2dmlxamV5aHluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NjU3MjQsImV4cCI6MjA3MTE0MTcyNH0.rlQ9lIGzoaLTOW-5-W0G1J1A0WwvqZMnhGHW-FwV8GQ';
 
 // Log which database we're using
 if (__DEV__) {
