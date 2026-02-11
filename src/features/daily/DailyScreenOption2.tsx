@@ -27,6 +27,14 @@ import { featureFlags } from '../../services/featureFlags.service';
 import { backendService } from '../../services/backend.service';
 import { FeedSkeleton } from '../../components/SkeletonLoader';
 import { LoadingSpinner } from '../../ui/LoadingSpinner';
+import { DailyProgressRing } from './components/DailyProgressRing';
+import { SectionDivider } from './components/SectionDivider';
+import { SectionHeader } from './components/SectionHeader';
+import { CommitmentCard } from './components/CommitmentCard';
+import { TimelineCard } from './components/TimelineCard';
+import { TimelineDot } from './components/TimelineDot';
+import { AddActionButton } from './components/AddActionButton';
+import { GoalCard } from './GoalCard';
 
 const getCategoryIcon = (title: string, goalTitle?: string) => {
   const text = `${title} ${goalTitle}`.toLowerCase();
@@ -55,6 +63,7 @@ export const DailyScreenOption2 = () => {
   const insets = useSafeAreaInsets();
   const actions = useStore(s => s.actions);
   const goals = useStore(s => s.goals);
+  const challenges = useStore(s => s.activeChallenges);
   const actionsLoading = useStore(s => s.actionsLoading);
   const actionsError = useStore(s => s.actionsError);
   const fetchDailyActions = useStore(s => s.fetchDailyActions);
@@ -161,6 +170,24 @@ export const DailyScreenOption2 = () => {
   const getWeekProgress = () => {
     return weeklyProgress;
   };
+
+  const isActionActive = (action: any): boolean => {
+    if (action.done || !action.time) return false;
+
+    const now = new Date();
+    const [hours, minutes] = action.time.split(':').map(Number);
+    const actionTime = new Date();
+    actionTime.setHours(hours, minutes, 0, 0);
+
+    const diffMinutes = (now.getTime() - actionTime.getTime()) / 60000;
+    return diffMinutes >= 0 && diffMinutes < 30;
+  };
+
+  const activeChallenge = challenges && challenges.length > 0 ? challenges[0] : null;
+  const challengeName = activeChallenge?.name;
+  const currentDay = activeChallenge?.my_participation?.current_day || 1;
+  const totalDays = activeChallenge?.duration_days || 30;
+  const challengeProgress = activeChallenge ? Math.round((currentDay / totalDays) * 100) : 0;
 
   const handleTaskToggle = (action: any) => {
     const now = Date.now();
@@ -732,23 +759,37 @@ export const DailyScreenOption2 = () => {
           style={styles.header}
         >
           <Text style={styles.greeting}>{getGreeting()}</Text>
-          <Text style={styles.dateInfo}>{getDateString()}</Text>
-          <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{completed}/{actions.length}</Text>
-              <Text style={styles.statLabel}>Complete</Text>
-            </View>
-            {/* TODO: Fix and re-enable streaks - See mvpfix.md Issue #1 */}
-            {/* <View style={styles.statCard}>
-              <Text style={styles.statValue}>{currentStreak}</Text>
-              <Text style={styles.statLabel}>Day Streak</Text>
-            </View> */}
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{getWeekProgress()}%</Text>
-              <Text style={styles.statLabel}>This Week</Text>
+          <Text style={styles.date}>{getDateString()}</Text>
+
+          <View style={styles.progressSection}>
+            <DailyProgressRing completed={completed} total={actions.length} />
+            <View style={styles.statsCol}>
+              <View style={styles.statRow}>
+                <View style={styles.statCard}>
+                  <Text style={styles.statValue}>{progress}%</Text>
+                  <Text style={styles.statLabel}>TODAY</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Text style={styles.statValue}>{getWeekProgress()}%</Text>
+                  <Text style={styles.statLabel}>THIS WEEK</Text>
+                </View>
+              </View>
             </View>
           </View>
         </Animated.View>
+
+        {activeChallenge && (
+          <View style={styles.goalSection}>
+            <GoalCard
+              title={challengeName || ''}
+              currentDay={currentDay}
+              totalDays={totalDays}
+              progressPercent={challengeProgress}
+            />
+          </View>
+        )}
+
+        <SectionDivider />
 
         {/* Show skeleton during initial load */}
         {actionsLoading && actions.length === 0 ? (
@@ -764,98 +805,71 @@ export const DailyScreenOption2 = () => {
           renderEmptyState()
         ) : (
           <>
-            {/* Abstinence Actions Section */}
             {abstinenceActions.length > 0 && (
-              <Animated.View
-                entering={FadeInDown.delay(200).springify()}
-                style={styles.abstinenceSection}
-              >
-                <Text style={styles.sectionTitle}>ALL-DAY COMMITMENTS</Text>
-                {abstinenceActions.map((action, index) => {
-                  const icon = getCategoryIcon(action.title, action.goalTitle);
-
-                  return (
+              <>
+                <SectionHeader
+                  title="ALL-DAY COMMITMENTS"
+                  completedCount={abstinenceActions.filter(a => a.done).length}
+                  totalCount={abstinenceActions.length}
+                />
+                <View style={styles.commitmentsSection}>
+                  {abstinenceActions.map((action, index) => (
                     <Animated.View
                       key={action.id}
                       entering={FadeInDown.delay(index * 50).springify()}
-                      style={styles.abstinenceItem}
                     >
-                      <Pressable
-                        style={[styles.card, action.done && styles.cardCompleted]}
+                      <CommitmentCard
+                        action={action}
                         onPress={() => handleTaskToggle(action)}
                         onLongPress={() => handleActionLongPress(action)}
-                      >
-                        <View style={styles.cardHeader}>
-                          <Text style={styles.activityIcon}>{icon}</Text>
-                          <Text style={[
-                            styles.activityName,
-                            action.done && styles.activityNameCompleted
-                          ]}>
-                            {action.title}
-                          </Text>
-                          {action.done && <Text style={styles.checkIcon}>✓</Text>}
-                        </View>
-                        {(action.goalTitle || action.challengeName) && (
-                          <Text style={styles.cardDetails}>
-                            {[action.challengeName, action.goalTitle].filter(Boolean).join(' • ')}
-                          </Text>
-                        )}
-                      </Pressable>
+                      />
                     </Animated.View>
-                  );
-                })}
-              </Animated.View>
+                  ))}
+                </View>
+                <SectionDivider />
+              </>
             )}
 
-            {/* Timed Actions Timeline */}
             {timedActions.length > 0 && (
-              <Animated.View
-                entering={FadeInDown.delay(abstinenceActions.length * 50 + 200).springify()}
-                style={styles.timeline}
-              >
-                {abstinenceActions.length > 0 && (
-                  <Text style={[styles.sectionTitle, { marginBottom: 16 }]}>SCHEDULED ACTIONS</Text>
-                )}
-                <LinearGradient
-                  colors={['#E7B43A', 'rgba(231,180,58,0.2)']}
-                  style={styles.timelineLine}
+              <>
+                <SectionHeader
+                  title="SCHEDULED ACTIONS"
+                  completedCount={timedActions.filter(a => a.done).length}
+                  totalCount={timedActions.length}
                 />
-                {timedActions.map((action, index) => {
-                  const icon = getCategoryIcon(action.title, action.goalTitle);
+                <View style={styles.timelineSection}>
+                  <LinearGradient
+                    colors={['#D4AF37', 'rgba(231,180,58,0.15)']}
+                    style={styles.timelineLine}
+                  />
+                  {timedActions.map((action, index) => {
+                    const state = action.done ? 'done' : isActionActive(action) ? 'active' : 'default';
 
-                  return (
-                    <Animated.View
-                      key={action.id}
-                      entering={FadeInDown.delay(index * 50).springify()}
-                      style={styles.timelineItem}
-                    >
-                      <Text style={styles.time}>{formatTime24(action.time)}</Text>
-                      <View style={[styles.dot, action.done && styles.dotCompleted]} />
-                      <Pressable
-                        style={[styles.card, action.done && styles.cardCompleted]}
-                        onPress={() => handleTaskToggle(action)}
-                        onLongPress={() => handleActionLongPress(action)}
+                    return (
+                      <Animated.View
+                        key={action.id}
+                        entering={FadeInDown.delay(index * 50).springify()}
+                        style={styles.timelineItem}
                       >
-                        <View style={styles.cardHeader}>
-                          <Text style={styles.activityIcon}>{icon}</Text>
-                          <Text style={[
-                            styles.activityName,
-                            action.done && styles.activityNameCompleted
-                          ]}>
-                            {action.title}
-                          </Text>
-                          {action.done && <Text style={styles.checkIcon}>✓</Text>}
-                        </View>
-                        {(action.goalTitle || action.challengeName) && (
-                          <Text style={styles.cardDetails}>
-                            {[action.challengeName, action.goalTitle].filter(Boolean).join(' • ')}
-                          </Text>
-                        )}
-                      </Pressable>
-                    </Animated.View>
-                  );
-                })}
-              </Animated.View>
+                        <Text style={styles.timeLabel}>{formatTime24(action.time)}</Text>
+                        <TimelineDot state={state} />
+                        <TimelineCard
+                          action={action}
+                          state={state}
+                          onPress={() => handleTaskToggle(action)}
+                          onLongPress={() => handleActionLongPress(action)}
+                        />
+                      </Animated.View>
+                    );
+                  })}
+                </View>
+              </>
+            )}
+
+            {actions.length > 0 && (
+              <View style={styles.addActionSection}>
+                <AddActionButton onPress={() => {}} />
+              </View>
             )}
           </>
         )}
@@ -943,8 +957,9 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   header: {
-    padding: 20,
     paddingTop: 20,
+    paddingLeft: 24,
+    paddingRight: 24,
     paddingBottom: 24,
   },
   skeletonContainer: {
@@ -955,17 +970,26 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: '#FFD700',
-    marginBottom: 8,
     letterSpacing: -0.5,
+    marginBottom: 4,
   },
-  dateInfo: {
+  date: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.5)',
-    marginBottom: 16,
+    color: 'rgba(255,255,255,0.50)',
+    marginBottom: 20,
   },
-  statsRow: {
+  progressSection: {
     flexDirection: 'row',
-    gap: 12,
+    alignItems: 'center',
+    gap: 20,
+  },
+  statsCol: {
+    flex: 1,
+    gap: 8,
+  },
+  statRow: {
+    flexDirection: 'row',
+    gap: 8,
   },
   statCard: {
     flex: 1,
@@ -973,38 +997,33 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
     borderRadius: 12,
-    padding: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
-    marginBottom: 4,
-    color: '#E7B43A',
+    color: '#FFC84A',
+    marginBottom: 2,
   },
   statLabel: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.4)',
-    textTransform: 'uppercase',
-  },
-  sectionTitle: {
     fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-    color: 'rgba(255,255,255,0.4)',
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.40)',
     textTransform: 'uppercase',
-    marginBottom: 12,
+    letterSpacing: 0.5,
   },
-  abstinenceSection: {
-    padding: 20,
-    paddingTop: 24,
+  goalSection: {
+    paddingHorizontal: 20,
+    marginBottom: 8,
   },
-  abstinenceItem: {
-    marginBottom: 12,
+  commitmentsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 8,
   },
-  timeline: {
-    padding: 20,
-    paddingTop: 24,
+  timelineSection: {
+    paddingHorizontal: 20,
     position: 'relative',
   },
   timelineLine: {
@@ -1013,75 +1032,29 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 2,
+    borderRadius: 1,
   },
   timelineItem: {
     position: 'relative',
-    paddingLeft: 60,
-    marginBottom: 28,
+    paddingLeft: 44,
+    marginBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
-  time: {
+  timeLabel: {
     position: 'absolute',
     left: 0,
-    top: 2,
+    top: 0,
+    width: 32,
+    textAlign: 'right',
     fontSize: 11,
-    color: 'rgba(255,255,255,0.4)',
     fontWeight: '600',
+    color: 'rgba(255,255,255,0.40)',
+    paddingTop: 14,
   },
-  dot: {
-    position: 'absolute',
-    left: 32,
-    top: 4,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderWidth: 2,
-    borderColor: '#000',
-    zIndex: 10,
-  },
-  dotCompleted: {
-    backgroundColor: '#E7B43A',
-    shadowColor: '#E7B43A',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 12,
-  },
-  card: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 14,
-    padding: 14,
-  },
-  cardCompleted: {
-    backgroundColor: 'rgba(231,180,58,0.1)',
-    borderColor: 'rgba(231,180,58,0.2)',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 8,
-  },
-  activityIcon: {
-    fontSize: 20,
-  },
-  activityName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
-    flex: 1,
-  },
-  activityNameCompleted: {
-    color: '#E7B43A',
-  },
-  checkIcon: {
-    fontSize: 16,
-    color: '#E7B43A',
-  },
-  cardDetails: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.5)',
+  addActionSection: {
+    paddingTop: 16,
+    paddingHorizontal: 20,
   },
   emptyState: {
     alignItems: 'center',
