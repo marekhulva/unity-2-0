@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
     borderRadius: 14,
-    paddingVertical: 14,
+    paddingVertical: 8,
     paddingHorizontal: 16,
     position: 'relative',
     overflow: 'hidden',
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
   },
   emoji: {
     fontSize: 20,
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#FFFFFF',
-    marginBottom: 4,
+    marginBottom: 1,
   },
   titleDone: {
     color: 'rgba(255,255,255,0.40)',

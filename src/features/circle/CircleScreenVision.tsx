@@ -293,12 +293,20 @@ export const CircleScreenVision = () => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Pinned Header - Clean UNITY Style */}
-      <View style={styles.pinnedHeader}>
-        <Text style={styles.pinnedHeaderText}>{activeCircle?.name || 'CIRCLE'}</Text>
+      {/* Header - Same as Social page */}
+      <View style={styles.header}>
+        <Text style={styles.logoText}>UNITY</Text>
+        <View style={styles.headerActions}>
+          <Pressable
+            style={styles.headerButton}
+            onPress={() => setShowJoinCircleModal(true)}
+          >
+            <UserPlus size={20} color="#FFD700" />
+          </Pressable>
+        </View>
       </View>
 
-      {/* Gold accent line */}
+      {/* Gold underline - Same as Social page */}
       <LinearGradient
         colors={['transparent', '#FFD700', 'transparent']}
         start={{ x: 0, y: 0 }}
@@ -1029,25 +1037,33 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
 
-  pinnedHeader: {
+  header: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
 
-  pinnedHeaderText: {
+  logoText: {
     fontSize: 24,
     fontWeight: '800',
     color: '#FFD700',
     letterSpacing: 3,
   },
 
+  headerActions: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+
+  headerButton: {
+    padding: 8,
+  },
+
   goldLine: {
     height: 1,
     marginHorizontal: 20,
-    marginBottom: 16,
   },
 
   contentHeader: {

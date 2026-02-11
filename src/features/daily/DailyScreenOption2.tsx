@@ -746,6 +746,20 @@ export const DailyScreenOption2 = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#000' }]} />
 
+      {/* Header - Pinned like Social page */}
+      <View style={styles.headerTop}>
+        <Text style={styles.logoText}>UNITY</Text>
+        <Text style={styles.dateText}>{getDateString()}</Text>
+      </View>
+
+      {/* Gold underline - Pinned */}
+      <LinearGradient
+        colors={['transparent', '#FFD700', 'transparent']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.goldLine}
+      />
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[
@@ -754,13 +768,11 @@ export const DailyScreenOption2 = () => {
         ]}
         showsVerticalScrollIndicator={false}
       >
+
         <Animated.View
           entering={FadeInDown.duration(400).springify()}
-          style={styles.header}
+          style={styles.progressContainer}
         >
-          <Text style={styles.greeting}>{getGreeting()}</Text>
-          <Text style={styles.date}>{getDateString()}</Text>
-
           <View style={styles.progressSection}>
             <DailyProgressRing completed={completed} total={actions.length} />
             <View style={styles.statsCol}>
@@ -956,7 +968,31 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: 0,
   },
-  header: {
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  logoText: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#FFD700',
+    letterSpacing: 3,
+  },
+  goldLine: {
+    height: 1,
+    marginHorizontal: 20,
+  },
+  dateText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.50)',
+    letterSpacing: 0.5,
+    paddingTop: 4,
+  },
+  progressContainer: {
     paddingTop: 20,
     paddingLeft: 24,
     paddingRight: 24,
@@ -965,18 +1001,6 @@ const styles = StyleSheet.create({
   skeletonContainer: {
     padding: 20,
     gap: 16,
-  },
-  greeting: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#FFD700',
-    letterSpacing: -0.5,
-    marginBottom: 4,
-  },
-  date: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.50)',
-    marginBottom: 20,
   },
   progressSection: {
     flexDirection: 'row',
