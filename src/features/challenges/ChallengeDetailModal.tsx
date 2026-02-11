@@ -34,6 +34,112 @@ export const ChallengeDetailModal = ({ visible, challengeId, onClose }: Challeng
     }
   };
 
+  const renderDescriptionBody = (description: string) => {
+    const allBlocks = description.split('\n\n');
+    if (allBlocks.length <= 1) return null;
+
+    const contentBlocks = allBlocks.slice(1);
+    const sections: { header?: string; bullets: string[]; bodyLines: string[] }[] = [];
+    let current: { header?: string; bullets: string[]; bodyLines: string[] } | null = null;
+
+    for (const block of contentBlocks) {
+      const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
+      if (lines.length === 0) continue;
+      const first = lines[0];
+      const isHeader = /^[A-Z][A-Z\s]+$/.test(first);
+
+      if (isHeader) {
+        if (current) sections.push(current);
+        const rest = lines.slice(1);
+        current = {
+          header: first,
+          bullets: rest.filter(l => l.startsWith('• ')).map(l => l.slice(2)),
+          bodyLines: rest.filter(l => !l.startsWith('• ')),
+        };
+      } else if (current && current.bullets.length === 0 && current.bodyLines.length === 0) {
+        current.bullets = lines.filter(l => l.startsWith('• ')).map(l => l.slice(2));
+        current.bodyLines = lines.filter(l => !l.startsWith('• '));
+      } else {
+        if (current) sections.push(current);
+        current = {
+          bullets: lines.filter(l => l.startsWith('• ')).map(l => l.slice(2)),
+          bodyLines: lines.filter(l => !l.startsWith('• ')),
+        };
+      }
+    }
+    if (current) sections.push(current);
+
+    return (
+      <>
+        <View style={styles.descDividerWrap}>
+          <View style={styles.descDividerLine} />
+        </View>
+        {sections.map((section, idx) => {
+          const hasBullets = section.bullets.length > 0;
+          const hasBody = section.bodyLines.length > 0;
+
+          if (section.header && hasBullets) {
+            return (
+              <View key={idx} style={styles.descCard}>
+                <LinearGradient
+                  colors={['rgba(255,215,0,0.05)', 'rgba(0,0,0,0)']}
+                  style={StyleSheet.absoluteFillObject}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                />
+                <Text style={styles.descSectionHeader}>{section.header}</Text>
+                {section.bullets.map((bullet, i) => {
+                  const parts = bullet.split(' — ');
+                  return (
+                    <View
+                      key={i}
+                      style={[
+                        styles.descActivityRow,
+                        i < section.bullets.length - 1 && styles.descActivityRowBorder,
+                      ]}
+                    >
+                      <View style={styles.descGoldDot} />
+                      <View style={styles.descActivityContent}>
+                        <Text style={styles.descActivityName}>{parts[0]}</Text>
+                        {parts[1] && (
+                          <Text style={styles.descActivityDetail}>{parts[1]}</Text>
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            );
+          }
+
+          if (section.header && hasBody) {
+            return (
+              <View key={idx} style={styles.descQuoteSection}>
+                <Text style={styles.descSectionHeader}>{section.header}</Text>
+                <Text style={styles.descQuoteText}>
+                  {section.bodyLines.join(' ')}
+                </Text>
+              </View>
+            );
+          }
+
+          if (hasBody) {
+            return (
+              <View key={idx} style={styles.descCallout}>
+                <View style={styles.descCalloutAccent} />
+                <Text style={styles.descCalloutText}>
+                  {section.bodyLines.join(' ')}
+                </Text>
+              </View>
+            );
+          }
+
+          return null;
+        })}
+      </>
+    );
+  };
+
   if (!visible) return null;
 
   const challenge = currentChallenge;
@@ -75,9 +181,13 @@ export const ChallengeDetailModal = ({ visible, challengeId, onClose }: Challeng
               <Text style={styles.emoji}>{challenge.emoji}</Text>
               <Text style={styles.challengeName}>{challenge.name}</Text>
               {challenge.description && (
-                <Text style={styles.description}>{challenge.description}</Text>
+                <Text style={styles.descriptionTagline}>
+                  {challenge.description.split('\n\n')[0]}
+                </Text>
               )}
             </View>
+
+            {challenge.description && renderDescriptionBody(challenge.description)}
 
             <View style={styles.statsRow}>
               <View style={styles.statBox}>
@@ -347,12 +457,95 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 12,
   },
-  description: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.7)',
+  descriptionTagline: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.5)',
     textAlign: 'center',
-    lineHeight: 24,
-    maxWidth: '90%',
+    lineHeight: 22,
+    letterSpacing: 0.3,
+  },
+  descDividerWrap: {
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 28,
+  },
+  descDividerLine: {
+    width: 40,
+    height: 1,
+    backgroundColor: 'rgba(255,215,0,0.35)',
+  },
+  descCard: {
+    marginBottom: 20,
+    padding: 20,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.1)',
+  },
+  descSectionHeader: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFD700',
+    letterSpacing: 3,
+    marginBottom: 16,
+  },
+  descActivityRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+  },
+  descActivityRowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
+  descGoldDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 9999,
+    backgroundColor: '#FFD700',
+    marginTop: 7,
+    marginRight: 14,
+  },
+  descActivityContent: {
+    flex: 1,
+  },
+  descActivityName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    lineHeight: 20,
+  },
+  descActivityDetail: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.4)',
+    marginTop: 3,
+    lineHeight: 18,
+  },
+  descQuoteSection: {
+    marginBottom: 20,
+    paddingHorizontal: 4,
+  },
+  descQuoteText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.55)',
+    lineHeight: 22,
+  },
+  descCallout: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    paddingHorizontal: 4,
+  },
+  descCalloutAccent: {
+    width: 2,
+    backgroundColor: '#FFD700',
+    borderRadius: 1,
+    marginRight: 14,
+  },
+  descCalloutText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.45)',
+    lineHeight: 22,
+    flex: 1,
   },
   statsRow: {
     flexDirection: 'row',

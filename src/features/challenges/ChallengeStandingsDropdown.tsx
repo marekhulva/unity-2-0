@@ -62,9 +62,10 @@ export const ChallengeStandingsDropdown: React.FC<ChallengeStandingsDropdownProp
 
   const activeCount = leaderboard.filter(e => (e.completion_percentage || 0) > 0).length;
 
-  const currentDay = leaderboard.length > 0
-    ? Math.max(...leaderboard.map(e => e.completed_days || 0), 1)
-    : 1;
+  const myEntry = leaderboard.find(e => e.user_id === currentUser?.id);
+  const currentDay = myEntry?.current_day
+    ? Math.min(myEntry.current_day, durationDays)
+    : (leaderboard.length > 0 ? Math.min(Math.max(...leaderboard.map(e => e.current_day || 0), 1), durationDays) : 1);
 
   if (loading) {
     return (
@@ -84,8 +85,8 @@ export const ChallengeStandingsDropdown: React.FC<ChallengeStandingsDropdownProp
       {/* Stats Row */}
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>{currentDay}</Text>
-          <Text style={styles.statLabel}>DAYS IN</Text>
+          <Text style={styles.statValue}>{currentDay}/{durationDays}</Text>
+          <Text style={styles.statLabel}>DAY</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statValue}>{activeCount}</Text>

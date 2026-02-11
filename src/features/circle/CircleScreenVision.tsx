@@ -26,6 +26,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
+import { UnityHeader } from '../../components/UnityHeader';
 import Svg, { Circle as SvgCircle } from 'react-native-svg';
 import {
   Users,
@@ -46,6 +47,12 @@ import {
   Edit,
   LogOut,
   UserPlus,
+  Dumbbell,
+  Brain,
+  BookOpen,
+  Apple,
+  Star,
+  Zap,
 } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -57,11 +64,23 @@ import { ProfileScreen } from '../profile/ProfileScreenVision';
 import { JoinCircleModal } from '../social/JoinCircleModal';
 import { ChallengeDetailModal } from '../challenges/ChallengeDetailModal';
 import { ChallengeStandingsDropdown } from '../challenges/ChallengeStandingsDropdown';
+import { supabaseChallengeService } from '../../services/supabase.challenges.service';
 import { CreateChallengeModal } from '../challenges/CreateChallengeModal';
 import { CreateCircleModal } from '../social/CreateCircleModal';
 
 type TabType = 'overview' | 'community';
 type MemberFilter = 'all' | 'admins' | 'mostActive';
+
+const getChallengeIcon = (name: string, size: number = 24) => {
+  const lowerName = (name || '').toLowerCase();
+  const color = '#E7B43A';
+  if (lowerName.includes('fit') || lowerName.includes('workout') || lowerName.includes('hard')) return <Dumbbell size={size} color={color} strokeWidth={2} />;
+  if (lowerName.includes('meditat') || lowerName.includes('mind') || lowerName.includes('zen') || lowerName.includes('detox') || lowerName.includes('mental')) return <Brain size={size} color={color} strokeWidth={2} />;
+  if (lowerName.includes('product') || lowerName.includes('morning') || lowerName.includes('am')) return <Zap size={size} color={color} strokeWidth={2} />;
+  if (lowerName.includes('read') || lowerName.includes('book') || lowerName.includes('learn')) return <BookOpen size={size} color={color} strokeWidth={2} />;
+  if (lowerName.includes('eat') || lowerName.includes('nutrit') || lowerName.includes('diet') || lowerName.includes('sugar')) return <Apple size={size} color={color} strokeWidth={2} />;
+  return <Star size={size} color={color} strokeWidth={2} />;
+};
 
 interface Post {
   id: string;
@@ -105,6 +124,7 @@ export const CircleScreenVision = () => {
   const [expandedStandingsId, setExpandedStandingsId] = useState<string | null>(null);
   const [showCreateChallenge, setShowCreateChallenge] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [myParticipations, setMyParticipations] = useState<Record<string, any>>({});
 
   const [memberFilter, setMemberFilter] = useState<MemberFilter>('all');
   const [memberSearch, setMemberSearch] = useState('');
@@ -225,6 +245,19 @@ export const CircleScreenVision = () => {
     }
   }, [circleMembers, calculateMemberStats]);
 
+  useEffect(() => {
+    if (circleChallenges.length === 0 || !user) return;
+    const fetchParticipations = async () => {
+      const participations: Record<string, any> = {};
+      for (const c of circleChallenges) {
+        const p = await supabaseChallengeService.getMyParticipation(c.id);
+        if (p) participations[c.id] = p;
+      }
+      setMyParticipations(participations);
+    };
+    fetchParticipations();
+  }, [circleChallenges, user]);
+
   const handleMemberPress = (userId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedUserId(userId);
@@ -298,25 +331,15 @@ export const CircleScreenVision = () => {
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-      {/* Header - Same as Social page */}
-      <View style={styles.header}>
-        <Text style={styles.logoText}>UNITY</Text>
-        <View style={styles.headerActions}>
+      <UnityHeader
+        rightContent={
           <Pressable
             style={styles.headerButton}
             onPress={() => setShowJoinCircleModal(true)}
           >
             <UserPlus size={20} color="#FFD700" />
           </Pressable>
-        </View>
-      </View>
-
-      {/* Gold underline - Same as Social page */}
-      <LinearGradient
-        colors={['transparent', '#FFD700', 'transparent']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.goldLine}
+        }
       />
 
       <ScrollView
@@ -324,39 +347,29 @@ export const CircleScreenVision = () => {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Circle Switcher + Settings in content area */}
-        <View style={styles.contentHeader}>
+        {/* Circle Switcher */}
+        <Pressable
+          style={styles.circleCard}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setShowCircleSwitcher(true);
+          }}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.circleNameCentered}>{activeCircle?.name || 'Circle'}</Text>
+            <Text style={styles.circleMemberCountCentered}>{activeCircle?.member_count || 0} members</Text>
+          </View>
+          <ChevronDown size={16} color="#E7B43A" />
           <Pressable
-            style={styles.circleSwitcherButton}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setShowCircleSwitcher(true);
-            }}
-          >
-            <View style={[styles.circleIconSmall, { backgroundColor: 'transparent' }]}>
-              <LinearGradient
-                colors={['#E7B43A', '#FFD700']}
-                style={StyleSheet.absoluteFillObject}
-              />
-              <Text style={styles.circleIconSmallText}>{activeCircle?.emoji || '💪'}</Text>
-            </View>
-            <View style={styles.circleTitleInfo}>
-              <Text style={styles.circleName}>{activeCircle?.name || 'Circle'}</Text>
-              <Text style={styles.circleMemberCount}>{activeCircle?.member_count || 0} members</Text>
-            </View>
-            <ChevronDown size={16} color="#E7B43A" />
-          </Pressable>
-
-          <Pressable
-            style={styles.settingsButton}
+            style={styles.circleCardBtn}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setShowSettings(true);
             }}
           >
-            <Settings size={20} color="rgba(255,255,255,0.6)" />
+            <Settings size={18} color="rgba(255,255,255,0.4)" />
           </Pressable>
-        </View>
+        </Pressable>
 
         {/* Active Challenges - Top Section */}
         {circleChallenges.length > 0 && (
@@ -369,6 +382,10 @@ export const CircleScreenVision = () => {
             </View>
             {circleChallenges.slice(0, 3).map((challenge, index) => {
               const isExpanded = expandedStandingsId === challenge.id;
+              const myP = myParticipations[challenge.id];
+              const isCompleted = myP?.status === 'completed';
+              const isFailed = myP?.status === 'failed';
+              const myDay = myP?.current_day || null;
               return (
                 <Animated.View
                   key={challenge.id}
@@ -379,18 +396,27 @@ export const CircleScreenVision = () => {
                     style={[styles.challengeCardCompact, isExpanded && styles.challengeCardCompactActive]}
                     onPress={() => setSelectedChallengeId(challenge.id)}
                   >
-                    <View style={[styles.challengeIcon, { backgroundColor: 'transparent' }]}>
-                      <LinearGradient
-                        colors={['#4facfe', '#00f2fe']}
-                        style={StyleSheet.absoluteFillObject}
-                      />
-                      <Text style={styles.challengeIconText}>{challenge.emoji || '🎯'}</Text>
+                    <View style={styles.challengeIconGold}>
+                      {getChallengeIcon(challenge.name, 22)}
                     </View>
                     <View style={styles.challengeContent}>
                       <Text style={styles.challengeTitleCompact}>{challenge.name}</Text>
                       <Text style={styles.challengeMeta}>
                         {challenge.duration_days} days • {challenge.participant_count || 0} participants
                       </Text>
+                      {isCompleted && (
+                        <View style={styles.challengeStatusBadge}>
+                          <Text style={styles.challengeStatusText}>Completed</Text>
+                        </View>
+                      )}
+                      {isFailed && (
+                        <View style={[styles.challengeStatusBadge, styles.challengeStatusFailed]}>
+                          <Text style={[styles.challengeStatusText, styles.challengeStatusTextFailed]}>Challenge Over</Text>
+                        </View>
+                      )}
+                      {!isCompleted && !isFailed && myDay && (
+                        <Text style={styles.challengeDayText}>Day {Math.min(myDay, challenge.duration_days)}/{challenge.duration_days}</Text>
+                      )}
                     </View>
                     <Pressable
                       style={[styles.standingsBtn, isExpanded && styles.standingsBtnActive]}
@@ -671,12 +697,8 @@ export const CircleScreenVision = () => {
                       }}
                     >
                       <View style={styles.challengeCardContent}>
-                        <View style={[styles.challengeIcon, { backgroundColor: 'transparent' }]}>
-                          <LinearGradient
-                            colors={['#4facfe', '#00f2fe']}
-                            style={StyleSheet.absoluteFillObject}
-                          />
-                          <Text style={styles.challengeIconText}>{challenge.emoji || '🎯'}</Text>
+                        <View style={styles.challengeIconGold}>
+                          {getChallengeIcon(challenge.name, 22)}
                         </View>
                         <View style={styles.challengeContent}>
                           <Text style={styles.challengeTitle}>{challenge.name}</Text>
@@ -774,20 +796,6 @@ export const CircleScreenVision = () => {
           </View>
         )}
       </ScrollView>
-
-      <Pressable
-        style={[styles.fab, { bottom: insets.bottom + 30 }]}
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          setShowCreateChallenge(true);
-        }}
-      >
-        <LinearGradient
-          colors={['#E7B43A', '#FFD700']}
-          style={StyleSheet.absoluteFillObject}
-        />
-        <Plus size={28} color="#000" />
-      </Pressable>
 
       {selectedUserId && (
         <Modal
@@ -1033,54 +1041,61 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-
-  logoText: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FFD700',
-    letterSpacing: 3,
-  },
-
-  headerActions: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-
   headerButton: {
     padding: 8,
   },
 
-  goldLine: {
-    height: 1,
+  circleCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginHorizontal: 20,
-  },
-
-  contentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
+    marginTop: 12,
+    marginBottom: 12,
     paddingVertical: 12,
-    marginBottom: 8,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16,
+    gap: 12,
   },
 
-  circleSwitcherButton: {
-    flexDirection: 'row',
+  circleAvatarRound: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+
+  circleAvatarText: {
+    fontSize: 18,
+  },
+
+  circleNameCentered: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
     flex: 1,
   },
 
-  settingsButton: {
+  circleMemberCountCentered: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.4)',
+  },
+
+  circleCardActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+
+  circleCardBtn: {
     padding: 8,
-    marginLeft: 12,
+  },
+
+  circleCardBtnText: {
+    display: 'none',
   },
 
   stickyHeader: {
@@ -1120,12 +1135,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#fff',
-  },
-
-  headerActions: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
   },
 
   headerBtn: {
@@ -1363,6 +1372,34 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
   },
+  challengeStatusBadge: {
+    backgroundColor: 'rgba(212,175,55,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(212,175,55,0.25)',
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  challengeStatusText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#D4AF37',
+  },
+  challengeStatusFailed: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  challengeStatusTextFailed: {
+    color: 'rgba(255,255,255,0.4)',
+  },
+  challengeDayText: {
+    fontSize: 10,
+    color: '#E7B43A',
+    fontWeight: '600',
+    marginTop: 4,
+  },
 
   challengeIcon: {
     width: 48,
@@ -1375,6 +1412,17 @@ const styles = StyleSheet.create({
 
   challengeIconText: {
     fontSize: 24,
+  },
+
+  challengeIconGold: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(231,180,58,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(231,180,58,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   challengeContent: {

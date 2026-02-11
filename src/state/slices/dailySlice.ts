@@ -171,10 +171,10 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
         });
 
         // Use already-fetched completion data
-        const completedActivityIds = new Set(
-          todayCompletions.data?.map((c: any) => c.challenge_activity_id) || []
+        const completionMap = new Map(
+          (todayCompletions.data || []).map((c: any) => [c.challenge_activity_id, c.completed_at])
         );
-        if (__DEV__) console.log('✅ [ACTIONS] Already completed today:', completedActivityIds);
+        if (__DEV__) console.log('✅ [ACTIONS] Already completed today:', [...completionMap.keys()]);
 
         // OPTIMIZATION: Extract scheduled times directly from challengeResponse
         // (getUserChallengeActivities already includes scheduledTime for each activity)
@@ -212,7 +212,8 @@ export const createDailySlice: StateCreator<DailySlice> = (set, get) => ({
             frequency: 'Daily',
             time: scheduledTime, // Use the time from activity_times mapping
             streak: 0,
-            done: completedActivityIds.has(activity.id), // Check if already done today
+            done: completionMap.has(activity.id), // Check if already done today
+            completed_at: completionMap.get(activity.id) || null,
             // Challenge-specific fields
             isFromChallenge: true,
             challengeId: activity.challengeId,

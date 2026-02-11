@@ -185,6 +185,7 @@ export interface LeaderboardEntry {
   avatar_url?: string;
   completion_percentage: number;
   completed_days: number;
+  current_day?: number;
   current_streak: number;
   days_taken?: number;
   rank: number;

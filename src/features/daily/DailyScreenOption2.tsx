@@ -11,6 +11,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { UnityHeader } from '../../components/UnityHeader';
 import Animated, { FadeInDown, FadeIn, FadeOut } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -114,13 +115,8 @@ export const DailyScreenOption2 = () => {
     featureFlags.clearCache();
     if (__DEV__) console.log('🔄 [DAILY-OPTION2] Cleared feature flags cache');
 
-    // Only fetch if we don't have data yet (already loaded on app init)
-    if (actions.length === 0 && !actionsLoading) {
-      if (__DEV__) console.log('🟦 [DAILY-OPTION2] No actions cached, fetching...');
-      fetchDailyActions();
-    } else {
-      if (__DEV__) console.log('🟦 [DAILY-OPTION2] Using cached actions:', actions.length);
-    }
+    // Always re-fetch to ensure completions reflect today (not stale from yesterday)
+    fetchDailyActions();
 
     // Fetch weekly progress on mount
     refreshWeeklyProgress();
@@ -746,18 +742,8 @@ export const DailyScreenOption2 = () => {
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
 
-      {/* Header - Pinned like Social page */}
-      <View style={styles.header}>
-        <Text style={styles.logoText}>UNITY</Text>
-        <Text style={styles.dateText}>{getDateString()}</Text>
-      </View>
-
-      {/* Gold underline - Pinned */}
-      <LinearGradient
-        colors={['transparent', '#FFD700', 'transparent']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.goldLine}
+      <UnityHeader
+        rightContent={<Text style={styles.dateText}>{getDateString()}</Text>}
       />
 
       <ScrollView
@@ -971,23 +957,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingTop: 0,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  logoText: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FFD700',
-    letterSpacing: 3,
-  },
-  goldLine: {
-    height: 1,
-    marginHorizontal: 20,
   },
   dateText: {
     fontSize: 14,

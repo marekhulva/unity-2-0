@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Search, Zap, ArrowLeft } from 'lucide-react-native';
+import { Search, Zap, ArrowLeft, Dumbbell, Brain, BookOpen, Apple, Star } from 'lucide-react-native';
 import { useStore } from '../../state/rootStore';
 import type { ChallengeWithDetails } from '../../types/challenges.types';
 import { JoinChallengeFlow } from './JoinChallengeFlow';
@@ -74,6 +74,19 @@ const getCategoryName = (name: string): string => {
   }
 };
 
+const getCategoryIcon = (name: string, size: number = 24) => {
+  const category = getCategoryFromName(name);
+  const color = '#E7B43A';
+  switch (category) {
+    case 'fitness': return <Dumbbell size={size} color={color} strokeWidth={2} />;
+    case 'mindfulness': return <Brain size={size} color={color} strokeWidth={2} />;
+    case 'productivity': return <Zap size={size} color={color} strokeWidth={2} />;
+    case 'reading': return <BookOpen size={size} color={color} strokeWidth={2} />;
+    case 'nutrition': return <Apple size={size} color={color} strokeWidth={2} />;
+    default: return <Star size={size} color={color} strokeWidth={2} />;
+  }
+};
+
 const ActiveChallengeStatusCard = ({ challenge, onPress }: { challenge: ChallengeWithDetails; onPress?: () => void }) => {
   const progress = challenge.my_participation?.completion_percentage || 0;
   const currentDay = challenge.my_participation?.current_day || 1;
@@ -89,7 +102,7 @@ const ActiveChallengeStatusCard = ({ challenge, onPress }: { challenge: Challeng
           end={{ x: 1, y: 1 }}
         >
           <View style={styles.statusIconInner}>
-            <Text style={styles.statusIconText}>{challenge.emoji || '🔥'}</Text>
+            {getCategoryIcon(challenge.name, 22)}
           </View>
         </LinearGradient>
       </View>
@@ -330,8 +343,6 @@ export const ChallengesScreenVision = () => {
 
     return (
       <View style={styles.container}>
-        <LinearGradient colors={['#000000', '#000', '#000000']} style={StyleSheet.absoluteFillObject} />
-
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 120 }]}
@@ -345,7 +356,9 @@ export const ChallengesScreenVision = () => {
           </View>
 
           <View style={styles.detailHero}>
-            <Text style={styles.detailEmoji}>{challenge.emoji}</Text>
+            <View style={styles.detailIconContainer}>
+              {getCategoryIcon(challenge.name, 40)}
+            </View>
             <Text style={styles.detailTitle}>{challenge.name}</Text>
             {challenge.description && (
               <Text style={styles.detailDescription}>{challenge.description}</Text>
@@ -505,8 +518,6 @@ export const ChallengesScreenVision = () => {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#000000', '#000', '#000000']} style={StyleSheet.absoluteFillObject} />
-
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 120 }]}
@@ -1107,6 +1118,17 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.3)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
+  },
+  detailIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    backgroundColor: 'rgba(231,180,58,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(231,180,58,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
   },
   detailTitle: {
     fontSize: 32,

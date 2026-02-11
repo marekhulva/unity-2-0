@@ -16,6 +16,7 @@ import {
   Image
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { UnityHeader } from '../../components/UnityHeader';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
@@ -467,25 +468,15 @@ export const SocialScreenUnified = () => {
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.logoText}>UNITY</Text>
-          <View style={styles.headerActions}>
+        <UnityHeader
+          rightContent={
             <Pressable
               style={styles.headerButton}
               onPress={() => setShowDiscoverModal(true)}
             >
               <UserPlus size={20} color="#FFD700" />
             </Pressable>
-          </View>
-        </View>
-
-        {/* Gold accent line */}
-        <LinearGradient
-          colors={['transparent', '#FFD700', 'transparent']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.goldLine}
+          }
         />
 
         <KeyboardAvoidingView
@@ -583,29 +574,8 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  logoText: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FFD700',
-    letterSpacing: 3,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 16,
-  },
   headerButton: {
     padding: 8,
-  },
-  goldLine: {
-    height: 1,
-    marginHorizontal: 20,
   },
   keyboardView: {
     flex: 1,

@@ -1,6 +1,6 @@
 {
   "name": "7 Day Mental Detox",
-  "description": "7 days to reset your mind and reclaim mental clarity.\n\nWHAT YOU'LL TRACK:\n\nDAY 1:\n🧠 Brain Dump (60 min) - Write everything on your mind\n💪 Exercise (20+ min)\n😴 In Bed by 10:30 PM\n🚫 No Social Media\n🚫 No Long-Form Content\n🧘 Detox Compliance\n\nDAYS 2-7:\n✍️ Freewriting (20 min on pen & paper)\n💪 Exercise (20+ min)\n😴 In Bed by 10:30 PM\n🚫 No Social Media\n🚫 No Long-Form Content\n🧘 Detox Compliance\n\nREPLACEMENT ACTIVITIES (encouraged):\nUse the freed-up time for:\n• 📺 Light TV (comedy, feel-good shows)\n• 📚 High-quality books\n• 💼 Deep work blocks\n• 👥 In-person social interaction\n• 🎨 Creative hobbies\n\nBONUS RECOMMENDATIONS:\n• Avoid alcohol, weed, other vices\n• Get sunlight and movement daily\n• Eat whole, real foods\n• Journal your observations\n\nWHY THIS WORKS:\nYour brain is overstimulated. This detox creates space for clarity, focus, and genuine rest. The first 2-3 days are hardest - boredom is the goal. Let yourself be bored. That's when the reset happens.\n\nRemember: You need 32/42 checkmarks to succeed (75%). That's 6 per day on average. Missing a few is OK - this is about progress, not perfection.",
+  "description": "7 days to reset your mind and reclaim mental clarity.\n\nEVERY DAY\n• Freewriting \u2014 20 min, pen & paper\n• Exercise \u2014 20+ min\n• In Bed by 10:30 PM\n• No Social Media\n• No Long-Form Content\n• Detox Compliance\n\nOn Day 1, Freewriting becomes a 60-minute Brain Dump \u2014 write everything on your mind without stopping.\n\nREPLACEMENT ACTIVITIES\n• Light TV \u2014 comedy, feel-good shows\n• High-quality books\n• Deep work blocks\n• In-person social interaction\n• Creative hobbies\n\nWHY IT WORKS\n\nYour brain is overstimulated. This detox creates space for clarity, focus, and genuine rest. The first 2\u20133 days are hardest \u2014 boredom is the goal. Let yourself be bored. That\u2019s when the reset happens.\n\n32/42 checkmarks to pass (75%). Missing a few is fine \u2014 progress over perfection.",
   "emoji": "🧠",
   "type": "streak",
   "scope": "circle",
@@ -53,6 +53,7 @@
       "title": "No Social Media",
       "emoji": "🚫",
       "frequency": "daily",
+      "is_abstinence": true,
       "description": "Stay off Instagram, TikTok, Twitter, Facebook, and other social media platforms today. (Checking messages/DMs is OK if necessary, but no scrolling feeds)"
     },
     {
@@ -60,13 +61,15 @@
       "title": "No Long-Form Content",
       "emoji": "📵",
       "frequency": "daily",
+      "is_abstinence": true,
       "description": "Avoid YouTube, podcasts, movies, TV shows, and news today. (Exception: Light comedy TV is OK as replacement activity)"
     },
     {
       "id": "detox-compliance",
-      "title": "Detox Compliance",
+      "title": "No Nicotine, Alcohol, Junk Food",
       "emoji": "🧘",
       "frequency": "daily",
+      "is_abstinence": true,
       "description": "Avoid other dopamine-heavy digital inputs today: doom-scrolling, gaming binges, rabbit-hole browsing, etc. Keep digital consumption intentional."
     }
   ]

@@ -15,6 +15,11 @@ import type {
 class SupabaseChallengeService {
   supabase = supabase;
 
+  private getLocalDateString(date?: Date): string {
+    const d = date || new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
   // Ensure activities have IDs (generate from title hash if missing)
   private ensureActivityIds(activities: any[]): any[] {
     if (!activities || !Array.isArray(activities)) return [];
@@ -303,7 +308,7 @@ class SupabaseChallengeService {
 
     const { data: participant, error: participantError } = await supabase
       .from('challenge_participants')
-      .select('user_id, challenge_id')
+      .select('user_id, challenge_id, personal_start_date')
       .eq('id', participantId)
       .single();
 
@@ -312,7 +317,22 @@ class SupabaseChallengeService {
       return { success: false, error: 'Participant not found' };
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const { data: challengeCheck } = await supabase
+      .from('challenges')
+      .select('duration_days')
+      .eq('id', participant.challenge_id)
+      .single();
+
+    if (challengeCheck && participant.personal_start_date) {
+      const startDate = new Date(participant.personal_start_date);
+      const daysSinceStart = Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysSinceStart + 1 > challengeCheck.duration_days) {
+        if (__DEV__) console.log('⏰ [CHALLENGES] Challenge expired');
+        return { success: false, error: 'Challenge has ended' };
+      }
+    }
+
+    const today = this.getLocalDateString();
 
     const { data: existing } = await supabase
       .from('challenge_completions')
@@ -373,17 +393,11 @@ class SupabaseChallengeService {
 
     const { data: challenge } = await supabase
       .from('challenges')
-      .select('duration_days, success_threshold')
+      .select('duration_days, success_threshold, predetermined_activities')
       .eq('id', challengeId)
       .single();
 
     if (!challenge) return;
-
-    const { count: completedActivities } = await supabase
-      .from('challenge_completions')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .eq('challenge_id', challengeId);
 
     const totalDays = challenge.duration_days;
 
@@ -393,17 +407,36 @@ class SupabaseChallengeService {
         (1000 * 60 * 60 * 24)
     ) + 1;
 
-    // Calculate consistency: (completed activities / expected activities so far) × 100
-    // Get number of activities user selected for this challenge
-    const activitiesPerDay = participant.selected_activity_ids?.length || 1;
     const daysSoFar = Math.min(currentDay, totalDays);
-    const expectedActivities = daysSoFar * activitiesPerDay;
+
+    // Count total completions
+    const { data: allCompletions } = await supabase
+      .from('challenge_completions')
+      .select('completion_date, challenge_activity_id')
+      .eq('user_id', userId)
+      .eq('challenge_id', challengeId);
+
+    const totalCompletions = allCompletions?.length || 0;
+
+    // Calculate expected activities accounting for day-specific ones
+    const predActivities = challenge.predetermined_activities || [];
+    const selectedIds = new Set(participant.selected_activity_ids || []);
+
+    let expectedActivities = 0;
+    for (let day = 1; day <= daysSoFar; day++) {
+      for (const act of predActivities) {
+        if (selectedIds.size > 0 && !selectedIds.has(act.id)) continue;
+        const startDay = act.start_day || 1;
+        const endDay = act.end_day || totalDays;
+        if (day >= startDay && day <= endDay) expectedActivities++;
+      }
+    }
 
     const completionPercentage = expectedActivities > 0
-      ? Math.round(((completedActivities || 0) / expectedActivities) * 100)
+      ? Math.min(100, Math.round((totalCompletions / expectedActivities) * 100))
       : 0;
 
-    if (__DEV__) console.log(`📊 Challenge consistency: ${completedActivities || 0}/${expectedActivities} activities (${daysSoFar} days × ${activitiesPerDay} activities/day) = ${completionPercentage}%`);
+    if (__DEV__) console.log(`📊 Challenge consistency: ${totalCompletions}/${expectedActivities} activities (${daysSoFar} days, day-aware) = ${completionPercentage}%`);
 
     const daysTaken = currentDay > totalDays ? totalDays : currentDay;
 
@@ -422,18 +455,27 @@ class SupabaseChallengeService {
       }
     }
 
-    // Calculate unique days with completions (for display purposes only)
-    // This is SEPARATE from consistency % which is activity-based
-    // Shows "X / Y days completed" in UI to indicate engagement
-    const { data: uniqueDays } = await supabase
-      .from('challenge_completions')
-      .select('completion_date')
-      .eq('user_id', userId)
-      .eq('challenge_id', challengeId);
-
-    const completedDaysCount = uniqueDays
-      ? new Set(uniqueDays.map(d => d.completion_date)).size
+    // Unique days with completions
+    const completedDaysCount = allCompletions
+      ? new Set(allCompletions.map(d => d.completion_date)).size
       : 0;
+
+    // Calculate current streak (consecutive days with completions ending today)
+    const uniqueDates = allCompletions
+      ? [...new Set(allCompletions.map(d => d.completion_date))].sort().reverse()
+      : [];
+
+    let currentStreak = 0;
+    for (let i = 0; i < uniqueDates.length; i++) {
+      const expected = new Date();
+      expected.setDate(expected.getDate() - i);
+      const expectedStr = this.getLocalDateString(expected);
+      if (uniqueDates[i] === expectedStr) {
+        currentStreak++;
+      } else {
+        break;
+      }
+    }
 
     await supabase
       .from('challenge_participants')
@@ -442,6 +484,8 @@ class SupabaseChallengeService {
         current_day: currentDay,
         completion_percentage: completionPercentage,
         days_taken: daysTaken,
+        current_streak: currentStreak,
+        longest_streak: Math.max(currentStreak, participant.longest_streak || 0),
         status,
         badge_earned: badgeEarned,
         completed_at: status === 'completed' ? new Date().toISOString() : participant.completed_at,
@@ -515,6 +559,7 @@ class SupabaseChallengeService {
         user_id,
         completion_percentage,
         completed_days,
+        current_day,
         current_streak,
         days_taken,
         "rank",
@@ -590,9 +635,10 @@ class SupabaseChallengeService {
       avatar_url: entry.profiles?.avatar_url,
       completion_percentage: entry.completion_percentage || 0,
       completed_days: entry.completed_days || 0,
+      current_day: entry.current_day || 0,
       current_streak: entry.current_streak || 0,
       days_taken: entry.days_taken,
-      rank: entry.rank || index + 1,
+      rank: index + 1,
       percentile: entry.percentile,
     }));
 
@@ -622,20 +668,13 @@ class SupabaseChallengeService {
     if (!challenge) return;
 
     const ranked = participants
-      .map(p => {
-        const progressScore = ((p.completed_days || 0) / challenge.duration_days) * 1000;
-        const speedScore = 1000 - (p.days_taken || 0);
-        const rankScore = progressScore + speedScore;
-
-        return {
-          id: p.id,
-          user_id: p.user_id,
-          rankScore,
-          completion_percentage: p.completion_percentage || 0,
-          days_taken: p.days_taken || 0,
-        };
-      })
-      .sort((a, b) => b.rankScore - a.rankScore);
+      .map(p => ({
+        id: p.id,
+        user_id: p.user_id,
+        completion_percentage: p.completion_percentage || 0,
+        days_taken: p.days_taken || 0,
+      }))
+      .sort((a, b) => b.completion_percentage - a.completion_percentage || (a.days_taken || 0) - (b.days_taken || 0));
 
     const totalParticipants = ranked.length;
 
@@ -894,6 +933,16 @@ class SupabaseChallengeService {
 
       if (__DEV__) console.log('📅 [CHALLENGES] Challenge', challenge.name, '- Current Day:', currentDay);
 
+      // Auto-expiry: if past duration, finalize the challenge and skip its activities
+      if (currentDay > challenge.duration_days) {
+        if (__DEV__) console.log('⏰ [CHALLENGES] Challenge', challenge.name, 'expired (day', currentDay, '>', challenge.duration_days, ') — finalizing');
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await this.updateParticipantProgress(challenge.id, user.id);
+        }
+        continue;
+      }
+
       // If selectedIds contains undefined/null, it means the user joined before IDs were added
       // In that case, include ALL activities from the challenge
       const hasValidSelectedIds = selectedIds.length > 0 && selectedIds.every((id: any) => id && id !== 'undefined');
@@ -1014,7 +1063,7 @@ class SupabaseChallengeService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = this.getLocalDateString();
 
     const { data, error } = await supabase
       .from('challenge_completions')
@@ -1072,7 +1121,7 @@ class SupabaseChallengeService {
 
     const { data: participant, error: participantError } = await supabase
       .from('challenge_participants')
-      .select('user_id, challenge_id')
+      .select('user_id, challenge_id, personal_start_date')
       .eq('id', participantId)
       .single();
 
@@ -1081,7 +1130,22 @@ class SupabaseChallengeService {
       return { success: false, error: 'Participant not found' };
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const { data: challengeCheck } = await supabase
+      .from('challenges')
+      .select('duration_days')
+      .eq('id', participant.challenge_id)
+      .single();
+
+    if (challengeCheck && participant.personal_start_date) {
+      const startDate = new Date(participant.personal_start_date);
+      const daysSinceStart = Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysSinceStart + 1 > challengeCheck.duration_days) {
+        if (__DEV__) console.log('⏰ [CHALLENGES] Challenge expired');
+        return { success: false, error: 'Challenge has ended' };
+      }
+    }
+
+    const today = this.getLocalDateString();
 
     const { data: existing } = await supabase
       .from('challenge_completions')
