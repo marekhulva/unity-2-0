@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.hmarek.freestyle",
-      "buildNumber": "73",
+      "buildNumber": "74",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -45,6 +45,13 @@
         {
           "photosPermission": "The app needs access to your photos to let you share them.",
           "cameraPermission": "The app needs access to your camera to let you take photos."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#E7B43A"
         }
       ]
     ]

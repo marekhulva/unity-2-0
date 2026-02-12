@@ -241,6 +241,11 @@ class SupabaseChallengeService {
     const personalEndDate = new Date(startDate);
     personalEndDate.setDate(personalEndDate.getDate() + challenge.duration_days);
 
+    // Normalize dates to local midnight for comparison
+    const startDateLocal = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+    const now = new Date();
+    const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
     const { data, error } = await supabase
       .from('challenge_participants')
       .insert({
@@ -250,7 +255,7 @@ class SupabaseChallengeService {
         activity_times: activityTimes,
         personal_start_date: startDate.toISOString(),
         personal_end_date: personalEndDate.toISOString(),
-        current_day: startDate <= new Date() ? 1 : 0,
+        current_day: startDateLocal <= todayLocal ? 1 : 0,
         completed_days: 0,
         current_streak: 0,
         longest_streak: 0,
@@ -326,7 +331,12 @@ class SupabaseChallengeService {
 
     if (challengeCheck && participant.personal_start_date) {
       const startDate = new Date(participant.personal_start_date);
-      const daysSinceStart = Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      const startDateLocal = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+
+      const now = new Date();
+      const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      const daysSinceStart = Math.floor((todayLocal.getTime() - startDateLocal.getTime()) / (1000 * 60 * 60 * 24));
       if (daysSinceStart + 1 > challengeCheck.duration_days) {
         if (__DEV__) console.log('⏰ [CHALLENGES] Challenge expired');
         return { success: false, error: 'Challenge has ended' };
@@ -403,8 +413,15 @@ class SupabaseChallengeService {
     const totalDays = challenge.duration_days;
 
     // Calculate current day (days since personal start)
+    // Normalize both dates to local midnight to avoid timezone issues
+    const startDate = new Date(participant.personal_start_date);
+    const startDateLocal = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+
+    const now = new Date();
+    const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
     const currentDay = Math.floor(
-      (new Date().getTime() - new Date(participant.personal_start_date).getTime()) /
+      (todayLocal.getTime() - startDateLocal.getTime()) /
         (1000 * 60 * 60 * 24)
     ) + 1;
 
@@ -962,12 +979,24 @@ class SupabaseChallengeService {
       const linkedIds = participation.linked_action_ids || [];
 
       // Calculate current day of challenge for day-specific filtering
+      // Normalize both dates to local midnight to avoid timezone issues
       const startDate = new Date(participation.personal_start_date);
-      const today = new Date();
-      const daysSinceStart = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      const startDateLocal = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+
+      const now = new Date();
+      const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      const daysSinceStart = Math.floor((todayLocal.getTime() - startDateLocal.getTime()) / (1000 * 60 * 60 * 24));
       const currentDay = daysSinceStart + 1; // 1-based
 
-      if (__DEV__) console.log('📅 [CHALLENGES] Challenge', challenge.name, '- Current Day:', currentDay);
+      if (__DEV__) {
+        console.log('📅 [CHALLENGES] Challenge', challenge.name);
+        console.log('  Start date:', participation.personal_start_date);
+        console.log('  Start date (local midnight):', startDateLocal.toISOString());
+        console.log('  Today (local midnight):', todayLocal.toISOString());
+        console.log('  Days since start:', daysSinceStart);
+        console.log('  Current Day:', currentDay);
+      }
 
       // Pre-start guard: if challenge hasn't started yet, skip its activities
       if (currentDay < 1) {
@@ -1180,7 +1209,12 @@ class SupabaseChallengeService {
 
     if (challengeCheck && participant.personal_start_date) {
       const startDate = new Date(participant.personal_start_date);
-      const daysSinceStart = Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      const startDateLocal = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+
+      const now = new Date();
+      const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      const daysSinceStart = Math.floor((todayLocal.getTime() - startDateLocal.getTime()) / (1000 * 60 * 60 * 24));
       if (daysSinceStart + 1 > challengeCheck.duration_days) {
         if (__DEV__) console.log('⏰ [CHALLENGES] Challenge expired');
         return { success: false, error: 'Challenge has ended' };
