@@ -504,6 +504,7 @@ export const SocialScreenUnified = () => {
               styles.scrollContent,
               { paddingBottom: TAB_BAR_HEIGHT + insets.bottom }
             ]}
+            keyboardShouldPersistTaps="handled"
             removeClippedSubviews={true}
             maxToRenderPerBatch={10}
             windowSize={10}

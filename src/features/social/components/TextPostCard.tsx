@@ -289,32 +289,36 @@ export const TextPostCard: React.FC<TextPostCardProps> = ({
         <View style={styles.spacer} />
       </View>
 
-      {/* Comment Preview Section */}
-      {showComments && hasComments && comments && comments.length > 0 && (
+      {/* Comment Section */}
+      {showComments && (
         <View style={styles.commentPreview}>
-          <View style={styles.commentItem}>
-            <View style={styles.commentAvatar}>
-              <Text style={styles.commentAvatarEmoji}>
-                {comments[0].avatar || '👤'}
-              </Text>
-            </View>
+          {hasComments && comments && comments.length > 0 && (
+            <>
+              <View style={styles.commentItem}>
+                <View style={styles.commentAvatar}>
+                  <Text style={styles.commentAvatarEmoji}>
+                    {comments[0].avatar || '👤'}
+                  </Text>
+                </View>
 
-            <View style={styles.commentBubble}>
-              <Text style={styles.commentUser}>
-                {comments[0].user || 'User'}
-              </Text>
-              <Text style={styles.commentBubbleText}>
-                {comments[0].content}
-              </Text>
-            </View>
-          </View>
+                <View style={styles.commentBubble}>
+                  <Text style={styles.commentUser}>
+                    {comments[0].user || 'User'}
+                  </Text>
+                  <Text style={styles.commentBubbleText}>
+                    {comments[0].content}
+                  </Text>
+                </View>
+              </View>
 
-          {commentCount > 1 && (
-            <Pressable onPress={() => setShowComments(true)}>
-              <Text style={styles.viewAllComments}>
-                View all {commentCount} comments
-              </Text>
-            </Pressable>
+              {commentCount > 1 && (
+                <Pressable onPress={() => setShowComments(true)}>
+                  <Text style={styles.viewAllComments}>
+                    View all {commentCount} comments
+                  </Text>
+                </Pressable>
+              )}
+            </>
           )}
 
           <View style={styles.commentInputRow}>
@@ -329,6 +333,7 @@ export const TextPostCard: React.FC<TextPostCardProps> = ({
               value={commentInput}
               onChangeText={setCommentInput}
               onSubmitEditing={handleComment}
+              returnKeyType="send"
             />
           </View>
         </View>

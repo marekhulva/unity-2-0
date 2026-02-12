@@ -965,26 +965,20 @@ export const createSocialSlice: StateCreator<
       timestamp: new Date().toISOString(),
     };
 
-    // Optimistically update BOTH feeds immediately (post could be in both)
+    // Optimistically update ALL feeds immediately (post could be in any)
+    const updateFeed = (feed: Post[]) => feed.map(p =>
+      p.id === postId
+        ? {
+            ...p,
+            comments: [...(p.comments || []), optimisticComment],
+            commentCount: (p.commentCount || 0) + 1,
+          }
+        : p
+    );
     set((s) => ({
-      circleFeed: s.circleFeed.map(p =>
-        p.id === postId
-          ? {
-              ...p,
-              comments: [...(p.comments || []), optimisticComment],
-              commentCount: (p.commentCount || 0) + 1,
-            }
-          : p
-      ),
-      followFeed: s.followFeed.map(p =>
-        p.id === postId
-          ? {
-              ...p,
-              comments: [...(p.comments || []), optimisticComment],
-              commentCount: (p.commentCount || 0) + 1,
-            }
-          : p
-      )
+      circleFeed: updateFeed(s.circleFeed),
+      followFeed: updateFeed(s.followFeed),
+      unifiedFeed: updateFeed(s.unifiedFeed),
     }));
     
     try {
@@ -1004,26 +998,20 @@ export const createSocialSlice: StateCreator<
           timestamp: response.data.created_at,
         };
         
-        // Replace optimistic comment with real comment in BOTH feeds
+        // Replace optimistic comment with real comment in ALL feeds
+        const replaceFeed = (feed: Post[]) => feed.map(p =>
+          p.id === postId
+            ? {
+                ...p,
+                comments: (p.comments || [])
+                  .map(c => c.id === optimisticComment.id ? realComment : c),
+              }
+            : p
+        );
         set((s) => ({
-          circleFeed: s.circleFeed.map(p =>
-            p.id === postId
-              ? {
-                  ...p,
-                  comments: (p.comments || [])
-                    .map(c => c.id === optimisticComment.id ? realComment : c),
-                }
-              : p
-          ),
-          followFeed: s.followFeed.map(p =>
-            p.id === postId
-              ? {
-                  ...p,
-                  comments: (p.comments || [])
-                    .map(c => c.id === optimisticComment.id ? realComment : c),
-                }
-              : p
-          )
+          circleFeed: replaceFeed(s.circleFeed),
+          followFeed: replaceFeed(s.followFeed),
+          unifiedFeed: replaceFeed(s.unifiedFeed),
         }));
         
         if (__DEV__) console.log('✅ Comment saved successfully');
@@ -1036,26 +1024,20 @@ export const createSocialSlice: StateCreator<
         throw new Error(response.error || 'Failed to add comment');
       }
     } catch (error) {
-      // Revert optimistic update on error in BOTH feeds
+      // Revert optimistic update on error in ALL feeds
+      const revertFeed = (feed: Post[]) => feed.map(p =>
+        p.id === postId
+          ? {
+              ...p,
+              comments: (p.comments || []).filter(c => c.id !== optimisticComment.id),
+              commentCount: Math.max(0, (p.commentCount || 0) - 1),
+            }
+          : p
+      );
       set((s) => ({
-        circleFeed: s.circleFeed.map(p =>
-          p.id === postId
-            ? {
-                ...p,
-                comments: (p.comments || []).filter(c => c.id !== optimisticComment.id),
-                commentCount: Math.max(0, (p.commentCount || 0) - 1),
-              }
-            : p
-        ),
-        followFeed: s.followFeed.map(p =>
-          p.id === postId
-            ? {
-                ...p,
-                comments: (p.comments || []).filter(c => c.id !== optimisticComment.id),
-                commentCount: Math.max(0, (p.commentCount || 0) - 1),
-              }
-            : p
-        )
+        circleFeed: revertFeed(s.circleFeed),
+        followFeed: revertFeed(s.followFeed),
+        unifiedFeed: revertFeed(s.unifiedFeed),
       }));
       if (__DEV__) console.error('❌ Failed to add comment:', error);
     }

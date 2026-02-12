@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -9,6 +9,8 @@ import { CheckCircle2, House, Trophy, User2, Users } from 'lucide-react-native';
 
 import { useStore } from './state/rootStore';
 import { inspector } from './utils/componentInspector';
+import { rescheduleAll, addNotificationResponseListener } from './services/notification.local';
+import { PushNotificationsService } from './services/pushNotifications.service';
 import { LoginScreen } from './features/auth/LoginScreen';
 import { DailyScreenOption2 as DailyScreen } from './features/daily/DailyScreenOption2';
 import { SocialScreenUnified as SocialScreen } from './features/social/SocialScreenUnified';
@@ -221,6 +223,7 @@ export function AppWithAuth() {
   const [isLoading, setIsLoading] = useState(true);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const notifListenerRef = useRef<ReturnType<typeof addNotificationResponseListener> | null>(null);
   
   // Watch for new user registration
   useEffect(() => {
@@ -260,6 +263,14 @@ export function AppWithAuth() {
           isNewUser: isNew,
           hasCompletedProfileSetup: hasProfile,
           hasCompletedOnboarding: hasOnboarded
+        });
+
+        PushNotificationsService.registerForPushNotifications().then(result => {
+          if (result.success) {
+            if (__DEV__) console.log('✅ [PUSH] Device registered for push notifications');
+          } else {
+            if (__DEV__) console.log('⚠️  [PUSH] Failed to register:', result.error);
+          }
         });
         
         // Determine what screens to show based on user status
@@ -312,6 +323,34 @@ export function AppWithAuth() {
     };
     initAuth();
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated || isLoading) return;
+
+    const setupNotifications = async () => {
+      const actions = useStore.getState().actions;
+      if (__DEV__) console.log(`🔔 [NOTIF] Scheduling notifications for ${actions.length} actions`);
+      await rescheduleAll(actions);
+    };
+
+    setupNotifications();
+
+    notifListenerRef.current = addNotificationResponseListener(() => {
+      if (__DEV__) console.log('🔔 [NOTIF] User tapped notification');
+    });
+
+    return () => {
+      notifListenerRef.current?.remove();
+    };
+  }, [isAuthenticated, isLoading]);
+
+  const actionCount = useStore(s => s.actions.length);
+  useEffect(() => {
+    if (!isAuthenticated || actionCount === 0) return;
+    const actions = useStore.getState().actions;
+    if (__DEV__) console.log(`🔔 [NOTIF] Actions changed (${actionCount}), rescheduling notifications`);
+    rescheduleAll(actions);
+  }, [isAuthenticated, actionCount]);
 
   if (isLoading) {
     return (
