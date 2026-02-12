@@ -128,7 +128,7 @@ export const UnifiedPostCard: React.FC<UnifiedPostCardProps> = React.memo(({
           style={styles.avatarWrap}
         >
           <View style={[styles.avatar, isActivityChallenge && styles.avatarGold]}>
-            {post.avatar && post.avatar.startsWith('http') ? (
+            {post.avatar && (post.avatar.startsWith('http') || post.avatar.startsWith('data:')) ? (
               <Image source={{ uri: post.avatar }} style={styles.avatarImage} />
             ) : (
               <Text style={styles.avatarEmoji}>{post.avatar || '👤'}</Text>

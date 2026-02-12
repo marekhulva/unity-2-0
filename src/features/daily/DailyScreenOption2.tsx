@@ -181,8 +181,13 @@ export const DailyScreenOption2 = () => {
 
   const activeChallenge = challenges && challenges.length > 0 ? challenges[0] : null;
   const challengeName = activeChallenge?.name;
-  const currentDay = activeChallenge?.my_participation?.current_day || 1;
   const totalDays = activeChallenge?.duration_days || 30;
+  const currentDay = (() => {
+    const startDate = activeChallenge?.my_participation?.personal_start_date;
+    if (!startDate) return activeChallenge?.my_participation?.current_day || 1;
+    const daysSinceStart = Math.floor((Date.now() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    return Math.min(Math.max(daysSinceStart, 1), totalDays);
+  })();
   const challengeProgress = activeChallenge ? Math.round((currentDay / totalDays) * 100) : 0;
 
   const handleTaskToggle = (action: any) => {
@@ -339,10 +344,12 @@ export const DailyScreenOption2 = () => {
       });
 
       // Check if user added photo/comment (media)
-      const hasMedia = contentType === 'photo' || contentType === 'text';
+      const hasMedia = contentType === 'photo' || contentType === 'text' || !!mediaUri || !!content;
+      if (__DEV__) console.log('🔍 [DailyScreen] hasMedia check:', { contentType, hasMediaUri: !!mediaUri, hasContent: !!content, hasMedia });
 
       if (!hasMedia) {
         // Just a check - Living Progress Card only, no individual post
+        if (__DEV__) console.log('📋 [DailyScreen] No media/content, LPC only - skipping individual post');
         return;
       }
 
@@ -352,6 +359,7 @@ export const DailyScreenOption2 = () => {
       // LEGACY FLOW (for regular actions OR when Living Progress Cards are disabled)
       if (__DEV__) console.log('❌ [DailyScreen] ===== USING LEGACY INDIVIDUAL POST FLOW =====');
       toggleAction(actionToComplete.id);
+      fetchDailyActions();
     }
 
     // Create individual post (legacy flow OR dual posting for challenge with media)
@@ -381,7 +389,7 @@ export const DailyScreenOption2 = () => {
       const postData = {
         type: actionType === 'check' ? 'checkin' : 'milestone',
         visibility: visibility,
-        content: content || `Completed: ${actionToComplete.title}`,
+        content: content || 'Completed',
         actionTitle: actionToComplete.title,
         goal: actionToComplete.goalTitle,
         goalColor: actionToComplete.goalColor,
@@ -403,8 +411,13 @@ export const DailyScreenOption2 = () => {
       };
 
       ChallengeDebugV2.checkpoint('CP2-POST-DATA', 'Post data created in Daily', postData);
+      if (__DEV__) console.log('📤 [DailyScreen] About to call addPost with:', { type: postData.type, hasPhoto: !!postData.photoUri, hasMedia: !!postData.mediaUrl, actionTitle: postData.actionTitle });
 
-      addPost(postData).catch((error) => {
+      addPost(postData).then(() => {
+        if (__DEV__) console.log('✅ [DailyScreen] Individual post addPost resolved, refreshing feed');
+        useStore.getState().fetchUnifiedFeed(true);
+        fetchDailyActions();
+      }).catch((error) => {
         if (__DEV__) console.error('❌ Failed to save post to database:', error);
         Alert.alert(
           'Failed to Share',
@@ -506,7 +519,6 @@ export const DailyScreenOption2 = () => {
             completedAt: new Date().toISOString(),
             streak: 0,
             comment: didStayOnTrack ? comment : `Did not stay on track${comment ? ': ' + comment : ''}`,
-            photoUri,
           },
           totalActions
         );
@@ -516,7 +528,6 @@ export const DailyScreenOption2 = () => {
         }
 
         if (__DEV__) console.log('✅ [DAILY] Updated Living Progress Card with abstinence');
-        useStore.getState().fetchUnifiedFeed(true);
 
         // Check if user added photo/comment (media) - if so, create individual post too (dual posting)
         const hasMedia = !!photoUri || !!comment;
@@ -524,6 +535,7 @@ export const DailyScreenOption2 = () => {
         if (!hasMedia) {
           // Just a check - Living Progress Card only, no individual post
           if (__DEV__) console.log('📋 [DAILY] No media for abstinence, Living Progress Card only');
+          useStore.getState().fetchUnifiedFeed(true);
           toggleAction(actionToComplete.id);
           fetchDailyActions();
           refreshWeeklyProgress();
@@ -560,7 +572,7 @@ export const DailyScreenOption2 = () => {
           const postDataForBackend = {
             type: photoUri ? 'checkin' : 'milestone',
             visibility: visibility,
-            content: didStayOnTrack ? (comment || `Completed: ${actionToComplete.title}`) : `Did not stay on track${comment ? ': ' + comment : ''}`,
+            content: didStayOnTrack ? (comment || 'Completed') : `Did not stay on track${comment ? ': ' + comment : ''}`,
             actionTitle: actionToComplete.title,
             goal: actionToComplete.goalTitle,
             goalColor: actionToComplete.goalColor,
@@ -577,7 +589,10 @@ export const DailyScreenOption2 = () => {
             includeFollowers: includeFollowers,
           };
 
-          addPost(postDataForBackend).catch(error => {
+          addPost(postDataForBackend).then(() => {
+            if (__DEV__) console.log('✅ [DAILY] Individual abstinence post created, refreshing feed');
+            useStore.getState().fetchUnifiedFeed(true);
+          }).catch(error => {
             if (__DEV__) console.error('❌ [DAILY] Failed to create individual post for abstinence:', error);
           });
         }

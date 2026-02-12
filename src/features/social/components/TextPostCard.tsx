@@ -150,7 +150,7 @@ export const TextPostCard: React.FC<TextPostCardProps> = ({
       <View style={styles.header}>
         <Pressable onPress={handleProfilePress} style={styles.avatarWrapper}>
           <View style={[styles.avatar, hasStreak && styles.avatarStreak]}>
-            {avatar && avatar.startsWith('http') ? (
+            {avatar && (avatar.startsWith('http') || avatar.startsWith('data:')) ? (
               <Image source={{ uri: avatar }} style={styles.avatarImage} />
             ) : (
               <Text style={styles.avatarEmoji}>{avatar || '👤'}</Text>

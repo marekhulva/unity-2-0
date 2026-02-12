@@ -6,6 +6,8 @@ import {
   StyleSheet,
   Pressable,
   ActivityIndicator,
+  Alert,
+  Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -13,8 +15,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '../../state/rootStore';
 import { supabaseService } from '../../services/supabase.service';
 import { supabaseChallengeService } from '../../services/supabase.challenges.service';
-import { LogOut, ChevronRight, Trophy, Target, RefreshCw, Users } from 'lucide-react-native';
+import { LogOut, ChevronRight, Trophy, Target, RefreshCw, Users, Camera } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 
 // Consistency Circle Component (Memoized for performance)
 const ConsistencyCircle = React.memo(({ percentage }: { percentage: number }) => {
@@ -91,11 +94,7 @@ const CircleCard = ({ circle }: { circle: any }) => {
   return (
     <View style={styles.circleCard}>
       <View style={styles.circleIcon}>
-        {circle.emoji ? (
-          <Text style={styles.circleIconText}>{circle.emoji}</Text>
-        ) : (
-          <Users size={20} color="#D4AF37" strokeWidth={2} />
-        )}
+        <Text style={styles.circleIconText}>🟡</Text>
       </View>
 
       <View style={styles.circleInfo}>
@@ -125,6 +124,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ userId, isInModal,
   const followers = useStore(s => s.followers);
   const loadFollowing = useStore(s => s.loadFollowing);
   const logout = useStore(s => s.logout);
+  const updateAvatar = useStore(s => s.updateAvatar);
 
   const isOwnProfile = !userId || userId === currentUser?.id;
 
@@ -132,7 +132,37 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ userId, isInModal,
   const [circles, setCircles] = useState<any[]>([]);
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [showFullJourney, setShowFullJourney] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Please allow access to your photos to set a profile picture.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      if (Platform.OS !== 'web') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+      setUploading(true);
+      try {
+        await updateAvatar(base64Image);
+      } finally {
+        setUploading(false);
+      }
+    }
+  };
 
   // Timeline entry type for My Journey
   interface TimelineEntry {
@@ -342,9 +372,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ userId, isInModal,
               transition={200}
               cachePolicy="memory-disk"
             />
-            <View style={styles.photoBadge}>
-              <Text style={styles.photoBadgeText}>Day {index + 1} 📸</Text>
-            </View>
             <LinearGradient
               colors={['transparent', 'rgba(0,0,0,0.85)']}
               style={styles.photoOverlay}
@@ -368,7 +395,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ userId, isInModal,
             <Text style={styles.timelineTitle}>
               {post.action_title || post.content || 'Post'}
             </Text>
-            {post.content && post.action_title && (
+            {post.content && post.action_title &&
+             post.content !== 'Completed' &&
+             post.content !== `Completed: ${post.action_title}` && (
               <Text style={styles.timelineReflection}>{post.content}</Text>
             )}
           </View>
@@ -395,7 +424,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ userId, isInModal,
         {/* Profile Header */}
         <View style={[styles.header, { paddingTop: insets.top + 30 }]}>
           {/* Avatar with Consistency Ring */}
-          <View style={styles.avatarSection}>
+          <Pressable
+            style={styles.avatarSection}
+            onPress={isOwnProfile ? pickImage : undefined}
+            disabled={!isOwnProfile || uploading}
+          >
             <View style={styles.avatarRing}>
               <LinearGradient
                 colors={['#E7B43A', 'rgba(231,180,58,0.3)']}
@@ -415,9 +448,19 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ userId, isInModal,
                 ) : (
                   <Text style={styles.avatarText}>{displayUser.name?.charAt(0) || 'U'}</Text>
                 )}
+                {uploading && (
+                  <View style={styles.avatarUploadOverlay}>
+                    <ActivityIndicator size="small" color="#E7B43A" />
+                  </View>
+                )}
               </View>
             </View>
-          </View>
+            {isOwnProfile && !uploading && (
+              <View style={styles.cameraBadge}>
+                <Camera size={14} color="#000" strokeWidth={2.5} />
+              </View>
+            )}
+          </Pressable>
 
           {/* Username */}
           <Text style={styles.username}>{displayUser.name || 'User'}</Text>
@@ -588,6 +631,26 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: '#E7B43A',
+  },
+  avatarUploadOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 34,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cameraBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#E7B43A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#000',
   },
   username: {
     fontSize: 22,

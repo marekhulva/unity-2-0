@@ -262,24 +262,6 @@ export const AbstinenceModal: React.FC<AbstinenceModalProps> = ({
                 </Text>
               </Pressable>
 
-              <Pressable
-                style={[
-                  styles.answerButton,
-                  styles.noButton,
-                  selectedAnswer === 'no' && styles.noButtonActive,
-                ]}
-                onPress={() => handleAnswerSelect('no')}
-              >
-                <Text
-                  style={[
-                    styles.answerButtonText,
-                    styles.noButtonText,
-                    selectedAnswer === 'no' && styles.noButtonTextActive,
-                  ]}
-                >
-                  NO
-                </Text>
-              </Pressable>
             </View>
 
             <View style={styles.divider} />

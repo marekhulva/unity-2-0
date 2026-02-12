@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.hmarek.freestyle",
-      "buildNumber": "68",
+      "buildNumber": "73",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }

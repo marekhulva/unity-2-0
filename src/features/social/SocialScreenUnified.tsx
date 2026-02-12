@@ -345,79 +345,16 @@ export const SocialScreenUnified = () => {
   // Render list header with composer and challenges
   const renderListHeader = useCallback(() => {
     return (
-      <>
-        {/* Circle Selector */}
-        <View style={styles.circleSelectorContainer}>
-          <CircleSelector
-            circles={userCircles || []}
-            activeCircleId={feedType}
-            onCircleSelect={handleFeedTypeChange}
-            onJoinCircle={() => setShowJoinCircleModal(true)}
-          />
-        </View>
-
-        {/* Composer */}
-        <View style={styles.composer}>
-          <View style={styles.composerHeader}>
-            <View style={styles.composerAvatar}>
-              <Text style={styles.avatarEmoji}>{user?.avatar || '👤'}</Text>
-            </View>
-            <TextInput
-              style={styles.composerInput}
-              placeholder="Motivate your teammates"
-              placeholderTextColor="rgba(255,255,255,0.35)"
-              value={postText}
-              onChangeText={setPostText}
-              onFocus={() => setComposerExpanded(true)}
-              multiline
-            />
-          </View>
-
-          {composerExpanded && (
-            <View style={styles.composerActions}>
-              <View style={styles.mediaButtons}>
-                <Pressable style={styles.mediaButton} onPress={pickImage}>
-                  <ImageIcon size={20} color="rgba(255,255,255,0.6)" />
-                </Pressable>
-              </View>
-
-              <Pressable
-                style={[styles.postButton, (!postText.trim() && !postPhoto) && styles.postButtonDisabled]}
-                onPress={handlePost}
-                disabled={isPosting || (!postText.trim() && !postPhoto)}
-              >
-                {isPosting ? (
-                  <ActivityIndicator size="small" color="#000" />
-                ) : (
-                  <Send size={18} color="#000" />
-                )}
-              </Pressable>
-            </View>
-          )}
-
-          {postPhoto && (
-            <View style={styles.photoPreview}>
-              <Image
-                source={{ uri: postPhoto }}
-                style={styles.photoPreviewImage}
-                resizeMode="cover"
-              />
-              <Pressable
-                style={styles.removePhoto}
-                onPress={() => {
-                  if (__DEV__) console.log('📸 [COMPOSER] Removing photo');
-                  setPostPhoto(null);
-                }}
-              >
-                <X size={16} color="#fff" />
-              </Pressable>
-            </View>
-          )}
-        </View>
-
-      </>
+      <View style={styles.circleSelectorContainer}>
+        <CircleSelector
+          circles={userCircles || []}
+          activeCircleId={feedType}
+          onCircleSelect={handleFeedTypeChange}
+          onJoinCircle={() => setShowJoinCircleModal(true)}
+        />
+      </View>
     );
-  }, [userCircles, feedType, user, postText, composerExpanded, postPhoto, isPosting]);
+  }, [userCircles, feedType]);
 
   // Render list footer with loading states
   const renderListFooter = useCallback(() => {
@@ -479,6 +416,69 @@ export const SocialScreenUnified = () => {
           style={styles.keyboardView}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
+          {/* Composer outside FlatList to prevent focus loss on keystroke */}
+          <View style={styles.composer}>
+            <View style={styles.composerHeader}>
+              <View style={styles.composerAvatar}>
+                {user?.avatar && (user.avatar.startsWith('http') || user.avatar.startsWith('data:')) ? (
+                  <Image source={{ uri: user.avatar }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+                ) : (
+                  <Text style={styles.avatarEmoji}>{user?.avatar || '👤'}</Text>
+                )}
+              </View>
+              <TextInput
+                style={styles.composerInput}
+                placeholder="Motivate your teammates"
+                placeholderTextColor="rgba(255,255,255,0.35)"
+                value={postText}
+                onChangeText={setPostText}
+                onFocus={() => setComposerExpanded(true)}
+                multiline
+              />
+            </View>
+
+            {composerExpanded && (
+              <View style={styles.composerActions}>
+                <View style={styles.mediaButtons}>
+                  <Pressable style={styles.mediaButton} onPress={pickImage}>
+                    <ImageIcon size={20} color="rgba(255,255,255,0.6)" />
+                  </Pressable>
+                </View>
+
+                <Pressable
+                  style={[styles.postButton, (!postText.trim() && !postPhoto) && styles.postButtonDisabled]}
+                  onPress={handlePost}
+                  disabled={isPosting || (!postText.trim() && !postPhoto)}
+                >
+                  {isPosting ? (
+                    <ActivityIndicator size="small" color="#000" />
+                  ) : (
+                    <Send size={18} color="#000" />
+                  )}
+                </Pressable>
+              </View>
+            )}
+
+            {postPhoto && (
+              <View style={styles.photoPreview}>
+                <Image
+                  source={{ uri: postPhoto }}
+                  style={styles.photoPreviewImage}
+                  resizeMode="cover"
+                />
+                <Pressable
+                  style={styles.removePhoto}
+                  onPress={() => {
+                    if (__DEV__) console.log('📸 [COMPOSER] Removing photo');
+                    setPostPhoto(null);
+                  }}
+                >
+                  <X size={16} color="#fff" />
+                </Pressable>
+              </View>
+            )}
+          </View>
+
           <FlatList
             data={filteredFeed}
             renderItem={renderPost}

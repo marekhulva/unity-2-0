@@ -52,7 +52,7 @@ export const UnifiedActivityCard: React.FC<UnifiedActivityCardProps> = ({
   // Determine what type of content we have
   const hasPhoto = !!post.mediaUrl || !!post.photoUri;
   const hasAudio = !!post.audioUri;
-  const hasComment = !!post.content && post.content !== `Completed: ${post.actionTitle}`;
+  const hasComment = !!post.content && post.content !== `Completed: ${post.actionTitle}` && post.content !== 'Completed';
   const isJustCheck = !hasPhoto && !hasAudio && !hasComment;
   
   // Check if it's a challenge or has a goal

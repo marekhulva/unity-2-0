@@ -382,8 +382,6 @@ class SupabaseService {
         action_id: id,
         user_id: user.id,
         completed_at: new Date().toISOString(),
-        failed: failed,
-        failure_reason: failureReason
       });
 
     if (completionError) {
@@ -1237,12 +1235,16 @@ class SupabaseService {
 
     if (__DEV__) console.log('🔵 [SUPABASE] Updating profile for user:', user.id, 'with updates:', JSON.stringify(updates));
 
-    // Handle avatar - can be base64 or URL
+    // Handle avatar - upload to Storage if base64 or file URI
     let avatarUrl = updates.avatar;
-    if (avatarUrl && avatarUrl.startsWith('data:image')) {
-      // Avatar is base64 - store directly in database
-      // This is acceptable for profile photos as they're small
-      if (__DEV__) console.log('🔵 [STORAGE] Storing avatar as base64 in database');
+    if (avatarUrl && (avatarUrl.startsWith('data:image') || avatarUrl.startsWith('file://'))) {
+      if (__DEV__) console.log('🔵 [STORAGE] Uploading avatar to Supabase Storage...');
+      try {
+        avatarUrl = await this.uploadImage(avatarUrl, user.id);
+        if (__DEV__) console.log('✅ [STORAGE] Avatar uploaded:', avatarUrl);
+      } catch (uploadError) {
+        if (__DEV__) console.error('⚠️ [STORAGE] Avatar upload failed, storing base64 as fallback:', uploadError);
+      }
     }
 
     const updateData: any = {
@@ -2104,41 +2106,14 @@ class SupabaseService {
         circle_id: cid
       }));
 
-      let circleInsertSuccess = false;
-      let retryCount = 0;
-      const MAX_RETRIES = 2;
+      const { error: circleError } = await supabase
+        .from('post_circles')
+        .insert(postCircleRelationships);
 
-      while (!circleInsertSuccess && retryCount <= MAX_RETRIES) {
-        const { error: circleError } = await supabase
-          .from('post_circles')
-          .insert(postCircleRelationships);
-
-        if (circleError) {
-          retryCount++;
-          if (__DEV__) console.error(`⚠️ [SUPABASE] Error creating post_circles relationships (attempt ${retryCount}/${MAX_RETRIES + 1}):`, circleError);
-
-          if (retryCount > MAX_RETRIES) {
-            if (__DEV__) console.error('🚨 [SUPABASE] Failed to create post_circles after retries. Deleting orphaned post...');
-
-            const { error: deleteError } = await supabase
-              .from('posts')
-              .delete()
-              .eq('id', data.id);
-
-            if (deleteError) {
-              if (__DEV__) console.error('❌ [SUPABASE] Failed to delete orphaned post:', deleteError);
-            } else {
-              if (__DEV__) console.log('✅ [SUPABASE] Orphaned post deleted successfully');
-            }
-
-            throw new Error('Failed to share post to circles. Please try again.');
-          }
-
-          await new Promise(resolve => setTimeout(resolve, 500));
-        } else {
-          circleInsertSuccess = true;
-          if (__DEV__) console.log('✅ [SUPABASE] Post_circles relationships created for', finalCircleIds.length, 'circles');
-        }
+      if (circleError) {
+        if (__DEV__) console.warn('⚠️ [SUPABASE] post_circles insert failed (non-fatal, post already has circle_id):', circleError.message);
+      } else {
+        if (__DEV__) console.log('✅ [SUPABASE] Post_circles relationships created for', finalCircleIds.length, 'circles');
       }
     }
     
@@ -2174,14 +2149,17 @@ class SupabaseService {
     if (__DEV__) console.log(`📅 [SUPABASE] Today's date: ${today}`);
 
     if (__DEV__) console.log(`🔍 [SUPABASE] Searching for existing daily progress post...`);
-    const { data: existing, error: findError } = await supabase
+    const { data: existingRows, error: findError } = await supabase
       .from('posts')
       .select('*')
       .eq('user_id', userId)
       .eq('progress_date', today)
       .eq('is_daily_progress', true)
       .eq('challenge_id', challengeId || null)
-      .single();
+      .order('updated_at', { ascending: false })
+      .limit(1);
+
+    const existing = existingRows?.[0] || null;
 
     if (__DEV__) console.log(`🔍 [SUPABASE] Search result - data:`, existing ? 'FOUND' : 'NOT FOUND', 'error:', findError);
 
@@ -2299,11 +2277,13 @@ class SupabaseService {
     const successfulActionsCount = updatedActions.filter((a: any) => !a.failed).length;
     if (__DEV__) console.log(`✅ [SUPABASE] Successful actions: ${successfulActionsCount}, Failed: ${updatedActions.length - successfulActionsCount}`);
 
+    const now = new Date().toISOString();
     const updatePayload = {
       completed_actions: updatedActions,
       actions_today: successfulActionsCount,
       total_actions: totalActions,
-      updated_at: new Date().toISOString()
+      created_at: now,
+      updated_at: now
     };
     if (__DEV__) console.log(`📤 [SUPABASE] Update payload:`, JSON.stringify(updatePayload, null, 2));
 

@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { UnityHeader } from '../../components/UnityHeader';
 import { Search, Zap, ArrowLeft, Dumbbell, Brain, BookOpen, Apple, Star, Lock } from 'lucide-react-native';
 import { useStore } from '../../state/rootStore';
 import type { ChallengeWithDetails } from '../../types/challenges.types';
@@ -363,8 +365,7 @@ export const ChallengesScreenVision = () => {
 
   // Filter and search logic
   const allChallenges = [
-    ...globalChallenges.filter(c => c.name !== '7 Day Mental Detox'),
-    ...circleChallenges,
+    ...globalChallenges,
   ];
 
   const filteredChallenges = allChallenges.filter(challenge => {
@@ -518,62 +519,28 @@ export const ChallengesScreenVision = () => {
 
   return (
     <View style={styles.container}>
+      <SafeAreaView style={{ backgroundColor: '#000' }} edges={['top']}>
+        <UnityHeader />
+      </SafeAreaView>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 120 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 30 }]}>
-          <Text style={styles.title}>GLOBAL CHALLENGES</Text>
 
-          {/* Search Bar */}
-          <View style={styles.searchContainer}>
-            <Search size={18} color="rgba(255,255,255,0.4)" style={styles.searchIcon} />
-            <TextInput
-              style={styles.searchBar}
-              placeholder="Search challenges..."
-              placeholderTextColor="rgba(255,255,255,0.4)"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            <Zap size={18} color="#E7B43A" style={styles.filterIcon} />
-          </View>
-
-          {/* Filter Pills */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.filterPills}
-            contentContainerStyle={styles.filterPillsContent}
-          >
-            {FILTER_CATEGORIES.map((filter) => (
-              <Pressable
-                key={filter}
-                style={[styles.filterPill, selectedFilter === filter && styles.filterPillActive]}
-                onPress={() => setSelectedFilter(filter)}
-              >
-                <Text style={[styles.filterPillText, selectedFilter === filter && styles.filterPillTextActive]}>
-                  {filter}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* My Active Challenges */}
-        {activeChallenges.length > 0 && (
+        {/* My Active Challenges (global only — circle challenges show in Circle tab) */}
+        {activeChallenges.filter(c => c.scope !== 'circle').length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>My Active Challenges</Text>
-              {activeChallenges.length > 2 && (
+              {activeChallenges.filter(c => c.scope !== 'circle').length > 2 && (
                 <Pressable onPress={() => { if (__DEV__) console.log('View all active challenges'); }}>
                   <Text style={styles.sectionLink}>View All →</Text>
                 </Pressable>
               )}
             </View>
 
-            {activeChallenges.slice(0, 2).map((challenge) => (
+            {activeChallenges.filter(c => c.scope !== 'circle').slice(0, 2).map((challenge) => (
               <ActiveChallengeStatusCard
                 key={challenge.id}
                 challenge={challenge}
@@ -597,9 +564,9 @@ export const ChallengesScreenVision = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>
-              {searchQuery || selectedFilter !== 'All' ? 'Search Results' : 'Most Popular'}
+              {searchQuery ? 'Search Results' : 'Most Popular'}
             </Text>
-            {!searchQuery && selectedFilter === 'All' && (
+            {!searchQuery && (
               <Pressable onPress={() => { if (__DEV__) console.log('View all challenges'); }}>
                 <Text style={styles.sectionLink}>See All →</Text>
               </Pressable>
@@ -608,26 +575,7 @@ export const ChallengesScreenVision = () => {
 
           {challengesLoading ? (
             <ActivityIndicator size="large" color="#E7B43A" style={{ marginTop: 20 }} />
-          ) : popularChallenges.length === 0 ? (
-            <View style={styles.emptyResults}>
-              <Text style={styles.emptyResultsEmoji}>🔍</Text>
-              <Text style={styles.emptyResultsText}>No challenges found</Text>
-              <Text style={styles.emptyResultsSubtext}>
-                {searchQuery
-                  ? `Try a different search term`
-                  : `No challenges match this category`}
-              </Text>
-              <Pressable
-                style={styles.clearFiltersButton}
-                onPress={() => {
-                  setSearchQuery('');
-                  setSelectedFilter('All');
-                }}
-              >
-                <Text style={styles.clearFiltersText}>Clear filters</Text>
-              </Pressable>
-            </View>
-          ) : (
+          ) : popularChallenges.length > 0 ? (
             <View style={styles.challengesGrid}>
               {popularChallenges.map((challenge) => (
                 <ChallengeGridCard
@@ -638,7 +586,7 @@ export const ChallengesScreenVision = () => {
                 />
               ))}
             </View>
-          )}
+          ) : null}
         </View>
 
         {/* Coming Soon - Locked Challenges */}

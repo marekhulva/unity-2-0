@@ -132,7 +132,7 @@ export const UnifiedPostCardTimeline: React.FC<UnifiedPostCardTimelineProps> = R
           style={styles.avatarWrap}
         >
           <View style={styles.avatar}>
-            {post.avatar && post.avatar.startsWith('http') ? (
+            {post.avatar && (post.avatar.startsWith('http') || post.avatar.startsWith('data:')) ? (
               <Image source={{ uri: post.avatar }} style={styles.avatarImage} />
             ) : (
               <Text style={styles.avatarEmoji}>{post.avatar || '👤'}</Text>
@@ -165,7 +165,9 @@ export const UnifiedPostCardTimeline: React.FC<UnifiedPostCardTimelineProps> = R
         )}
 
         {/* Content/comment (show for both check-ins and regular posts) */}
-        {post.content && isValidContent(post.content) && !isPhoto && (
+        {post.content && isValidContent(post.content) && !isPhoto &&
+         post.content !== 'Completed' &&
+         post.content !== `Completed: ${post.actionTitle}` && (
           <Text style={styles.postText}>{post.content}</Text>
         )}
 

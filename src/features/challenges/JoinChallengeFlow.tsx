@@ -224,19 +224,26 @@ export const JoinChallengeFlow = ({ visible, challenge, onClose, onSuccess }: Jo
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Daily Reminders</Text>
-        {timedActivities.map((activity: any, index: number) => {
-          const activityTime = getActivityTime(activity.id);
-          const [hours, minutes] = activityTime.split(':');
-          const hour = parseInt(hours);
-          const ampm = hour >= 12 ? 'PM' : 'AM';
-          const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-          const formattedTime = `${displayHour}:${minutes} ${ampm}`;
+        {activities.map((activity: any, index: number) => {
+          const isAbstinence = activity.is_abstinence === true;
+          const isSleep = activity.title?.toLowerCase().includes('sleep');
+          const isTimed = !isAbstinence && !isSleep;
+
+          let formattedTime = '';
+          if (isTimed) {
+            const activityTime = getActivityTime(activity.id);
+            const [hours, minutes] = activityTime.split(':');
+            const hour = parseInt(hours);
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+            formattedTime = `${displayHour}:${minutes} ${ampm}`;
+          }
 
           return (
             <View key={activity.id || index} style={styles.reminderItem}>
               <Text style={styles.activityEmoji}>{activity.emoji}</Text>
               <Text style={styles.reminderText}>{activity.title}</Text>
-              <Text style={styles.reminderTime}>{formattedTime}</Text>
+              {isTimed && <Text style={styles.reminderTime}>{formattedTime}</Text>}
             </View>
           );
         })}
@@ -244,7 +251,7 @@ export const JoinChallengeFlow = ({ visible, challenge, onClose, onSuccess }: Jo
 
       <View style={styles.badgePreview}>
         <Text style={styles.badgeEmoji}>{challenge?.badge_emoji}</Text>
-        <Text style={styles.badgeText}>Earn the {challenge?.badge_name} badge!</Text>
+        <Text style={styles.badgeText}>Earn the {challenge?.badge_name?.replace('Master', 'Challenge')} badge!</Text>
       </View>
     </ScrollView>
   );

@@ -53,6 +53,7 @@ import {
   Apple,
   Star,
   Zap,
+  Lock,
 } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -297,9 +298,10 @@ export const CircleScreenVision = () => {
             <Text style={styles.emptyStateButtonText}>Join Circle</Text>
           </Pressable>
           <Pressable
-            style={styles.emptyStateButtonSecondary}
-            onPress={() => setShowCreateCircleModal(true)}
+            style={[styles.emptyStateButtonSecondary, { opacity: 0.45 }]}
+            onPress={() => {/* Disabled — coming soon */}}
           >
+            <Lock size={14} color="#E7B43A" style={{ marginRight: 6 }} />
             <Text style={styles.emptyStateButtonSecondaryText}>Create Circle</Text>
           </Pressable>
         </View>
@@ -570,7 +572,7 @@ export const CircleScreenVision = () => {
             {membersWithStats.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Top Contributors</Text>
+                  <Text style={styles.sectionTitle}>Top Performers</Text>
                   <Pressable onPress={() => setActiveTab('community')}>
                     <Text style={styles.sectionLink}>View Full Leaderboard →</Text>
                   </Pressable>
@@ -1958,6 +1960,7 @@ const styles = StyleSheet.create({
     height: 48,
     paddingHorizontal: 24,
     borderRadius: 12,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.06)',

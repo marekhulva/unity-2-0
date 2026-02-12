@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config({ path: '.env.development' });
+require('dotenv').config({ path: '.env' });
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -16,7 +16,7 @@ const supabase = createClient(
 
 async function updateJoinCode() {
   const circleId = 'bb426edb-a3de-41c3-bdff-3cdcda403088';
-  const newJoinCode = 'JACKSON';
+  const newJoinCode = 'JINGJING';
 
   console.log('🔄 Updating join code for Jing Optimizers...\n');
 
