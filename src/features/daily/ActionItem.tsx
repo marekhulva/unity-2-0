@@ -214,8 +214,13 @@ export const ActionItem: React.FC<ActionItemProps> = ({
                 streak: 0,
               });
               if (__DEV__) console.log('✅ [ACTION] Individual post created with photo/comment');
-            } catch (postError) {
-              if (__DEV__) console.error('❌ [ACTION] Failed to create individual post:', postError);
+            } catch (postError: any) {
+              console.error('❌ [ACTION] Failed to create individual post:', postError);
+              Alert.alert(
+                'Photo Upload Failed',
+                postError.message || 'Failed to save your photo. Please check your connection and try again.',
+                [{ text: 'OK', style: 'cancel' }]
+              );
             }
           }
 
@@ -374,8 +379,13 @@ export const ActionItem: React.FC<ActionItemProps> = ({
                 streak: 0,
               });
               if (__DEV__) console.log('✅ [ACTION] Individual abstinence post created');
-            } catch (postError) {
-              if (__DEV__) console.error('❌ [ACTION] Failed to create individual post:', postError);
+            } catch (postError: any) {
+              console.error('❌ [ACTION] Failed to create individual post:', postError);
+              Alert.alert(
+                'Photo Upload Failed',
+                postError.message || 'Failed to save your photo. Please check your connection and try again.',
+                [{ text: 'OK', style: 'cancel' }]
+              );
             }
           }
 

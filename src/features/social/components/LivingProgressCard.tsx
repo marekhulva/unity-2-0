@@ -1,17 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Post } from '../../../state/slices/socialSlice';
 import Svg, { Circle } from 'react-native-svg';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
-import { Heart, MessageCircle } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
 
 interface LivingProgressCardProps {
   post: Post;
@@ -35,14 +26,7 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({
     is_challenge,
     challenge_id,
     challenge_name,
-    challenge_progress,
     challengeName,
-    challengeId,
-    likeCount = 0,
-    userLiked = false,
-    commentCount = 0,
-    visibility,
-    id,
   } = post;
 
   // Challenge detection - handle both naming conventions
@@ -56,35 +40,6 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({
   // Perfect day calculation
   const percentage = totalActions > 0 ? Math.round((actionsToday / totalActions) * 100) : 0;
   const isPerfectDay = percentage === 100;
-
-  // State for interactions
-  const scale = useSharedValue(1);
-  const animatedReactStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  // Engagement data
-  const hasLikes = likeCount > 0;
-  const hasComments = commentCount > 0;
-
-  // Interaction handlers
-  const handleToggleLike = async () => {
-    if (!isChallenge || !onToggleLike) return;
-
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    scale.value = withSequence(
-      withTiming(1.3, { duration: 80 }),
-      withSpring(1, { damping: 10 })
-    );
-
-    try {
-      await onToggleLike(id, visibility);
-    } catch (error) {
-      if (__DEV__) console.error('Failed to toggle like:', error);
-    }
-  };
-
-  // Comment functionality not yet implemented
 
   // Time ago calculation
   const getTimeAgo = (): string => {
@@ -276,41 +231,6 @@ export const LivingProgressCard: React.FC<LivingProgressCardProps> = ({
           <Text style={styles.completionText}> completed</Text>
         </View>
 
-        {/* Spacer */}
-        <View style={styles.spacer} />
-
-        {/* Heart Button */}
-        {isChallenge && (
-          <Animated.View style={animatedReactStyle}>
-            <Pressable style={styles.actionButton} onPress={handleToggleLike}>
-              <Heart
-                size={18}
-                color={userLiked ? '#FF6B35' : 'rgba(255,255,255,0.6)'}
-                fill={userLiked ? '#FF6B35' : 'none'}
-              />
-              {hasLikes && (
-                <Text style={[styles.buttonText, userLiked && styles.buttonTextActive]}>
-                  {likeCount}
-                </Text>
-              )}
-            </Pressable>
-          </Animated.View>
-        )}
-
-        {/* Comment button hidden until implemented */
-        false && isChallenge && (
-          <Pressable style={styles.actionButton}>
-            <MessageCircle
-              size={18}
-              color="rgba(255,255,255,0.6)"
-              fill="none"
-              strokeWidth={2}
-            />
-            {hasComments && (
-              <Text style={styles.buttonText}>{commentCount}</Text>
-            )}
-          </Pressable>
-        )}
       </View>
     </View>
   );

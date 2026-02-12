@@ -215,7 +215,11 @@ export const UnifiedPostCardTimeline: React.FC<UnifiedPostCardTimelineProps> = R
       {/* Engagement */}
       <View style={styles.engagement}>
         <Animated.View style={animatedReactStyle}>
-          <Pressable style={styles.engageBtn} onPress={handleReact}>
+          <Pressable
+            style={styles.engageBtn}
+            onPress={handleReact}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
             <Flame
               size={18}
               color={post.userReacted ? '#D4AF37' : 'rgba(255,255,255,0.35)'}
@@ -232,6 +236,7 @@ export const UnifiedPostCardTimeline: React.FC<UnifiedPostCardTimelineProps> = R
         <Pressable
           style={styles.engageBtn}
           onPress={() => setShowComments(!showComments)}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <MessageCircle
             size={18}

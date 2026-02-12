@@ -10,11 +10,11 @@ export class PushNotificationsService {
    * Register device for push notifications and store token in database
    */
   static async registerForPushNotifications(): Promise<{ success: boolean; token?: string; error?: string }> {
-    if (__DEV__) console.log('📱 [PUSH] Registering for push notifications...');
+    console.log('📱 [PUSH] Registering for push notifications...');
 
     // Check if physical device (push notifications don't work on simulator)
     if (!Device.isDevice) {
-      if (__DEV__) console.log('⚠️  [PUSH] Must use physical device for push notifications');
+      console.log('⚠️  [PUSH] Must use physical device for push notifications');
       return { success: false, error: 'Must use physical device' };
     }
 
@@ -29,7 +29,7 @@ export class PushNotificationsService {
       }
 
       if (finalStatus !== 'granted') {
-        if (__DEV__) console.log('❌ [PUSH] Permission denied');
+        console.log('❌ [PUSH] Permission denied');
         return { success: false, error: 'Permission denied' };
       }
 
@@ -41,14 +41,18 @@ export class PushNotificationsService {
       const token = tokenData.data;
       this.deviceToken = token;
 
-      if (__DEV__) console.log('✅ [PUSH] Got device token:', token);
+      console.log('✅ [PUSH] Got device token:', token);
 
       // Store token in database
-      await this.saveTokenToDatabase(token);
-
-      return { success: true, token };
+      try {
+        await this.saveTokenToDatabase(token);
+        return { success: true, token };
+      } catch (saveError: any) {
+        console.error('❌ [PUSH] Failed to save token to database:', saveError);
+        return { success: false, error: `Database save failed: ${saveError.message}` };
+      }
     } catch (error: any) {
-      if (__DEV__) console.error('❌ [PUSH] Error registering:', error);
+      console.error('❌ [PUSH] Error registering:', error);
       return { success: false, error: error.message };
     }
   }
@@ -57,36 +61,31 @@ export class PushNotificationsService {
    * Save push token to database
    */
   private static async saveTokenToDatabase(token: string): Promise<void> {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        if (__DEV__) console.log('⚠️  [PUSH] No user logged in');
-        return;
-      }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.log('⚠️  [PUSH] No user logged in');
+      throw new Error('User not authenticated');
+    }
 
-      const platform = Platform.OS as 'ios' | 'android' | 'web';
-      const deviceName = Device.deviceName || 'Unknown Device';
+    const platform = Platform.OS as 'ios' | 'android' | 'web';
+    const deviceName = Device.deviceName || 'Unknown Device';
 
-      // Upsert token (insert or update if exists)
-      const { error } = await supabase
-        .from('push_tokens')
-        .upsert({
-          user_id: user.id,
-          token,
-          platform,
-          device_name: deviceName,
-          last_used_at: new Date().toISOString(),
-        }, {
-          onConflict: 'user_id,token',
-        });
+    // Upsert token (insert or update if exists)
+    const { error } = await supabase
+      .from('push_tokens')
+      .upsert({
+        user_id: user.id,
+        token,
+        platform,
+        device_name: deviceName,
+        last_used_at: new Date().toISOString(),
+      });
 
-      if (error) {
-        if (__DEV__) console.error('❌ [PUSH] Error saving token:', error);
-      } else {
-        if (__DEV__) console.log('✅ [PUSH] Token saved to database');
-      }
-    } catch (error) {
-      if (__DEV__) console.error('❌ [PUSH] Exception saving token:', error);
+    if (error) {
+      console.error('❌ [PUSH] Error saving token:', error);
+      throw new Error(`Failed to save push token: ${error.message}`);
+    } else {
+      console.log('✅ [PUSH] Token saved to database');
     }
   }
 
@@ -106,10 +105,10 @@ export class PushNotificationsService {
         .eq('user_id', user.id)
         .eq('token', this.deviceToken);
 
-      if (__DEV__) console.log('✅ [PUSH] Device unregistered');
+      console.log('✅ [PUSH] Device unregistered');
       this.deviceToken = null;
     } catch (error) {
-      if (__DEV__) console.error('❌ [PUSH] Error unregistering:', error);
+      console.error('❌ [PUSH] Error unregistering:', error);
     }
   }
 

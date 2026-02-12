@@ -425,12 +425,12 @@ class SupabaseChallengeService {
         (1000 * 60 * 60 * 24)
     ) + 1;
 
-    // Exclude today from consistency score (only count fully completed days)
+    // Include today in consistency score for real-time updates
     // Exception: if challenge is over (currentDay > totalDays), count all days
     const challengeOver = currentDay > totalDays;
     const completedDaysSoFar = challengeOver
       ? totalDays
-      : Math.max(currentDay - 1, 0);
+      : currentDay;
 
     // Count total completions
     const { data: allCompletions } = await supabase
@@ -439,19 +439,17 @@ class SupabaseChallengeService {
       .eq('user_id', userId)
       .eq('challenge_id', challengeId);
 
-    // Only count completions from completed days (exclude today, unless challenge is over)
+    // Count all completions including today for real-time updates
     const today = this.getLocalDateString(new Date());
-    const pastCompletions = challengeOver
-      ? (allCompletions || [])
-      : (allCompletions?.filter(c => c.completion_date !== today) || []);
+    const pastCompletions = allCompletions || [];
     const totalCompletions = pastCompletions.length;
 
-    // Calculate expected activities accounting for day-specific ones (completed days only)
+    // Calculate expected activities accounting for day-specific ones (including today)
     const predActivities = challenge.predetermined_activities || [];
     const selectedIds = new Set(participant.selected_activity_ids || []);
 
     let expectedActivities = 0;
-    for (let day = 1; day <= completedDaysSoFar; day++) {
+    for (let day = 1; day <= currentDay; day++) {
       for (const act of predActivities) {
         if (selectedIds.size > 0 && !selectedIds.has(act.id)) continue;
         const startDay = act.start_day || 1;
@@ -464,7 +462,7 @@ class SupabaseChallengeService {
       ? Math.min(100, Math.round((totalCompletions / expectedActivities) * 100))
       : 0;
 
-    if (__DEV__) console.log(`📊 Challenge consistency: ${totalCompletions}/${expectedActivities} activities (${completedDaysSoFar} completed days, excludes today) = ${completionPercentage}%`);
+    if (__DEV__) console.log(`📊 Challenge consistency: ${totalCompletions}/${expectedActivities} activities (${currentDay} days including today) = ${completionPercentage}%`);
 
     const daysTaken = currentDay > totalDays ? totalDays : currentDay;
 

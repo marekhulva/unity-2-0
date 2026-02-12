@@ -16,6 +16,11 @@ const EVENING_NUDGE_ID = 'evening-nudge';
 const ACTION_REMINDER_PREFIX = 'action-reminder-';
 
 export async function requestPermissions(): Promise<boolean> {
+  if (Platform.OS === 'web') {
+    if (__DEV__) console.log('⚠️  [NOTIF] Notifications not supported on web');
+    return false;
+  }
+
   const { status: existing } = await Notifications.getPermissionsAsync();
   if (existing === 'granted') return true;
 
@@ -24,6 +29,10 @@ export async function requestPermissions(): Promise<boolean> {
 }
 
 export async function cancelAll(): Promise<void> {
+  if (Platform.OS === 'web') {
+    if (__DEV__) console.log('⚠️  [NOTIF] Skipping notifications on web platform');
+    return;
+  }
   await Notifications.cancelAllScheduledNotificationsAsync();
 }
 

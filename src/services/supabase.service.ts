@@ -973,56 +973,116 @@ class SupabaseService {
         .select('action_id, user_id')
         .in('action_id', allActionIds);
 
+      // Fetch challenge participations with stored completion percentages
+      const { data: allParticipants, error: participantsError } = await supabase
+        .from('challenge_participants')
+        .select('user_id, completion_percentage, completed_days, days_taken, challenges(duration_days, predetermined_activities), selected_activity_ids, joined_at')
+        .in('user_id', userIds)
+        .neq('status', 'left');  // Include active AND completed challenges
+
+      console.log('🔍 [DEBUG] Query userIds:', userIds);
+      console.log('🔍 [DEBUG] Challenge participants found:', allParticipants?.length || 0);
+      console.log('🔍 [DEBUG] Participants data:', JSON.stringify(allParticipants, null, 2));
+      if (participantsError) {
+        console.error('🔴 [ERROR] Error fetching participants:', participantsError);
+        console.error('🔴 [ERROR] Error details:', JSON.stringify(participantsError, null, 2));
+      }
+
       // Calculate stats for each user
       for (const userId of userIds) {
         const userActions = allActions.filter(a => a.user_id === userId);
 
-        if (userActions.length === 0) {
-          results[userId] = { expected: 0, completed: 0, percentage: 0 };
-          continue;
-        }
-
         const today = new Date();
         today.setHours(23, 59, 59, 999);
 
-        const oldestActionDate = userActions.reduce((oldest, action) => {
-          const actionDate = new Date(action.created_at);
-          return actionDate < oldest ? actionDate : oldest;
-        }, new Date());
-
         let totalExpected = 0;
-        for (const action of userActions) {
-          const actionCreatedAt = new Date(action.created_at);
-          actionCreatedAt.setHours(0, 0, 0, 0);
-          const daysForThisAction = Math.floor((today.getTime() - actionCreatedAt.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        let totalCompleted = 0;
 
-          const frequency = action.frequency || 'daily';
-          let expectedForAction = daysForThisAction; // Default to daily
+        // Calculate regular action stats (if user has any)
+        if (userActions.length > 0) {
+          for (const action of userActions) {
+            const actionCreatedAt = new Date(action.created_at);
+            actionCreatedAt.setHours(0, 0, 0, 0);
+            const daysForThisAction = Math.floor((today.getTime() - actionCreatedAt.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-          switch (frequency) {
-            case 'weekly':
-              expectedForAction = Math.floor(daysForThisAction / 7);
-              break;
-            case 'weekdays':
-              expectedForAction = this.countWeekdaysInRange(actionCreatedAt, today);
-              break;
-            case 'weekends':
-              expectedForAction = this.countWeekendsInRange(actionCreatedAt, today);
-              break;
-            case 'every_other_day':
-              expectedForAction = Math.floor(daysForThisAction / 2);
-              break;
-            case 'three_per_week':
-              expectedForAction = Math.floor((daysForThisAction / 7) * 3);
-              break;
+            const frequency = action.frequency || 'daily';
+            let expectedForAction = daysForThisAction;
+
+            switch (frequency) {
+              case 'weekly':
+                expectedForAction = Math.floor(daysForThisAction / 7);
+                break;
+              case 'weekdays':
+                expectedForAction = this.countWeekdaysInRange(actionCreatedAt, today);
+                break;
+              case 'weekends':
+                expectedForAction = this.countWeekendsInRange(actionCreatedAt, today);
+                break;
+              case 'every_other_day':
+                expectedForAction = Math.floor(daysForThisAction / 2);
+                break;
+              case 'three_per_week':
+                expectedForAction = Math.floor((daysForThisAction / 7) * 3);
+                break;
+            }
+
+            totalExpected += expectedForAction;
           }
 
-          totalExpected += expectedForAction;
+          const userActionIds = userActions.map(a => a.id);
+          totalCompleted = allCompletions?.filter(c => userActionIds.includes(c.action_id)).length || 0;
         }
 
-        const userActionIds = userActions.map(a => a.id);
-        const totalCompleted = allCompletions?.filter(c => userActionIds.includes(c.action_id)).length || 0;
+        // Calculate weighted average with stored challenge percentages
+        const userParticipants = allParticipants?.filter(p => p.user_id === userId) || [];
+
+        // Calculate regular action stats
+        const regularExpected = totalExpected;
+        const regularCompleted = totalCompleted;
+        const regularPercentage = regularExpected > 0 ? Math.round((regularCompleted / regularExpected) * 100) : 0;
+
+        // Get challenge stats from stored database values
+        let challengeTotalExpected = 0;
+        let challengeWeightedCompleted = 0;
+
+        for (const participant of userParticipants) {
+          const challenge = participant.challenges as any;
+          const durationDays = challenge?.duration_days || 0;
+
+          // Calculate days since participant joined
+          const joinedDate = new Date(participant.joined_at);
+          const today = new Date();
+          const daysSinceJoin = Math.floor((today.getTime() - joinedDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+          const daysToCount = Math.min(daysSinceJoin, durationDays);
+
+          let activitiesPerDay = 0;
+          if (participant.selected_activity_ids && participant.selected_activity_ids.length > 0) {
+            activitiesPerDay = participant.selected_activity_ids.length;
+          } else if (challenge?.predetermined_activities) {
+            activitiesPerDay = challenge.predetermined_activities.length;
+          }
+
+          const challengeExpected = activitiesPerDay * daysToCount;
+          challengeTotalExpected += challengeExpected;
+
+          // Use STORED completion_percentage from database
+          const storedPercentage = participant.completion_percentage || 0;
+          const challengeCompleted = Math.round((challengeExpected * storedPercentage) / 100);
+          challengeWeightedCompleted += challengeCompleted;
+
+          if (__DEV__) {
+            console.log(`📊 [Circle] Challenge: ${storedPercentage}% (DB stored) = ${challengeCompleted}/${challengeExpected} weighted`);
+          }
+        }
+
+        // Weighted average of regular + challenge
+        totalExpected = regularExpected + challengeTotalExpected;
+        totalCompleted = regularCompleted + challengeWeightedCompleted;
         const percentage = totalExpected > 0 ? Math.round((totalCompleted / totalExpected) * 100) : 0;
+
+        if (__DEV__ && (regularExpected > 0 || challengeTotalExpected > 0)) {
+          console.log(`📊 [Circle] User overall: Regular ${regularCompleted}/${regularExpected} (${regularPercentage}%) + Challenge ${challengeWeightedCompleted}/${challengeTotalExpected} = ${totalCompleted}/${totalExpected} (${percentage}%)`);
+        }
 
         results[userId] = {
           expected: totalExpected,
@@ -1850,6 +1910,33 @@ class SupabaseService {
     }
   }
 
+  /**
+   * Retry a function with exponential backoff
+   */
+  private async retryWithBackoff<T>(
+    fn: () => Promise<T>,
+    maxAttempts: number = 3,
+    initialDelay: number = 500
+  ): Promise<T> {
+    let lastError: Error;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        return await fn();
+      } catch (error: any) {
+        lastError = error;
+
+        if (attempt < maxAttempts) {
+          const delay = initialDelay * Math.pow(2, attempt - 1);
+          console.log(`🔄 Retry attempt ${attempt}/${maxAttempts} after ${delay}ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    throw lastError!;
+  }
+
   // Image upload function for Phase 4 optimization
   async uploadImage(imageData: string, userId: string): Promise<string> {
     try {
@@ -1857,16 +1944,21 @@ class SupabaseService {
 
       // Handle file:// URIs (from iOS image picker with base64: false)
       if (imageData.startsWith('file://')) {
-        if (__DEV__) console.log('📱 Detected file:// URI, reading file...');
+        console.log('📱 Reading iOS file URI...');
         const FileSystem = require('expo-file-system').default;
 
-        // Read file as base64 directly from disk (memory efficient)
-        const base64 = await FileSystem.readAsStringAsync(imageData, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
+        try {
+          // Read file as base64 directly from disk (memory efficient)
+          const base64 = await FileSystem.readAsStringAsync(imageData, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
 
-        base64Data = `data:image/jpeg;base64,${base64}`;
-        if (__DEV__) console.log('✅ File read successfully');
+          base64Data = `data:image/jpeg;base64,${base64}`;
+          console.log('✅ File read successfully, length:', base64.length);
+        } catch (readError: any) {
+          console.error('❌ Failed to read file URI:', readError);
+          throw new Error(`Failed to read photo file: ${readError.message}. The photo may have been deleted by iOS.`);
+        }
       }
       // Handle base64 data URIs
       else if (imageData.startsWith('data:image')) {
@@ -1880,7 +1972,7 @@ class SupabaseService {
       // Check size (base64 is ~33% larger than binary)
       const sizeInMB = base64Data.length / 1_048_576;
       if (sizeInMB > 5) {
-        if (__DEV__) console.log(`⚠️ Image too large (${sizeInMB.toFixed(1)}MB), keeping as base64`);
+        console.log(`⚠️ Image too large (${sizeInMB.toFixed(1)}MB), keeping as base64`);
         throw new Error('Image too large for upload');
       }
 
@@ -1899,19 +1991,24 @@ class SupabaseService {
       // Generate unique filename
       const fileName = `${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
 
-      if (__DEV__) console.log(`📤 Uploading image to Supabase Storage: ${fileName}`);
+      console.log(`📤 Uploading image to Supabase Storage: ${fileName}`);
 
-      // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from('post-images')
-        .upload(fileName, bytes.buffer, {
-          contentType: 'image/jpeg',
-          cacheControl: '3600',
-          upsert: false
-        });
+      // Upload to Supabase Storage with retry logic
+      const { data, error } = await this.retryWithBackoff(async () => {
+        const result = await supabase.storage
+          .from('post-images')
+          .upload(fileName, bytes.buffer, {
+            contentType: 'image/jpeg',
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (result.error) throw result.error;
+        return result;
+      });
 
       if (error) {
-        if (__DEV__) console.error('❌ Image upload failed:', error);
+        console.error('❌ Image upload failed:', error);
         throw error;
       }
 
@@ -1920,11 +2017,13 @@ class SupabaseService {
         .from('post-images')
         .getPublicUrl(fileName);
 
-      if (__DEV__) console.log(`✅ Image uploaded successfully: ${publicUrl}`);
+      console.log(`✅ Image uploaded successfully: ${publicUrl}`);
       return publicUrl;
 
-    } catch (error) {
-      if (__DEV__) console.error('❌ Error uploading image:', error);
+    } catch (error: any) {
+      console.error('❌ Error uploading image:', error);
+      console.error('❌ Image data length:', imageData?.length || 0);
+      console.error('❌ Image type:', imageData?.substring(0, 30));
       throw error;
     }
   }
@@ -2494,7 +2593,15 @@ class SupabaseService {
   }
 
   async toggleLike(postId: string) {
+    console.log('🔥 [LIKE] toggleLike called for post:', postId);
+
     const { data: { user } } = await supabase.auth.getUser();
+    console.log('🔥 [LIKE] User authenticated:', {
+      userId: user?.id,
+      email: user?.email,
+      isAuthenticated: !!user
+    });
+
     if (!user) throw new Error('Not authenticated');
 
     // Get post author info for notifications
@@ -2504,18 +2611,22 @@ class SupabaseService {
       .eq('id', postId)
       .single();
 
+    console.log('🔥 [LIKE] Post author:', post?.user_id);
+
     // Check if user already liked
-    const { data: existing } = await supabase
-      .from('post_likes')
+    const { data: existing, error: checkError } = await supabase
+      .from('likes')
       .select('id')
       .eq('post_id', postId)
       .eq('user_id', user.id)
       .single();
 
+    console.log('🔥 [LIKE] Existing like check:', { existing, checkError });
+
     if (existing) {
       // Remove like if already exists (toggle off)
       const { error } = await supabase
-        .from('post_likes')
+        .from('likes')
         .delete()
         .eq('post_id', postId)
         .eq('user_id', user.id);
@@ -2524,25 +2635,33 @@ class SupabaseService {
 
       // Get updated like count
       const { count } = await supabase
-        .from('post_likes')
+        .from('likes')
         .select('*', { count: 'exact', head: true })
         .eq('post_id', postId);
 
       return { liked: false, like_count: count || 0 };
     } else {
       // Add new like
-      const { error } = await supabase
-        .from('post_likes')
+      console.log('🔥 [LIKE-INSERT] Attempting to insert like:');
+      console.log('  Post ID:', postId);
+      console.log('  User ID:', user.id);
+      console.log('  User email:', user.email);
+
+      const { error, data } = await supabase
+        .from('likes')
         .insert({
           post_id: postId,
           user_id: user.id
-        });
+        })
+        .select();
+
+      console.log('🔥 [LIKE-INSERT] Result:', { data, error });
 
       if (error) throw error;
 
       // Get updated like count
       const { count } = await supabase
-        .from('post_likes')
+        .from('likes')
         .select('*', { count: 'exact', head: true })
         .eq('post_id', postId);
 
@@ -2573,7 +2692,7 @@ class SupabaseService {
     const { data: { user } } = await supabase.auth.getUser();
 
     const { data: likes, error, count } = await supabase
-      .from('post_likes')
+      .from('likes')
       .select('*, profiles!user_id(username, avatar_url)', { count: 'exact' })
       .eq('post_id', postId);
 
@@ -2594,7 +2713,7 @@ class SupabaseService {
     const { data: { user } } = await supabase.auth.getUser();
 
     const { data: likes, error } = await supabase
-      .from('post_likes')
+      .from('likes')
       .select('post_id, user_id')
       .in('post_id', postIds);
 
@@ -2676,6 +2795,44 @@ class SupabaseService {
 
     if (error) throw error;
     return data || [];
+  }
+
+  async deleteComment(commentId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { success: false, error: 'Not authenticated' };
+
+      const { data: comment, error: fetchError } = await supabase
+        .from('post_comments')
+        .select('user_id')
+        .eq('id', commentId)
+        .single();
+
+      if (fetchError) {
+        console.error('❌ Error fetching comment:', fetchError);
+        return { success: false, error: 'Comment not found' };
+      }
+
+      if (comment.user_id !== user.id) {
+        return { success: false, error: 'Not authorized to delete this comment' };
+      }
+
+      const { error } = await supabase
+        .from('post_comments')
+        .delete()
+        .eq('id', commentId);
+
+      if (error) {
+        console.error('❌ Error deleting comment:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log('✅ Comment deleted successfully');
+      return { success: true };
+    } catch (error: any) {
+      console.error('❌ Error in deleteComment:', error);
+      return { success: false, error: error.message };
+    }
   }
 
   // Real-time subscriptions

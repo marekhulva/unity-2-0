@@ -3,6 +3,55 @@
 ## Project Context
 This is a React Native (Expo) app for goal tracking, daily actions, and social accountability.
 
+## ⚠️ DEBUGGING PROTOCOL (CRITICAL - READ FIRST)
+
+**NEVER CLAIM SOMETHING IS FIXED WITHOUT VERIFICATION**
+
+When debugging database/query issues:
+
+### 1. Compare Broken Code to Working Code FIRST
+- If Feature A is broken but Feature B works, read Feature B's code FIRST
+- Example: Circle leaderboard broken? Read challenge leaderboard code that works
+- Copy the working pattern, don't guess at solutions
+
+### 2. Verify Database Schema Before Querying
+- Check what columns ACTUALLY exist by:
+  - Reading working queries in the codebase
+  - Checking migration files in `supabase/migrations/`
+  - Looking at error messages for exact column names
+- Migration files may be outdated - trust working code more than migrations
+
+### 3. Common Database Column Name Issues
+- Challenge participants table uses: `completion_percentage` (NOT `consistency_percentage`)
+- Always check: `completed_days`, `days_taken`, `current_day`, `current_streak`
+- DO NOT query: `total_completions` (doesn't exist)
+
+### 4. Working Code Reference Points
+- **Challenge leaderboard** (`supabase.challenges.service.ts` lines 570-599) - PROVEN to work correctly
+- Uses: `completion_percentage`, `completed_days`, `days_taken`, `current_day`, `current_streak`
+- Status filter: `.neq('status', 'left')` includes both active AND completed
+
+### 5. Port and Directory Verification
+- **ALWAYS verify correct directory**: `/home/marek/Unity-vision` (NOT Unity-Vision-experiment)
+- **ALWAYS verify correct port**: 8081 (NOT 8083)
+- Check console output to confirm which version is running
+
+### 6. Verification Checklist Before Claiming "Fixed"
+- [ ] Console shows no database errors
+- [ ] Test data appears correctly (e.g., Angel and Zaine show 29%)
+- [ ] Browser console logs show expected values
+- [ ] User can confirm the fix visually in UI
+
+### 7. Never Rush - Be Methodical
+1. Read error message completely
+2. Find working code that does similar thing
+3. Compare working vs broken
+4. Make minimal targeted fix
+5. Verify fix actually works
+6. THEN say it's fixed
+
+**If you break this protocol, you waste time and frustrate the user.**
+
 ## Key Commands
 
 ### Development
@@ -60,10 +109,31 @@ Co-Authored-By: Claude <noreply@anthropic.com>" && git push origin circle-view-t
 - Saves automatically at each step
 - Backend: `supabase.dailyReviews.service.ts`
 
+### Challenge Participants Table Schema (REFERENCE)
+**Working columns** (verified in `supabase.challenges.service.ts`):
+- `user_id`, `challenge_id`, `status`
+- `completion_percentage` (NOT consistency_percentage)
+- `completed_days`, `days_taken`, `current_day`, `current_streak`
+- `rank`, `percentile`
+- `selected_activity_ids` (new challenges)
+- `joined_at`, `personal_start_date`
+
+**DO NOT query these** (they don't exist):
+- `total_completions` ❌
+- `consistency_percentage` ❌
+- `days_participated` ❌
+
+**Always reference working challenge leaderboard code** (`supabase.challenges.service.ts` lines 582-599) for correct column names.
+
 ### Database Operations
 - Always use Supabase service layer, not direct queries
 - RLS policies are enabled - respect user context
 - UTC timestamps, display in local timezone
+- **CRITICAL**: Before writing ANY database query:
+  1. Find working code that queries the same table
+  2. Copy the exact column names from working code
+  3. Do NOT guess at column names or trust outdated migrations
+  4. Check console errors for exact "column does not exist" messages
 
 ### Action Completion & Sharing System (MVP)
 

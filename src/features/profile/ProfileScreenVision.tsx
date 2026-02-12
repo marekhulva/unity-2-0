@@ -18,6 +18,8 @@ import { supabaseChallengeService } from '../../services/supabase.challenges.ser
 import { LogOut, ChevronRight, Trophy, Target, RefreshCw, Users, Camera } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
+import * as Notifications from 'expo-notifications';
+import { PushNotificationsService } from '../../services/pushNotifications.service';
 
 // Consistency Circle Component (Memoized for performance)
 const ConsistencyCircle = React.memo(({ percentage }: { percentage: number }) => {
@@ -134,6 +136,20 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ userId, isInModal,
   const [showFullJourney, setShowFullJourney] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [pushToken, setPushToken] = useState<string>('');
+
+  // Get push token for debugging
+  useEffect(() => {
+    if (isOwnProfile) {
+      Notifications.getExpoPushTokenAsync({
+        projectId: '45fa4417-6061-4661-9881-0ee7cf571b4e',
+      }).then(tokenData => {
+        setPushToken(tokenData.data);
+      }).catch(err => {
+        console.log('Token error:', err);
+      });
+    }
+  }, [isOwnProfile]);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -469,6 +485,18 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ userId, isInModal,
           {displayUser.bio ? (
             <Text style={styles.bio}>{displayUser.bio}</Text>
           ) : null}
+
+          {/* Push Token Display (Temporary for Testing) */}
+          {isOwnProfile && pushToken && (
+            <View style={{ backgroundColor: 'rgba(231,180,58,0.1)', padding: 12, borderRadius: 8, marginTop: 16 }}>
+              <Text style={{ color: '#E7B43A', fontSize: 11, fontWeight: '600', marginBottom: 4 }}>
+                📱 PUSH TOKEN (for testing):
+              </Text>
+              <Text style={{ color: '#fff', fontSize: 10, fontFamily: 'monospace' }} selectable>
+                {pushToken}
+              </Text>
+            </View>
+          )}
 
           {/* Social Stats removed for MVP */}
         </View>

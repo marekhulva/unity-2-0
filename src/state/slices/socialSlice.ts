@@ -1044,75 +1044,101 @@ export const createSocialSlice: StateCreator<
   },
   
   toggleLike: async (postId, which) => {
-    const currentFeed = which === 'circle' ? 'circleFeed' : 'followFeed';
-    
     // Get current state
     const currentState = get();
-    const post = currentState[currentFeed].find(p => p.id === postId);
-    if (!post) return;
-    
+
+    // Find post in any feed (unified, circle, or follow)
+    let post = currentState.unifiedFeed.find(p => p.id === postId);
+    if (!post) {
+      const currentFeed = which === 'circle' ? 'circleFeed' : 'followFeed';
+      post = currentState[currentFeed].find(p => p.id === postId);
+    }
+
+    if (!post) {
+      console.log('❌ Post not found in any feed:', postId);
+      return;
+    }
+
     const wasLiked = post.userLiked || false;
     const currentCount = post.likeCount || 0;
-    
-    // Optimistic update
-    set((s) => ({
-      [currentFeed]: s[currentFeed].map(p => 
-        p.id === postId 
+
+    // Helper function to update post in feed
+    const updatePostInFeed = (feed: Post[]) =>
+      feed.map(p =>
+        p.id === postId
           ? {
               ...p,
               userLiked: !wasLiked,
               likeCount: wasLiked ? Math.max(0, currentCount - 1) : currentCount + 1
             }
           : p
-      )
+      );
+
+    // Optimistic update - update ALL feeds that contain this post
+    set((s) => ({
+      unifiedFeed: updatePostInFeed(s.unifiedFeed),
+      circleFeed: updatePostInFeed(s.circleFeed),
+      followFeed: updatePostInFeed(s.followFeed),
     }));
-    
+
     // Haptic feedback
     if (typeof window !== 'undefined' && (window as any).Haptics) {
       (window as any).Haptics.impactAsync((window as any).Haptics.ImpactFeedbackStyle.Light);
     }
-    
+
     try {
       // Call backend
-      if (__DEV__) console.log('🔥 Toggling like for post:', postId);
+      console.log('🔥 Toggling like for post:', postId);
       const response = await backendService.toggleLike(postId);
-      
+
       if (response.success && response.data) {
-        // Update with real data from backend
-        set((s) => ({
-          [currentFeed]: s[currentFeed].map(p => 
-            p.id === postId 
+        // Helper function to update with backend data
+        const updateWithBackendData = (feed: Post[]) =>
+          feed.map(p =>
+            p.id === postId
               ? {
                   ...p,
                   userLiked: response.data.liked,
                   likeCount: response.data.like_count
                 }
               : p
-          )
+          );
+
+        // Update with real data from backend - update ALL feeds
+        set((s) => ({
+          unifiedFeed: updateWithBackendData(s.unifiedFeed),
+          circleFeed: updateWithBackendData(s.circleFeed),
+          followFeed: updateWithBackendData(s.followFeed),
         }));
-        
+
         // Update cache
         const cacheKey = `likes:${postId}`;
         memoryCache.set(cacheKey, response.data, 60); // Cache for 1 minute
-        
-        if (__DEV__) console.log(`✅ Like ${response.data.action} successfully`);
+
+        console.log(`✅ Like ${response.data.action} successfully`);
       } else {
         throw new Error(response.error || 'Failed to toggle like');
       }
     } catch (error) {
-      // Revert optimistic update on error
-      set((s) => ({
-        [currentFeed]: s[currentFeed].map(p => 
-          p.id === postId 
+      // Helper function to revert changes
+      const revertChanges = (feed: Post[]) =>
+        feed.map(p =>
+          p.id === postId
             ? {
                 ...p,
                 userLiked: wasLiked,
                 likeCount: currentCount
               }
             : p
-        )
+        );
+
+      // Revert optimistic update on error - revert ALL feeds
+      set((s) => ({
+        unifiedFeed: revertChanges(s.unifiedFeed),
+        circleFeed: revertChanges(s.circleFeed),
+        followFeed: revertChanges(s.followFeed),
       }));
-      if (__DEV__) console.error('❌ Failed to toggle like:', error);
+      console.error('❌ Failed to toggle like:', error);
     }
   },
   

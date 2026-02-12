@@ -317,7 +317,7 @@ export const CircleScreen = () => {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>OVERALL LEADERBOARD</Text>
               <Text style={styles.sectionSubtitle}>Based on daily action completion</Text>
-          
+
           {isLoading ? (
             <ActivityIndicator size="large" color="#FFD700" />
           ) : membersWithStats.length === 0 ? (
@@ -336,15 +336,15 @@ export const CircleScreen = () => {
                 const consistency = member.consistencyPercentage || 0;
                 const isCurrentUser = member.user_id === user?.id;
                 const displayName = member.profiles?.username || member.profiles?.name || 'Unknown User';
-                
+
                 return (
                   <Animated.View
                     key={member.user_id}
                     entering={FadeInDown.delay(200 + index * 50).springify()}
                   >
-                    <Pressable 
+                    <Pressable
                       style={[
-                        styles.memberCard, 
+                        styles.memberCard,
                         isCurrentUser && styles.currentUserCard
                       ]}
                       onPress={() => handleMemberPress(member.user_id)}
@@ -361,7 +361,7 @@ export const CircleScreen = () => {
                           <Text style={styles.rankNumber}>#{index + 1}</Text>
                         )}
                       </View>
-                      
+
                       {/* User Info */}
                       <View style={styles.userInfo}>
                         <View style={styles.avatar}>
@@ -373,7 +373,7 @@ export const CircleScreen = () => {
                           {displayName} {isCurrentUser && '(You)'}
                         </Text>
                       </View>
-                      
+
                       {/* Consistency Circle */}
                       <View style={styles.consistencyContainer}>
                         <Svg width={50} height={50}>

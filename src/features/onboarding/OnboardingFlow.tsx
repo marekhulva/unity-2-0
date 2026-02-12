@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { View, Text, Pressable, StyleSheet, Alert } from 'react-native';
 import { JourneySelectionScreen } from './JourneySelectionScreen';
 import { JourneyConfirmationScreen } from './JourneyConfirmationScreen';
 import { GoalSettingScreen } from './GoalSettingScreen';
@@ -7,14 +8,15 @@ import { ActionsCommitmentsScreen } from './ActionsCommitmentsScreen';
 import { ReviewCommitScreen } from './ReviewCommitScreen';
 import { TimeSelectionScreen } from './TimeSelectionScreen';
 import { RoutineBuilderScreen } from './RoutineBuilderScreen';
-import { 
-  OnboardingState, 
-  PurchasedProgram, 
-  OnboardingGoal, 
-  Milestone, 
-  Action 
+import {
+  OnboardingState,
+  PurchasedProgram,
+  OnboardingGoal,
+  Milestone,
+  Action
 } from './types';
 import { useStore } from '../../state/rootStore';
+import { X } from 'lucide-react-native';
 
 // Mock data for demo - replace with actual data from your backend
 const MOCK_PURCHASED_PROGRAMS: PurchasedProgram[] = [
@@ -539,14 +541,37 @@ export const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
     });
   };
 
+  const handleExit = () => {
+    Alert.alert(
+      'Exit Setup?',
+      'Your progress will be saved. You can continue anytime by tapping the + button.',
+      [
+        {
+          text: 'Continue Setup',
+          style: 'cancel',
+        },
+        {
+          text: 'Exit',
+          style: 'default',
+          onPress: onComplete,
+        },
+      ]
+    );
+  };
+
   // Show confirmation screen if journey was just selected
   if (showConfirmation && state.journeyType) {
     return (
-      <JourneyConfirmationScreen
-        journeyType={state.journeyType}
-        program={selectedProgram}
-        onContinue={handleJourneyConfirmed}
-      />
+      <View style={styles.container}>
+        <Pressable style={styles.exitButton} onPress={handleExit}>
+          <X size={24} color="#FFD700" strokeWidth={2} />
+        </Pressable>
+        <JourneyConfirmationScreen
+          journeyType={state.journeyType}
+          program={selectedProgram}
+          onContinue={handleJourneyConfirmed}
+        />
+      </View>
     );
   }
 
@@ -675,7 +700,35 @@ export const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
     }
   };
 
-  // Return the screen without progress indicator
-  return renderScreen();
+  // Return the screen with exit button overlay
+  return (
+    <View style={styles.container}>
+      <Pressable style={styles.exitButton} onPress={handleExit}>
+        <X size={24} color="#FFD700" strokeWidth={2} />
+      </Pressable>
+      {renderScreen()}
+    </View>
+  );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    position: 'relative',
+  },
+  exitButton: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+});
 

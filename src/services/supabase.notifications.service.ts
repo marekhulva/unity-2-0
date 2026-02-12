@@ -578,7 +578,7 @@ class SupabaseNotificationService {
       }
 
       const { data: likes } = await supabase
-        .from('post_likes')
+        .from('likes')
         .select('user_id, profiles(username)')
         .eq('post_id', postId)
         .gte('created_at', tenMinutesAgo.toISOString());

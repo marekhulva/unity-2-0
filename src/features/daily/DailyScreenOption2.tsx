@@ -85,6 +85,8 @@ export const DailyScreenOption2 = () => {
   const [lastTapTime, setLastTapTime] = useState<number>(0);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [actionToEdit, setActionToEdit] = useState<any>(null);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [selectedTime, setSelectedTime] = useState({ hours: 9, minutes: 0 });
 
   const completed = actions.filter(a => a.done && !a.failed).length;
   const progress = actions.length ? Math.round((completed / actions.length) * 100) : 0;
@@ -639,15 +641,6 @@ export const DailyScreenOption2 = () => {
   };
 
   const handleActionLongPress = (action: any) => {
-    if (action.isFromChallenge) {
-      Alert.alert(
-        'Challenge Activity',
-        'Challenge activities cannot be edited or deleted. They are managed by your active challenges.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
     setActionToEdit(action);
     setShowActionMenu(true);
     HapticManager.interaction.longPress();
@@ -677,6 +670,83 @@ export const DailyScreenOption2 = () => {
       'plain-text',
       actionToEdit.title
     );
+  };
+
+  const handleChangeTime = () => {
+    setShowActionMenu(false);
+
+    if (!actionToEdit) return;
+
+    const currentTime = actionToEdit.time || '09:00';
+    const [hours, minutes] = currentTime.split(':').map(Number);
+    setSelectedTime({ hours: hours || 9, minutes: minutes || 0 });
+    setShowTimePicker(true);
+    HapticManager.interaction.tap();
+  };
+
+  const handleTimeConfirm = async () => {
+    if (!actionToEdit) return;
+
+    const newTime = `${String(selectedTime.hours).padStart(2, '0')}:${String(selectedTime.minutes).padStart(2, '0')}`;
+
+    console.log('⏰ [TIME-EDIT] Starting time update');
+    console.log('⏰ [TIME-EDIT] Action to edit:', actionToEdit);
+    console.log('⏰ [TIME-EDIT] New time:', newTime);
+
+    try {
+      if (actionToEdit.isFromChallenge) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
+        const activityId = actionToEdit.challengeActivityId || actionToEdit.id.replace(`challenge-${actionToEdit.challengeId}-`, '');
+
+        console.log('⏰ [TIME-EDIT] Challenge activity detected');
+        console.log('⏰ [TIME-EDIT] Full action ID:', actionToEdit.id);
+        console.log('⏰ [TIME-EDIT] Extracted activityId:', activityId);
+        console.log('⏰ [TIME-EDIT] challengeId:', actionToEdit.challengeId);
+        console.log('⏰ [TIME-EDIT] user_id:', user.id);
+
+        const upsertData = {
+          user_id: user.id,
+          challenge_id: actionToEdit.challengeId,
+          activity_id: activityId,
+          scheduled_time: newTime,
+        };
+
+        console.log('⏰ [TIME-EDIT] Upserting to challenge_activity_schedules:', upsertData);
+
+        const { data, error } = await supabase
+          .from('challenge_activity_schedules')
+          .upsert(upsertData, {
+            onConflict: 'user_id,challenge_id,activity_id'
+          })
+          .select();
+
+        console.log('⏰ [TIME-EDIT] Upsert result - data:', data);
+        console.log('⏰ [TIME-EDIT] Upsert result - error:', error);
+
+        if (error) {
+          console.error('❌ [TIME-EDIT] Failed to update challenge activity time:', error);
+          throw error;
+        }
+
+        console.log('✅ [TIME-EDIT] Successfully updated challenge activity time');
+      } else {
+        console.log('⏰ [TIME-EDIT] Regular action detected');
+        await updateAction(actionToEdit.id, { time: newTime });
+        console.log('✅ [TIME-EDIT] Successfully updated regular action time');
+      }
+
+      console.log('⏰ [TIME-EDIT] Closing modal and refreshing actions');
+      HapticManager.interaction.premiumPress();
+      setShowTimePicker(false);
+      setActionToEdit(null);
+      await fetchDailyActions();
+      console.log('✅ [TIME-EDIT] Time update complete');
+    } catch (error) {
+      console.error('❌ [TIME-EDIT] Error in handleTimeConfirm:', error);
+      Alert.alert('Error', 'Failed to update time. Please try again.');
+    }
   };
 
   const handleDeleteAction = () => {
@@ -882,6 +952,18 @@ export const DailyScreenOption2 = () => {
         )}
       </ScrollView>
 
+      <Pressable
+        style={[styles.fab, { bottom: insets.bottom + 90 }]}
+        onPress={openOnboarding}
+        activeOpacity={0.8}
+      >
+        <LinearGradient
+          colors={['#FFD700', '#E7B43A']}
+          style={StyleSheet.absoluteFillObject}
+        />
+        <Text style={styles.fabIcon}>+</Text>
+      </Pressable>
+
       <SocialSharePrompt
         visible={showSharePrompt}
         onClose={() => setShowSharePrompt(false)}
@@ -935,15 +1017,135 @@ export const DailyScreenOption2 = () => {
           <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFillObject} />
           <View style={styles.actionMenuContainer}>
             <View style={styles.actionMenu}>
-              <Pressable style={styles.menuItem} onPress={handleEditAction}>
-                <Edit3 size={20} color={LuxuryTheme.colors.text.primary} />
-                <Text style={styles.menuText}>Edit Action</Text>
+              {!actionToEdit.isFromChallenge && (
+                <>
+                  <Pressable style={styles.menuItem} onPress={handleEditAction}>
+                    <Edit3 size={20} color={LuxuryTheme.colors.text.primary} />
+                    <Text style={styles.menuText}>Edit Action</Text>
+                  </Pressable>
+                  <View style={styles.menuDivider} />
+                </>
+              )}
+              <Pressable style={styles.menuItem} onPress={handleChangeTime}>
+                <Text style={styles.menuIcon}>🕐</Text>
+                <Text style={styles.menuText}>Change Time</Text>
               </Pressable>
-              <View style={styles.menuDivider} />
-              <Pressable style={styles.menuItem} onPress={handleDeleteAction}>
-                <Trash2 size={20} color="#ef4444" />
-                <Text style={[styles.menuText, { color: '#ef4444' }]}>Delete Action</Text>
-              </Pressable>
+              {!actionToEdit.isFromChallenge && (
+                <>
+                  <View style={styles.menuDivider} />
+                  <Pressable style={styles.menuItem} onPress={handleDeleteAction}>
+                    <Trash2 size={20} color="#ef4444" />
+                    <Text style={[styles.menuText, { color: '#ef4444' }]}>Delete Action</Text>
+                  </Pressable>
+                </>
+              )}
+            </View>
+          </View>
+        </Pressable>
+      )}
+
+      {showTimePicker && (
+        <Pressable
+          style={styles.actionMenuOverlay}
+          onPress={() => {
+            setShowTimePicker(false);
+            setActionToEdit(null);
+          }}
+          activeOpacity={1}
+        >
+          <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFillObject} />
+          <View style={styles.actionMenuContainer}>
+            <View style={styles.timePicker}>
+              <Text style={styles.timePickerTitle}>Set Time</Text>
+              <Text style={styles.timePickerSubtitle}>{actionToEdit?.title}</Text>
+
+              <View style={styles.timePickerControls}>
+                <View style={styles.timeColumn}>
+                  <Pressable
+                    style={styles.timeButton}
+                    onPress={() => {
+                      setSelectedTime(prev => ({
+                        ...prev,
+                        hours: prev.hours === 23 ? 0 : prev.hours + 1
+                      }));
+                      HapticManager.interaction.tap();
+                    }}
+                  >
+                    <Text style={styles.timeButtonText}>▲</Text>
+                  </Pressable>
+                  <View style={styles.timeDisplay}>
+                    <Text style={styles.timeValue}>{String(selectedTime.hours).padStart(2, '0')}</Text>
+                    <Text style={styles.timeLabel}>Hour</Text>
+                  </View>
+                  <Pressable
+                    style={styles.timeButton}
+                    onPress={() => {
+                      setSelectedTime(prev => ({
+                        ...prev,
+                        hours: prev.hours === 0 ? 23 : prev.hours - 1
+                      }));
+                      HapticManager.interaction.tap();
+                    }}
+                  >
+                    <Text style={styles.timeButtonText}>▼</Text>
+                  </Pressable>
+                </View>
+
+                <Text style={styles.timeSeparator}>:</Text>
+
+                <View style={styles.timeColumn}>
+                  <Pressable
+                    style={styles.timeButton}
+                    onPress={() => {
+                      setSelectedTime(prev => ({
+                        ...prev,
+                        minutes: prev.minutes === 59 ? 0 : prev.minutes + 1
+                      }));
+                      HapticManager.interaction.tap();
+                    }}
+                  >
+                    <Text style={styles.timeButtonText}>▲</Text>
+                  </Pressable>
+                  <View style={styles.timeDisplay}>
+                    <Text style={styles.timeValue}>{String(selectedTime.minutes).padStart(2, '0')}</Text>
+                    <Text style={styles.timeLabel}>Min</Text>
+                  </View>
+                  <Pressable
+                    style={styles.timeButton}
+                    onPress={() => {
+                      setSelectedTime(prev => ({
+                        ...prev,
+                        minutes: prev.minutes === 0 ? 59 : prev.minutes - 1
+                      }));
+                      HapticManager.interaction.tap();
+                    }}
+                  >
+                    <Text style={styles.timeButtonText}>▼</Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              <View style={styles.timePickerActions}>
+                <Pressable
+                  style={[styles.timeActionButton, styles.timeCancelButton]}
+                  onPress={() => {
+                    setShowTimePicker(false);
+                    setActionToEdit(null);
+                  }}
+                >
+                  <Text style={styles.timeCancelText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.timeActionButton, styles.timeConfirmButton]}
+                  onPress={handleTimeConfirm}
+                >
+                  <LinearGradient
+                    colors={['#FFD700', '#E7B43A']}
+                    style={StyleSheet.absoluteFillObject}
+                  />
+                  <Text style={styles.timeConfirmText}>Confirm</Text>
+                </Pressable>
+              </View>
             </View>
           </View>
         </Pressable>
@@ -1201,5 +1403,138 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     marginHorizontal: 12,
+  },
+  menuIcon: {
+    fontSize: 20,
+    width: 20,
+    textAlign: 'center',
+  },
+  timePicker: {
+    backgroundColor: 'rgba(10, 10, 10, 0.98)',
+    borderRadius: 24,
+    padding: 24,
+    minWidth: 320,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.2)',
+  },
+  timePickerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFD700',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  timePickerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  timePickerControls: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 32,
+    gap: 16,
+  },
+  timeColumn: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  timeButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  timeButtonText: {
+    fontSize: 20,
+    color: '#FFD700',
+    fontWeight: '600',
+  },
+  timeDisplay: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderWidth: 2,
+    borderColor: '#FFD700',
+    alignItems: 'center',
+    minWidth: 80,
+  },
+  timeValue: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: '#FFD700',
+    marginBottom: 4,
+  },
+  timeLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.5)',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  timeSeparator: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: '#FFD700',
+    marginHorizontal: 8,
+  },
+  timePickerActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  timeActionButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  timeCancelButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  timeCancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  timeConfirmButton: {
+    position: 'relative',
+  },
+  timeConfirmText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000',
+  },
+  fab: {
+    position: 'absolute',
+    right: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+    zIndex: 999,
+  },
+  fabIcon: {
+    fontSize: 24,
+    fontWeight: '300',
+    color: '#000',
+    lineHeight: 24,
   },
 });

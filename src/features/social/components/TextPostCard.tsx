@@ -247,7 +247,11 @@ export const TextPostCard: React.FC<TextPostCardProps> = ({
       {/* Action Bar */}
       <View style={styles.actionBar}>
         <Animated.View style={animatedReactStyle}>
-          <Pressable style={styles.actionButton} onPress={handleReact}>
+          <Pressable
+            style={styles.actionButton}
+            onPress={handleReact}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
             <Svg width={18} height={18} viewBox="0 0 24 24">
               <Path
                 d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"
@@ -272,6 +276,7 @@ export const TextPostCard: React.FC<TextPostCardProps> = ({
         <Pressable
           style={styles.actionButton}
           onPress={() => setShowComments(!showComments)}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Svg width={18} height={18} viewBox="0 0 24 24">
             <Path
